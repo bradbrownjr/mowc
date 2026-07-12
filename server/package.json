@@ -1,0 +1,26 @@
+{
+  "name": "@mowc/server",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc -b && node -e \"require('fs').cpSync('src/db/migrations','dist/db/migrations',{recursive:true})\"",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mowc/shared": "*",
+    "better-sqlite3": "^12.11.1",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/express": "^5.0.6",
+    "@types/supertest": "^7.2.0",
+    "supertest": "^7.2.2",
+    "tsx": "^4.23.0",
+    "typescript": "^5.5.4"
+  }
+}

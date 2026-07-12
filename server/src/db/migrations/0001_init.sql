@@ -1,0 +1,7 @@
+-- Initial migration placeholder for the Phase 1 scaffold.
+--
+-- The schema_migrations bookkeeping table itself is created by the
+-- migration runner (server/src/db/migrate.ts) before any migration file
+-- runs, so this file intentionally defines no schema yet. Real entity
+-- tables (Campaign, Character, Mystery, Monster, ...) land in Phase 2;
+-- see docs/DATA-MODEL.md.
