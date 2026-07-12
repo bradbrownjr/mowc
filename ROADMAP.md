@@ -29,6 +29,10 @@ Version 0.0
 - [x] ROADMAP.md with model guide - 0.0.1 [Fable]
 - [x] CHANGELOG.md started - 0.0.1 [Fable]
 - [x] docs/: ARCHITECTURE, DATA-MODEL, SYNC, DESIGN, LICENSING - 0.0.1 [Fable]
+- [x] docs/SECURITY.md (ECTLogger baseline, expanded; includes per-phase
+      security gate table that every phase below must satisfy) - 0.0.2 [Fable]
+- [x] Content-pack JSONs drafted from Evil Hat's free PDFs, held in
+      gitignored `content-packs/private/` pending permission - 0.0.2 [Fable]
 
 ## Phase 1: Scaffold & Pipeline
 

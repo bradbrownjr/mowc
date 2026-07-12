@@ -6,6 +6,14 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+- docs/SECURITY.md: security contract adapted from ECTLogger's policy and
+  expanded for MOWC's stack (threat model, zod boundary rules, session and
+  CSRF design, sync/upload hardening, container hardening, per-phase
+  security gates)
+- AGENTS.md rules: security contract is part of Definition of Done; when
+  offering to begin a phase, state the recommended model(s) and scope
+
 ## [0.0.1] - 2026-07-12
 
 ### Added

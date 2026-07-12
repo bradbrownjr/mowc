@@ -28,4 +28,9 @@ Thumbs.db
 # Copyrighted source material must never be committed.
 # PDFs and extracted game text stay local; see docs/LICENSING.md.
 *.pdf
-/content-packs/private/
+
+# The private content-pack working area is local-only. The README there
+# (process notes, no game text) is the one tracked exception so the
+# conversion workflow lives in the repo.
+/content-packs/private/*
+!/content-packs/private/README.md

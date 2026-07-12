@@ -57,6 +57,7 @@ Phase 1 on the [ROADMAP](ROADMAP.md).
 | [docs/DATA-MODEL.md](docs/DATA-MODEL.md) | Entities, content pack schema, database tables |
 | [docs/SYNC.md](docs/SYNC.md) | Offline-first sync protocol |
 | [docs/DESIGN.md](docs/DESIGN.md) | UI/UX contract: tokens, theming, layout patterns |
+| [docs/SECURITY.md](docs/SECURITY.md) | Security contract, threat model, per-phase gates |
 | [docs/LICENSING.md](docs/LICENSING.md) | What may and may not ship in this repo |
 
 ## Legal

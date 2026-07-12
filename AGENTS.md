@@ -31,6 +31,13 @@ large refactors don't silently regress them.
 4. **Schemas are shared.** Entity shapes are zod schemas in `shared/`.
    Client and server both import them. Never define a parallel shape by hand
    on either side.
+5. **Security contract.** `docs/SECURITY.md` governs every endpoint, entity,
+   and upload path; its ROADMAP gate table says what must land with each
+   phase. New API surface is not done until checked against it.
+6. **When offering to begin a phase or task, always state the recommended
+   model(s) from the ROADMAP tags and a 1-3 sentence scope summary.** The
+   user orchestrates work across multiple agents/models (Opus as
+   orchestrator unless Sonnet is adequate) and needs this to dispatch.
 
 ## Always / Never Memory Protocol
 
@@ -176,6 +183,7 @@ Versions starting with `0.` are marked pre-release on GitHub.
   - `AGENTS.md` for new rules / gotchas / Feature Registry rows
   - `docs/DESIGN.md` for new UI patterns
   - `docs/DATA-MODEL.md` / `docs/SYNC.md` for new entities or sync changes
+  - `docs/SECURITY.md` checked for any new endpoint, entity, or upload path
 - Committed and pushed; CI green on `main`.
 
 ## Subagent Usage
