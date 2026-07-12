@@ -1,0 +1,27 @@
+{
+  "name": "@mowc/client",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-check --tsconfig ./tsconfig.json && node ./scripts/check-enforcement.mjs"
+  },
+  "dependencies": {
+    "@mowc/shared": "*",
+    "@fontsource/big-shoulders": "^5.2.6",
+    "@fontsource/alegreya-sans": "^5.2.8",
+    "@fontsource/courier-prime": "^5.2.8"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-static": "^3.0.10",
+    "@sveltejs/kit": "^2.69.2",
+    "@sveltejs/vite-plugin-svelte": "^7.2.0",
+    "svelte": "^5.56.4",
+    "svelte-check": "^4.7.2",
+    "typescript": "^5.5.4",
+    "vite": "^8.1.4"
+  }
+}

@@ -1,0 +1,99 @@
+/*
+ * MOWC design tokens (docs/DESIGN.md). Components never hardcode colors,
+ * spacing, radii, or fonts; they reference these custom properties only.
+ * Theme is switched by setting data-theme="light" | "dark" on the root
+ * element (see client/src/app.html for the initial prefers-color-scheme
+ * read, and the media query fallback below for a no-JS first paint).
+ */
+
+:root {
+  /* Spacing scale (px), shared with sibling repos */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Type scale (px) */
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+
+  /* Radii (deliberately squarer, this is paperwork) */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+
+  /* Layout constants */
+  --tap-min: 44px;
+  --tag-clip: 8px;
+
+  /* Type families, self-hosted via @fontsource */
+  --font-display: "Big Shoulders", sans-serif;
+  --font-body: "Alegreya Sans", sans-serif;
+  --font-meta: "Courier Prime", monospace;
+
+  /* Midnight Unit (dark) is the default theme. */
+  --bg: #12161c;
+  --surface: #1a212b;
+  --surface-2: #232b38;
+  --ink: #e8e6e0;
+  --ink-muted: #9aa3af;
+  --border: #3a4351;
+  --accent: #e8a33d;
+  --danger: #c0392b;
+  --ok: #4f9d69;
+}
+
+:root[data-theme="light"] {
+  /* Field Notes (light) */
+  --bg: #f2ead9;
+  --surface: #e9dfc8;
+  --surface-2: #ddd0af;
+  --ink: #2b2620;
+  --ink-muted: #6b6255;
+  --border: #b8ab8c;
+  --accent: #c24b3a;
+  --danger: #a3312a;
+  --ok: #3f7d4a;
+}
+
+/* No-JS / pre-hydration fallback: honor the OS preference until the
+   inline script in app.html sets an explicit data-theme attribute. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --bg: #f2ead9;
+    --surface: #e9dfc8;
+    --surface-2: #ddd0af;
+    --ink: #2b2620;
+    --ink-muted: #6b6255;
+    --border: #b8ab8c;
+    --accent: #c24b3a;
+    --danger: #a3312a;
+    --ok: #3f7d4a;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.5;
+}
