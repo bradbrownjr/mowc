@@ -5,6 +5,9 @@ node_modules/
 /dist/
 /client/build/
 /client/.svelte-kit/
+/shared/dist/
+/server/dist/
+*.tsbuildinfo
 
 # Runtime data (root-anchored: never use bare `data/`, it can match source dirs)
 /data/
