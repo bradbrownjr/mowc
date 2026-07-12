@@ -31,8 +31,38 @@ Version 0.0
 - [x] docs/: ARCHITECTURE, DATA-MODEL, SYNC, DESIGN, LICENSING - 0.0.1 [Fable]
 - [x] docs/SECURITY.md (ECTLogger baseline, expanded; includes per-phase
       security gate table that every phase below must satisfy) - 0.0.2 [Fable]
-- [x] Content-pack JSONs drafted from Evil Hat's free PDFs, held in
-      gitignored `content-packs/private/` pending permission - 0.0.2 [Fable]
+- [x] Content-pack JSONs for the 12 core-rulebook playbooks (+ basic moves,
+      Keeper reference) drafted from Evil Hat's free PDFs, held in gitignored
+      `content-packs/private/` pending permission - 0.0.2 [Fable]
+
+## Content Track: Playbook Transcription (parallel, permission-gated)
+
+Not part of the app phases and not on the version line; this runs whenever
+convenient. It is **gated on user permission for any distribution** (the
+JSONs stay in gitignored `content-packs/private/` until then) and the
+finished files must be **re-validated against the Phase 2 zod `PlaybookDef`
+schema** once that lands (0.2.1), reconciling any drift back into the
+exemplar first. Full workflow, exemplar spec, and PDF line ranges live in
+`content-packs/private/README.md` — read it before starting any task here.
+
+- [x] 12 core playbooks + basic moves + Keeper reference (see 0.0.2 above)
+- [ ] Expansion hunter playbooks from the Hunter Playbooks Consolidated 2025
+      PDF: Action Scientist, Celebrity, Changeling, Covenant, Curse-Eater,
+      Envoy, Forged, Gumshoe, Hex, Host, Interface, Pararomantic, Searcher,
+      Snoop, Spooktacular, Visitor - CT.1 [Sonnet]
+      One file per playbook (`motw-playbook-the-<name>.mowcpack.json`),
+      matching the exemplar. Independent per playbook, so safe to fan out
+      across several Sonnet agents; each needs only the README spec + its
+      own PDF line range. Transcribe verbatim; flag ambiguities in
+      `conversionNotes`, never guess.
+- [ ] Codex of Worlds / Tome of Mysteries playbooks not present in the
+      consolidated PDF (download those PDFs into `pdfs/` first; source URLs
+      in `docs/LICENSING.md` list) - CT.2 [Sonnet]
+- [ ] Team playbooks (Teambooks): design a `motw-teambook-*.mowcpack.json`
+      exemplar and add a `teambooks` section to `docs/DATA-MODEL.md` first
+      (team moves, roles, shared resources differ structurally from hunter
+      playbooks), then batch-convert from `pdfs/team-playbooks-2025.txt`
+      - CT.3 [Opus for the exemplar + schema; Sonnet for the batch]
 
 ## Phase 1: Scaffold & Pipeline
 
