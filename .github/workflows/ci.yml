@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - run: npm run check
+      # Soft-fail while the tree stabilizes (SECURITY.md section 9).
+      - run: npm audit --audit-level=high || true
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t mowc:ci .
+      - name: Run container
+        run: |
+          mkdir -p "$PWD/smoke-data"
+          docker run -d --name mowc-ci \
+            -p 7120:7120 \
+            -e PUID=$(id -u) -e PGID=$(id -g) \
+            -v "$PWD/smoke-data:/data" \
+            mowc:ci
+      - name: Wait for health and check /healthz
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:7120/healthz; then
+              echo "healthz OK"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "healthz never came up"
+          docker logs mowc-ci
+          exit 1
+      - name: Assert the database landed in the mounted volume
+        run: |
+          # The gotcha in AGENTS.md: verify SQLite wrote to the mount, not
+          # the container layer. Check both inside the container and on the
+          # host bind mount.
+          docker exec mowc-ci test -f /data/mowc.db
+          test -f "$PWD/smoke-data/mowc.db"
+          echo "mowc.db present in the mounted volume"
+      - name: Tear down
+        if: always()
+        run: docker rm -f mowc-ci || true

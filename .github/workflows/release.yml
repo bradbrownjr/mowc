@@ -1,0 +1,33 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract the CHANGELOG section for this version
+        id: notes
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          # Pull the block under "## [VERSION]" up to the next "## [" header.
+          awk -v v="$VERSION" '
+            $0 ~ "^## \\[" v "\\]" { grab = 1; next }
+            grab && /^## \[/ { exit }
+            grab { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "No CHANGELOG section found for $VERSION" >&2
+            exit 1
+          fi
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release-notes.md
+          prerelease: ${{ startsWith(github.ref_name, 'v0.') }}
