@@ -25,6 +25,27 @@ All notable changes to MOWC are documented here. Format follows
   responses, a 5 MB body limit for pack uploads vs. 1 MB elsewhere, and a
   recursive guard rejecting `__proto__`/`constructor`/`prototype` keys and
   excessive nesting per docs/SECURITY.md section 7
+- Content pack editor UI (`/packs`, `/packs/new`, `/packs/[id]`): create a
+  pack in-app with one or more playbooks (ratings lines, Luck/Harm track,
+  moves with trigger/outcome text, gear choices), list/view/delete packs
+  served from the API
+- Pack import/export: upload a `.mowcpack.json` file from the pack list
+  (client-side schema check before it reaches the API) and download any
+  pack's full JSON from its detail page
+
+### Fixed
+- The server's Content-Security-Policy header was unintentionally blocking
+  SvelteKit's own inline hydration script in the production build (masked
+  in `vite dev`, which doesn't apply the header), so the client never
+  actually became interactive once served by the real server. Script/style
+  CSP now comes from a per-page build-time hash `<meta>` tag (SvelteKit's
+  `kit.csp`, `client/svelte.config.js`) instead of the header, which is now
+  limited to `frame-ancestors 'none'` (docs/SECURITY.md section 5)
+- A route with sub-routes (`/packs` plus `/packs/new`) made the static
+  build emit both a `packs.html` file and a `packs/` directory at the same
+  path, which made Express's static file server 301-redirect and break
+  every page-relative asset URL. Fixed via `trailingSlash = "always"` so
+  adapter-static always emits `<route>/index.html`
 
 ## [0.1.0] - 2026-07-13
 

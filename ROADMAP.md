@@ -120,10 +120,10 @@ group load their own game content. Read `docs/DATA-MODEL.md` and
       columns, not one table per entity) - 0.2.2 [Opus]
 - [x] Content pack CRUD API: upload/validate/list/delete a JSON pack;
       zod-validate and reject with line-precise errors - 0.2.3 [Sonnet]
-- [ ] Content pack editor UI: create a pack in-app (define a playbook:
+- [x] Content pack editor UI: create a pack in-app (define a playbook:
       name, ratings lines, Luck/Harm layout, move list with trigger +
       outcome text fields, gear options) - 0.2.4 [Sonnet]
-- [ ] Pack import/export as `.mowcpack.json` file download/upload -
+- [x] Pack import/export as `.mowcpack.json` file download/upload -
       0.2.5 [Sonnet]
 - [x] Example pack `content-packs/example-pack.mowcpack.json` using ONLY
       invented placeholder content, used by tests as fixture -

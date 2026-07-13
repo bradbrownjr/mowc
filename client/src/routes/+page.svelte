@@ -1,5 +1,6 @@
 <script lang="ts">
   import { HealthzResponseSchema, type HealthzResponse } from "@mowc/shared";
+  import { resolve } from "$app/paths";
 
   let health = $state<HealthzResponse | null>(null);
   let error = $state<string | null>(null);
@@ -25,11 +26,24 @@
   {:else}
     <p class="meta">Checking server...</p>
   {/if}
+  <a class="nav-link" href={resolve("/packs")}>Content packs</a>
 </main>
 
 <style>
   main {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-4);
     padding: var(--space-6);
+  }
+
+  .nav-link {
+    color: var(--accent);
+    font-family: var(--font-meta);
+    font-size: var(--text-sm);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   .title {

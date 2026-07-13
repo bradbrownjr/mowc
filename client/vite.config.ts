@@ -54,7 +54,8 @@ export default defineConfig({
   ],
   server: {
     proxy: {
-      "/healthz": "http://localhost:7120"
+      "/healthz": "http://localhost:7120",
+      "/api": "http://localhost:7120"
     }
   }
 });
