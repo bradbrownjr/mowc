@@ -115,7 +115,7 @@ group load their own game content. Read `docs/DATA-MODEL.md` and
       PlaybookDef, MoveDef, GearDef, MonsterTypeDef, Campaign, Character,
       Mystery, Monster, Minion, Bystander, Location, Countdown,
       SessionLog - 0.2.1 [Fable]
-- [ ] SQLite migrations for the sync-envelope table design in
+- [x] SQLite migrations for the sync-envelope table design in
       `docs/SYNC.md` (entities stored as JSON payloads with rev/seq
       columns, not one table per entity) - 0.2.2 [Opus]
 - [ ] Content pack CRUD API: upload/validate/list/delete a JSON pack;
