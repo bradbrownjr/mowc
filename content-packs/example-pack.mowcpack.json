@@ -275,39 +275,39 @@
   "basicMoves": [
     {
       "id": "move-basic-1",
-      "name": "Act Under Pressure",
-      "trigger": "When you need to do something under time pressure, roll.",
+      "name": "Activate Widget Under Stress",
+      "trigger": "When you need to activate your placeholder widget while stressed, roll.",
       "rating": "cool",
       "outcomes": {
-        "full": "You succeed without breaking a sweat.",
-        "mixed": "You succeed, but something goes slightly wrong.",
-        "miss": "Things go badly wrong."
+        "full": "The widget responds perfectly without breaking a sweat.",
+        "mixed": "The widget responds, but something unexpected happens.",
+        "miss": "The widget fails completely at the worst time."
       },
-      "tags": ["pressure"]
+      "tags": ["placeholder", "pressure"]
     },
     {
       "id": "move-basic-2",
-      "name": "Help or Interfere",
-      "trigger": "When you help or interfere with another hunter's roll, roll.",
+      "name": "Assist or Complicate",
+      "trigger": "When you assist or complicate another hunter's action with glowsticks, roll.",
       "rating": "charm",
       "outcomes": {
-        "full": "You provide a significant boost or hindrance.",
-        "mixed": "Your help is marginal or has a cost.",
-        "miss": "Your involvement makes things worse."
+        "full": "You provide a perfect boost or distraction.",
+        "mixed": "Your involvement has a mixed result.",
+        "miss": "You make things significantly worse."
       },
-      "tags": ["social"]
+      "tags": ["placeholder", "social"]
     },
     {
       "id": "move-basic-3",
-      "name": "Investigate Thoroughly",
-      "trigger": "When you investigate a clue or location thoroughly, roll.",
+      "name": "Examine the Sparkles",
+      "trigger": "When you closely examine mysterious sparkles, roll.",
       "rating": "sharp",
       "outcomes": {
-        "full": "You find out everything relevant.",
-        "mixed": "You find something interesting and something confusing.",
-        "miss": "You miss what's important."
+        "full": "You discern all the sparkle's secrets.",
+        "mixed": "You learn something interesting and something confusing.",
+        "miss": "You misread the sparkles entirely."
       },
-      "tags": ["investigation"]
+      "tags": ["placeholder", "investigation"]
     }
   ],
   "monsterTypes": [
