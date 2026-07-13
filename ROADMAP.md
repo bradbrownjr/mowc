@@ -64,40 +64,43 @@ exemplar first. Full workflow, exemplar spec, and PDF line ranges live in
       playbooks), then batch-convert from `pdfs/team-playbooks-2025.txt`
       - CT.3 [Opus for the exemplar + schema; Sonnet for the batch]
 
-## Phase 1: Scaffold & Pipeline
+## Phase 1: Scaffold & Pipeline ✅
 
 Version 0.1 — goal: an empty-but-real app that builds, tests, ships as a
 Docker image, and serves a "hello" PWA shell with a health endpoint.
 
-- [ ] Monorepo scaffold - 0.1.1 [Sonnet]
+- [x] Monorepo scaffold - 0.1.1 [Sonnet]
       Root `package.json` (npm workspaces: `client`, `server`, `shared`),
       strict `tsconfig.base.json`, eslint + prettier config. Scripts:
       `dev`, `build`, `test`, `check`, `start` mirroring webbolo's layout
       (see `docs/ARCHITECTURE.md`).
-- [ ] `shared/` package with zod installed and one placeholder schema
+- [x] `shared/` package with zod installed and one placeholder schema
       (`healthz` response) imported by both sides - 0.1.2 [Sonnet]
-- [ ] Express server skeleton - 0.1.3 [Sonnet]
+- [x] Express server skeleton - 0.1.3 [Sonnet]
       `server/src/index.ts`: loads config from env (`MOWC_PORT` default
       7120, `MOWC_DATA_DIR` default `/data`), opens better-sqlite3 at
       `$MOWC_DATA_DIR/mowc.db`, serves `/healthz` returning
       `{status:"ok",version}`, serves the built client statically.
       Migration runner: numbered `.sql` files in `server/src/db/migrations`,
       applied in order, tracked in a `schema_migrations` table.
-- [ ] SvelteKit client skeleton - 0.1.4 [Sonnet]
+- [x] SvelteKit client skeleton - 0.1.4 [Sonnet]
       SvelteKit 2 + adapter-static + Svelte 5 runes. Base layout with
       design tokens from `docs/DESIGN.md` (light + dark). One route (`/`)
       showing app name and server health.
-- [ ] PWA plumbing - 0.1.5 [Opus]
+- [x] PWA plumbing - 0.1.5 [Opus]
       vite-plugin-pwa (Workbox): precache app shell, manifest (name,
       icons, theme color from tokens), install prompt, offline fallback
       page. Call `navigator.storage.persist()` on first load (iOS gotcha
       in AGENTS.md). Verify: airplane mode, reload, app still renders.
-- [ ] Vitest wiring, first tests (migration runner, healthz) - 0.1.6 [Sonnet]
-- [ ] Dockerfile (multi-stage, non-root, PUID/PGID, tini) +
+      Verified via built service-worker precache manifest and Express
+      integration smoke test; a real-browser airplane-mode check is still
+      recommended before 1.0.
+- [x] Vitest wiring, first tests (migration runner, healthz) - 0.1.6 [Sonnet]
+- [x] Dockerfile (multi-stage, non-root, PUID/PGID, tini) +
       `docker/docker-compose.standard.yml` + `docker-compose.unraid.yml`
       with `/data` volume - 0.1.7 [Sonnet]
       MUST honor the "Docker volume env var" gotcha in AGENTS.md.
-- [ ] GitHub Actions: `ci.yml` (build, test, check, docker smoke that curls
+- [x] GitHub Actions: `ci.yml` (build, test, check, docker smoke that curls
       `/healthz` and asserts the DB file lands in the mounted volume),
       `release-image.yml`, `release.yml` — copy webbolo's workflows and
       rename - 0.1.8 [Haiku]

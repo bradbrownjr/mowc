@@ -6,6 +6,8 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-07-13
+
 ### Added
 - Phase 1 scaffold: npm-workspaces monorepo (client, server, shared) with
   strict TypeScript, ESLint 9 flat config, and Prettier
@@ -25,6 +27,12 @@ All notable changes to MOWC are documented here. Format follows
 - Docker packaging: multi-stage image (non-root via PUID/PGID, tini as
   PID 1, healthcheck on loopback) plus standard and Unraid compose files
   mounting a single `/data` volume
+- GitHub Actions: build/test/check CI with a docker smoke test, plus
+  multi-arch release-image and GitHub Release workflows
+
+## [0.0.2] - 2026-07-12
+
+### Added
 - docs/SECURITY.md: security contract adapted from ECTLogger's policy and
   expanded for MOWC's stack (threat model, zod boundary rules, session and
   CSRF design, sync/upload hardening, container hardening, per-phase
