@@ -129,4 +129,4 @@ user-themable; they are the product's identity.
 
 | Component | File | Notes |
 |---|---|---|
-| _(populate as components ship, Phase 1+)_ | | |
+| InstallButton | `client/src/lib/InstallButton.svelte` | Fixed bottom-right PWA install affordance; shown only when `beforeinstallprompt` fired. Tokens only (accent border, meta font). |

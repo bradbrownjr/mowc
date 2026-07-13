@@ -10,15 +10,16 @@
     "check": "svelte-check --tsconfig ./tsconfig.json && node ./scripts/check-enforcement.mjs"
   },
   "dependencies": {
-    "@mowc/shared": "*",
-    "@fontsource/big-shoulders": "^5.2.6",
     "@fontsource/alegreya-sans": "^5.2.8",
-    "@fontsource/courier-prime": "^5.2.8"
+    "@fontsource/big-shoulders": "^5.2.6",
+    "@fontsource/courier-prime": "^5.2.8",
+    "@mowc/shared": "*"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.10",
     "@sveltejs/kit": "^2.69.2",
     "@sveltejs/vite-plugin-svelte": "^7.2.0",
+    "@vite-pwa/sveltekit": "^1.1.0",
     "svelte": "^5.56.4",
     "svelte-check": "^4.7.2",
     "typescript": "^5.5.4",

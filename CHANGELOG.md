@@ -7,6 +7,21 @@ All notable changes to MOWC are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- Phase 1 scaffold: npm-workspaces monorepo (client, server, shared) with
+  strict TypeScript, ESLint 9 flat config, and Prettier
+- Shared zod package (`@mowc/shared`) with the healthz response schema
+  imported by both client and server
+- Express 5 server: config from env (`MOWC_PORT` 7120, `MOWC_DATA_DIR`),
+  better-sqlite3 (WAL, foreign keys), numbered SQL migration runner with a
+  `schema_migrations` table, `GET /healthz`, and a security-headers module
+  (CSP, nosniff, frame-deny, referrer, permissions, conditional HSTS) with
+  a 1 MB body limit
+- SvelteKit static PWA client (Svelte 5 runes) with the "Case File" design
+  tokens (Midnight Unit dark default, Field Notes light), self-hosted fonts,
+  and a health page
+- Installable, offline-capable PWA: service worker precaches the app shell
+  and falls back to the offline page, web app manifest with original icons,
+  install prompt, and persistent-storage request on first load
 - docs/SECURITY.md: security contract adapted from ECTLogger's policy and
   expanded for MOWC's stack (threat model, zod boundary rules, session and
   CSRF design, sync/upload hardening, container hardening, per-phase

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <rect x="0" y="0" width="100" height="100" fill="#12161c"/>
+  <path d="M 12 12 L 71.28 12 L 88 28.72 L 88 88 L 12 88 Z" fill="none" stroke="#e8a33d" stroke-width="5" stroke-linejoin="round"/>
+  <circle cx="78.804" cy="24.54" r="3.8000000000000003" fill="none" stroke="#e8a33d" stroke-width="2"/>
+  <text x="50" y="59.12" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="19.76" letter-spacing="1" fill="#e8a33d">MOWC</text>
+</svg>

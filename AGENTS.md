@@ -113,6 +113,24 @@ change "obviously works".
 6. **Deploy**: only via tagged release and the GHCR image. Never deploy
    from a working tree.
 
+### Command reference
+
+- `npm run build` — builds `shared`, `server`, `client` (workspaces, in
+  that dependency order via npm's `--if-present` resolution).
+- `npm test` — runs vitest once across the whole repo (no root
+  `vitest.config`; it globs every `**/*.test.ts`, e.g.
+  `server/src/app.test.ts`, `server/src/db/migrate.test.ts`,
+  `shared/src/index.test.ts`).
+- Single test file: `npx vitest run server/src/db/migrate.test.ts`.
+- Single test by name: `npx vitest run -t "name substring"`.
+- `npm run check` — root eslint over the whole tree, then each
+  workspace's own `check` script (`server`: `tsc --noEmit`; `client`:
+  `svelte-check` + `client/scripts/check-enforcement.mjs`, which bans
+  `{@html}` and hardcoded hex colors in `client/src/**/*.svelte`).
+- `npm run dev` — runs `dev` in every workspace with one present
+  (`server`: `tsx watch`; `client`: `vite dev`, proxying `/healthz` to
+  `localhost:7120`).
+
 ## Regression Check Policy
 
 - **Before every commit**, mentally run `git diff --stat`. If deletions
