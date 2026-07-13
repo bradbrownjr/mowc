@@ -95,9 +95,18 @@ The app must still be safe if exposed directly.
 
 Set globally (helmet or hand-rolled middleware, one module):
 
-- `Content-Security-Policy`: `default-src 'self'`; no inline script
-  (SvelteKit static build is CSP-clean); `img-src 'self' data:`;
-  `connect-src 'self'`.
+- `Content-Security-Policy`: split across two delivery mechanisms, since
+  SvelteKit's own hydration bootstrap (and the theme-detection snippet in
+  app.html) are unavoidably inline and adapter-static has no per-request
+  server to hand out a nonce. The HTTP header (securityHeaders.ts) sets
+  only `frame-ancestors 'none'` (the one directive a `<meta>` tag cannot
+  express). `default-src 'self'`, `script-src`/`style-src` with a
+  build-time sha256 hash per page, `img-src 'self' data:`, and
+  `connect-src 'self'` come from a `<meta http-equiv="Content-Security-
+  Policy">` tag that SvelteKit generates per prerendered page
+  (`client/svelte.config.js`'s `kit.csp`, mode `"auto"`). A header-level
+  `default-src`/`script-src` here would win the browser's intersection of
+  both policies and block the hash the meta tag allows, so do not add one.
 - `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
   `Referrer-Policy: no-referrer`,
   `Strict-Transport-Security` when TLS is detected,
