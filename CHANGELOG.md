@@ -12,6 +12,9 @@ All notable changes to MOWC are documented here. Format follows
   MonsterTypeDef; campaign entities: Campaign, Seat, Character, Mystery,
   Countdown, Monster, Minion, Bystander, Location, SessionLog), exported
   from `@mowc/shared` so client and server validate the same shapes
+- Example content pack fixture (content-packs/example-pack.mowcpack.json)
+  with obviously invented placeholder content (playbooks, moves, gear,
+  monsters, etc.) for test validation and future Phase 2.3 API tests
 - SQLite migration `0002_sync_envelope.sql`: the uniform `entities`
   sync-envelope table (JSON payload with per-campaign `rev`/`seq`, tombstone
   and indexes per docs/SYNC.md), the `applied_ops` idempotency table keyed

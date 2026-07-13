@@ -1,0 +1,372 @@
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Example Placeholder Pack",
+  "author": "MOWC Test Fixtures",
+  "version": "1.0.0",
+  "playbooks": [
+    {
+      "id": "playbook-placeholder",
+      "name": "The Placeholder",
+      "blurb": "An obviously invented and test-only playbook for validating pack structure.",
+      "ratingsLines": [
+        {
+          "charm": 1,
+          "cool": 1,
+          "sharp": 2,
+          "tough": 0,
+          "weird": -1
+        },
+        {
+          "charm": 0,
+          "cool": 2,
+          "sharp": 1,
+          "tough": -1,
+          "weird": 1
+        }
+      ],
+      "luckMax": 7,
+      "harmTrack": {
+        "max": 7,
+        "unstableAt": 4
+      },
+      "looks": [
+        ["Option A", "Option B", "Option C"],
+        ["Detail 1", "Detail 2", "Detail 3"]
+      ],
+      "moves": [
+        {
+          "id": "move-placeholder-1",
+          "name": "Activate Glowstick",
+          "trigger": "When you wave the glowstick around mysteriously, roll.",
+          "rating": "weird",
+          "outcomes": {
+            "full": "The glowstick glows perfectly and nothing bad happens.",
+            "mixed": "The glowstick glows, but something unexpected happens.",
+            "miss": "The glowstick breaks or something goes very wrong."
+          },
+          "tags": ["placeholder"]
+        },
+        {
+          "id": "move-placeholder-2",
+          "name": "Confuse the Widget",
+          "trigger": "When you confuse a mechanical widget with your words, roll.",
+          "rating": "cool",
+          "outcomes": {
+            "full": "The widget stops working exactly as you intended.",
+            "mixed": "The widget malfunctions, but not quite as planned.",
+            "miss": "The widget malfunction cascades out of control."
+          },
+          "tags": ["placeholder", "tech"]
+        },
+        {
+          "id": "move-placeholder-3",
+          "name": "Channel the Sparkles",
+          "trigger": "When you attempt to channel mysterious sparkles, roll.",
+          "rating": "charm",
+          "outcomes": {
+            "full": "The sparkles obey you completely.",
+            "mixed": "The sparkles mostly obey, with minor issues.",
+            "miss": "The sparkles go wild and chaotic."
+          },
+          "tags": ["placeholder", "magic"]
+        }
+      ],
+      "movesToPick": 2,
+      "gearChoices": [
+        {
+          "id": "gear-choice-1",
+          "label": "Choose your placeholder equipment",
+          "pick": 1,
+          "options": [
+            {
+              "id": "gear-placeholder-1",
+              "name": "Glowstick of Destiny",
+              "harm": null,
+              "armor": null,
+              "tags": ["magical"]
+            },
+            {
+              "id": "gear-placeholder-2",
+              "name": "Placeholder Gadget",
+              "harm": 1,
+              "armor": null,
+              "tags": ["tech"]
+            }
+          ]
+        }
+      ],
+      "improvements": [
+        {
+          "id": "improvement-placeholder-1",
+          "text": "Get +1 to Charm, max 3",
+          "effect": {
+            "kind": "ratingBump",
+            "rating": "charm",
+            "amount": 1
+          }
+        },
+        {
+          "id": "improvement-placeholder-2",
+          "text": "Take a new placeholder move",
+          "effect": {
+            "kind": "addMove",
+            "moveId": null
+          }
+        }
+      ],
+      "advancedImprovements": [
+        {
+          "id": "improvement-advanced-1",
+          "text": "Get +1 to Weird, max 3",
+          "effect": {
+            "kind": "ratingBump",
+            "rating": "weird",
+            "amount": 1
+          }
+        }
+      ],
+      "extras": [
+        {
+          "kind": "checklist",
+          "id": "extra-placeholder-checklist",
+          "title": "Placeholder Checklist",
+          "items": ["Placeholder item 1", "Placeholder item 2", "Placeholder item 3"]
+        }
+      ]
+    },
+    {
+      "id": "playbook-understudy",
+      "name": "The Understudy",
+      "blurb": "Another obviously invented test playbook for comprehensive validation.",
+      "ratingsLines": [
+        {
+          "charm": 2,
+          "cool": 0,
+          "sharp": 1,
+          "tough": 1,
+          "weird": -1
+        },
+        {
+          "charm": 1,
+          "cool": 1,
+          "sharp": 0,
+          "tough": 2,
+          "weird": -1
+        }
+      ],
+      "luckMax": 7,
+      "harmTrack": {
+        "max": 7,
+        "unstableAt": 4
+      },
+      "looks": [
+        ["Appearance A", "Appearance B"],
+        ["Clothing X", "Clothing Y", "Clothing Z"]
+      ],
+      "moves": [
+        {
+          "id": "move-understudy-1",
+          "name": "Perform Magnificently",
+          "trigger": "When you perform in front of an audience, roll.",
+          "rating": "charm",
+          "outcomes": {
+            "full": "You absolutely captivate everyone.",
+            "mixed": "You mostly captivate, but some are unimpressed.",
+            "miss": "Your performance is a disaster."
+          },
+          "tags": ["performance"]
+        },
+        {
+          "id": "move-understudy-2",
+          "name": "Steal the Scene",
+          "trigger": "When you try to be the center of attention, roll.",
+          "rating": "cool",
+          "outcomes": {
+            "full": "All eyes are on you now.",
+            "mixed": "Most eyes turn your way.",
+            "miss": "Nobody notices or cares."
+          },
+          "tags": ["performance", "social"]
+        },
+        {
+          "id": "move-understudy-3",
+          "name": "Improvise Brilliantly",
+          "trigger": "When you have to improvise a solution on the fly, roll.",
+          "rating": "sharp",
+          "outcomes": {
+            "full": "Your improvisation works perfectly.",
+            "mixed": "Your improvisation mostly works.",
+            "miss": "Your improvisation makes things worse."
+          },
+          "tags": ["thinking"]
+        }
+      ],
+      "movesToPick": 2,
+      "gearChoices": [
+        {
+          "id": "gear-choice-understudy-1",
+          "label": "Pick your understudy gear",
+          "pick": 2,
+          "options": [
+            {
+              "id": "gear-understudy-1",
+              "name": "Costume Trunk",
+              "harm": null,
+              "armor": null,
+              "tags": ["props"]
+            },
+            {
+              "id": "gear-understudy-2",
+              "name": "Script Collection",
+              "harm": null,
+              "armor": null,
+              "tags": ["reference"]
+            },
+            {
+              "id": "gear-understudy-3",
+              "name": "Makeup Kit",
+              "harm": null,
+              "armor": null,
+              "tags": ["props"]
+            }
+          ]
+        }
+      ],
+      "improvements": [
+        {
+          "id": "improvement-understudy-1",
+          "text": "Get +1 to Sharp, max 3",
+          "effect": {
+            "kind": "ratingBump",
+            "rating": "sharp",
+            "amount": 1
+          }
+        },
+        {
+          "id": "improvement-understudy-2",
+          "text": "Mark extra experience",
+          "effect": {
+            "kind": "custom",
+            "description": "You gain an additional experience mark each session."
+          }
+        }
+      ],
+      "advancedImprovements": [
+        {
+          "id": "improvement-understudy-advanced-1",
+          "text": "Get +1 to Tough, max 3",
+          "effect": {
+            "kind": "ratingBump",
+            "rating": "tough",
+            "amount": 1
+          }
+        }
+      ],
+      "extras": [
+        {
+          "kind": "counter",
+          "id": "extra-understudy-counter",
+          "title": "Placeholder Counter",
+          "max": 10
+        }
+      ]
+    }
+  ],
+  "basicMoves": [
+    {
+      "id": "move-basic-1",
+      "name": "Act Under Pressure",
+      "trigger": "When you need to do something under time pressure, roll.",
+      "rating": "cool",
+      "outcomes": {
+        "full": "You succeed without breaking a sweat.",
+        "mixed": "You succeed, but something goes slightly wrong.",
+        "miss": "Things go badly wrong."
+      },
+      "tags": ["pressure"]
+    },
+    {
+      "id": "move-basic-2",
+      "name": "Help or Interfere",
+      "trigger": "When you help or interfere with another hunter's roll, roll.",
+      "rating": "charm",
+      "outcomes": {
+        "full": "You provide a significant boost or hindrance.",
+        "mixed": "Your help is marginal or has a cost.",
+        "miss": "Your involvement makes things worse."
+      },
+      "tags": ["social"]
+    },
+    {
+      "id": "move-basic-3",
+      "name": "Investigate Thoroughly",
+      "trigger": "When you investigate a clue or location thoroughly, roll.",
+      "rating": "sharp",
+      "outcomes": {
+        "full": "You find out everything relevant.",
+        "mixed": "You find something interesting and something confusing.",
+        "miss": "You miss what's important."
+      },
+      "tags": ["investigation"]
+    }
+  ],
+  "monsterTypes": [
+    {
+      "id": "monster-type-widget",
+      "name": "Widget Monster",
+      "motivation": "to malfunction catastrophically"
+    },
+    {
+      "id": "monster-type-sparkle",
+      "name": "Sparkle Creature",
+      "motivation": "to shine brilliantly and confuse hunters"
+    }
+  ],
+  "bystanderTypes": [
+    {
+      "id": "bystander-type-npc",
+      "name": "Placeholder NPC",
+      "description": "A test NPC with no special properties."
+    },
+    {
+      "id": "bystander-type-witness",
+      "name": "Confused Witness",
+      "description": "Someone who saw something strange but can barely describe it."
+    }
+  ],
+  "minionTypes": [
+    {
+      "id": "minion-type-goon",
+      "name": "Placeholder Goon",
+      "description": "A disposable minion for testing."
+    },
+    {
+      "id": "minion-type-creature",
+      "name": "Test Creature",
+      "description": "A small test creature minion."
+    }
+  ],
+  "gear": [
+    {
+      "id": "gear-universal-1",
+      "name": "Placeholder Weapon",
+      "harm": 2,
+      "armor": null,
+      "tags": ["combat"]
+    },
+    {
+      "id": "gear-universal-2",
+      "name": "Protection Amulet",
+      "harm": null,
+      "armor": 1,
+      "tags": ["magical"]
+    },
+    {
+      "id": "gear-universal-3",
+      "name": "Test Tool",
+      "harm": null,
+      "armor": null,
+      "tags": ["utility"]
+    }
+  ]
+}

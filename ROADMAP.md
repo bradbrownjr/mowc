@@ -125,7 +125,7 @@ group load their own game content. Read `docs/DATA-MODEL.md` and
       outcome text fields, gear options) - 0.2.4 [Sonnet]
 - [ ] Pack import/export as `.mowcpack.json` file download/upload -
       0.2.5 [Sonnet]
-- [ ] Example pack `content-packs/example-pack.mowcpack.json` using ONLY
+- [x] Example pack `content-packs/example-pack.mowcpack.json` using ONLY
       invented placeholder content, used by tests as fixture -
       0.2.6 [Haiku]
 
