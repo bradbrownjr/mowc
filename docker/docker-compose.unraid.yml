@@ -1,0 +1,16 @@
+# Unraid deployment. PUID 99 / PGID 100 are Unraid's nobody:users, so files
+# on the array are owned the way Unraid expects. Data lives under appdata.
+services:
+  mowc:
+    image: ghcr.io/bradbrownjr/mowc:latest
+    container_name: mowc
+    restart: unless-stopped
+    ports:
+      - "7120:7120"
+    environment:
+      MOWC_PORT: "7120"
+      MOWC_DATA_DIR: /data
+      PUID: "99"
+      PGID: "100"
+    volumes:
+      - /mnt/user/appdata/mowc:/data

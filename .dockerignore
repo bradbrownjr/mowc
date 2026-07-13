@@ -1,0 +1,28 @@
+# Never copy host build state into the image; the build stage builds clean.
+node_modules
+**/node_modules
+**/dist
+client/build
+client/.svelte-kit
+**/*.tsbuildinfo
+
+# VCS and CI
+.git
+.github
+
+# Runtime data and secrets
+/data
+/config
+.env
+.env.*
+
+# Local content-pack working area and copyrighted source material
+/content-packs/private
+*.pdf
+
+# Test and editor noise
+/coverage
+/playwright-report
+/test-results
+.DS_Store
+Thumbs.db

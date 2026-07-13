@@ -22,6 +22,9 @@ All notable changes to MOWC are documented here. Format follows
 - Installable, offline-capable PWA: service worker precaches the app shell
   and falls back to the offline page, web app manifest with original icons,
   install prompt, and persistent-storage request on first load
+- Docker packaging: multi-stage image (non-root via PUID/PGID, tini as
+  PID 1, healthcheck on loopback) plus standard and Unraid compose files
+  mounting a single `/data` volume
 - docs/SECURITY.md: security contract adapted from ECTLogger's policy and
   expanded for MOWC's stack (threat model, zod boundary rules, session and
   CSRF design, sync/upload hardening, container hardening, per-phase

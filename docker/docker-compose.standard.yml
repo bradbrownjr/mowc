@@ -1,0 +1,18 @@
+# Standard self-hosted deployment. Publishes only port 7120 and mounts only
+# the data volume. Put a reverse proxy (TLS) in front for internet exposure.
+services:
+  mowc:
+    image: ghcr.io/bradbrownjr/mowc:latest
+    container_name: mowc
+    restart: unless-stopped
+    ports:
+      - "7120:7120"
+    environment:
+      # These names must match the server's config reader exactly.
+      MOWC_PORT: "7120"
+      MOWC_DATA_DIR: /data
+      # Owner of files written to the data volume. Set to your host user.
+      PUID: "1000"
+      PGID: "1000"
+    volumes:
+      - ./data:/data
