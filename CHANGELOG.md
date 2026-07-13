@@ -20,6 +20,11 @@ All notable changes to MOWC are documented here. Format follows
   and indexes per docs/SYNC.md), the `applied_ops` idempotency table keyed
   by (campaign_id, op_id), and the non-synced `content_packs` table owned by
   the uploading user
+- Content pack CRUD API (`POST/GET /api/content-packs`, `GET/DELETE
+  /api/content-packs/:id`): strict zod validation with path-precise error
+  responses, a 5 MB body limit for pack uploads vs. 1 MB elsewhere, and a
+  recursive guard rejecting `__proto__`/`constructor`/`prototype` keys and
+  excessive nesting per docs/SECURITY.md section 7
 
 ## [0.1.0] - 2026-07-13
 

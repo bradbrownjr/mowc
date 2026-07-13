@@ -13,7 +13,7 @@ const pkg = JSON.parse(
 const db = openDb(config.dataDir);
 runMigrations(db);
 
-const app = createApp(pkg.version);
+const app = createApp(pkg.version, db);
 
 app.listen(config.port, () => {
   console.log(`MOWC server listening on port ${config.port}`);
