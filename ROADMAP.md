@@ -111,7 +111,7 @@ Version 0.2 — goal: the database and the content-pack system that lets a
 group load their own game content. Read `docs/DATA-MODEL.md` and
 `docs/LICENSING.md` before every task in this phase.
 
-- [ ] zod schemas in `shared/` for all core entities: ContentPack,
+- [x] zod schemas in `shared/` for all core entities: ContentPack,
       PlaybookDef, MoveDef, GearDef, MonsterTypeDef, Campaign, Character,
       Mystery, Monster, Minion, Bystander, Location, Countdown,
       SessionLog - 0.2.1 [Fable]

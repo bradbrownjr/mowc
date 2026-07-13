@@ -6,6 +6,13 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+- Shared zod schemas with inferred TypeScript types for all core entities
+  (content pack definitions: ContentPack, PlaybookDef, MoveDef, GearDef,
+  MonsterTypeDef; campaign entities: Campaign, Seat, Character, Mystery,
+  Countdown, Monster, Minion, Bystander, Location, SessionLog), exported
+  from `@mowc/shared` so client and server validate the same shapes
+
 ## [0.1.0] - 2026-07-13
 
 ### Added
