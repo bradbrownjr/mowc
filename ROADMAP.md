@@ -145,7 +145,7 @@ Version 0.3
       (Design the check once, in one server-side module, and route every
       read through it. This rule set is the backbone of Phases 5-6.)
 
-## Phase 4: Character Builder & Sheet
+## Phase 4: Character Builder & Sheet ✅
 
 Version 0.4 — the flagship player feature. Read `docs/DESIGN.md`; compare
 against D&D Beyond's builder flow described there.
