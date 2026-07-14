@@ -6,6 +6,8 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+## [0.4.8] - 2026-07-14
+
 ### Added
 - Content pack import (`/packs`) now accepts multiple files in one go, and
   accepts `.zip` archives containing several `.mowcpack.json` files (each
