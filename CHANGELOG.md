@@ -7,6 +7,14 @@ All notable changes to MOWC are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- Content pack import (`/packs`) now accepts multiple files in one go, and
+  accepts `.zip` archives containing several `.mowcpack.json` files (each
+  `.json` entry inside is imported as its own pack). Every file/entry is
+  validated and posted independently, so partial success is possible; the
+  page reports "Imported N of M packs" with per-file error messages for any
+  that failed. No server changes: zip extraction happens client-side via
+  `jszip`, and packs are still POSTed one at a time to the existing
+  single-pack endpoint.
 - Dice roller on the character sheet
   (`/campaigns/:id/characters/:characterId`): every move with a rated
   stat gets a "Roll [Stat] ([+/-N])" button that rolls 2d6 + rating and

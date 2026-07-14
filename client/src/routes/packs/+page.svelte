@@ -1,13 +1,19 @@
 <script lang="ts">
-  import { ContentPackSchema } from "@mowc/shared";
   import { resolve } from "$app/paths";
   import { createPack, deletePack, listPacks, PackApiError, type PackSummary } from "$lib/api/contentPacks.js";
+  import { extractPacksFromFiles } from "$lib/pack-import.js";
   import Icon from "$lib/Icon.svelte";
   import { Plus, Trash2, Upload } from "@lucide/svelte";
 
+  interface ImportResultRow {
+    name: string;
+    ok: boolean;
+    message?: string;
+  }
+
   let packs = $state<PackSummary[]>([]);
   let loadError = $state<string | null>(null);
-  let importError = $state<string | null>(null);
+  let importResults = $state<ImportResultRow[]>([]);
   let importing = $state(false);
   let fileInput: HTMLInputElement | undefined = $state();
 
@@ -31,29 +37,32 @@
 
   async function onFileSelected(e: Event): Promise<void> {
     const input = e.currentTarget as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
+    const files = input.files;
+    if (!files || files.length === 0) return;
 
     importing = true;
-    importError = null;
+    importResults = [];
     try {
-      const text = await file.text();
-      const parsed: unknown = JSON.parse(text);
-      const result = ContentPackSchema.safeParse(parsed);
-      if (!result.success) {
-        importError = `${file.name} is not a valid .mowcpack.json file: ${result.error.issues[0]?.message ?? "invalid format"}`;
-        return;
+      const outcomes = await extractPacksFromFiles(files);
+      const results: ImportResultRow[] = [];
+      for (const outcome of outcomes) {
+        if (!outcome.ok || !outcome.pack) {
+          results.push({ name: outcome.name, ok: false, message: outcome.message ?? "Could not import that file." });
+          continue;
+        }
+        try {
+          await createPack(outcome.pack);
+          results.push({ name: outcome.name, ok: true });
+        } catch (err) {
+          results.push({
+            name: outcome.name,
+            ok: false,
+            message: err instanceof PackApiError ? err.message : "Could not import that file."
+          });
+        }
       }
-      await createPack(result.data);
+      importResults = results;
       await refresh();
-    } catch (err) {
-      if (err instanceof SyntaxError) {
-        importError = `${file.name} is not valid JSON.`;
-      } else if (err instanceof PackApiError) {
-        importError = err.message;
-      } else {
-        importError = "Could not import that file.";
-      }
     } finally {
       importing = false;
       input.value = "";
@@ -67,12 +76,13 @@
     <div class="actions">
       <button type="button" class="add-button" onclick={() => fileInput?.click()} disabled={importing}>
         <Icon icon={Upload} size={18} />
-        {importing ? "Importing..." : "Import .mowcpack.json"}
+        {importing ? "Importing..." : "Import packs"}
       </button>
       <input
         bind:this={fileInput}
         type="file"
-        accept=".json,application/json"
+        multiple
+        accept=".json,.zip,application/json,application/zip"
         class="visually-hidden"
         onchange={onFileSelected}
       />
@@ -83,8 +93,19 @@
     </div>
   </div>
 
-  {#if importError}
-    <p class="error">{importError}</p>
+  {#if importResults.length > 0}
+    {@const failed = importResults.filter((r) => !r.ok)}
+    {@const succeeded = importResults.length - failed.length}
+    <div class="import-summary">
+      <p class="meta">Imported {succeeded} of {importResults.length} pack{importResults.length === 1 ? "" : "s"}.</p>
+      {#if failed.length > 0}
+        <ul class="import-errors">
+          {#each failed as row (row.name)}
+            <li class="error">{row.name}: {row.message}</li>
+          {/each}
+        </ul>
+      {/if}
+    </div>
   {/if}
 
   {#if loadError}
@@ -151,6 +172,20 @@
     color: var(--danger);
     font-family: var(--font-body);
     font-size: var(--text-sm);
+  }
+
+  .import-summary {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .import-errors {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin: 0;
+    padding-left: var(--space-4);
   }
 
   .pack-list {
