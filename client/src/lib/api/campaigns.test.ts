@@ -8,7 +8,8 @@ import {
   listCampaigns,
   listInvites,
   redeemInvite,
-  revokeInvite
+  revokeInvite,
+  updateCampaign
 } from "./campaigns.js";
 
 const CAMPAIGN: Campaign = {
@@ -72,6 +73,27 @@ describe("getCampaign", () => {
     mockFetch({ ok: false, status: 404, jsonBody: { errors: [{ path: "id", message: "campaign not found" }] } });
 
     await expect(getCampaign("missing")).rejects.toThrow(CampaignApiError);
+  });
+});
+
+describe("updateCampaign", () => {
+  it("patches the campaign and returns the updated result", async () => {
+    const updated = { ...CAMPAIGN, packIds: ["550e8400-e29b-41d4-a716-446655440001"] };
+    mockFetch({ jsonBody: updated });
+
+    const result = await updateCampaign(CAMPAIGN.id, { packIds: updated.packIds });
+
+    expect(result).toEqual(updated);
+    const [url, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`/api/campaigns/${CAMPAIGN.id}`);
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(init.body as string)).toEqual({ packIds: updated.packIds });
+  });
+
+  it("throws CampaignApiError when the caller is not the Keeper", async () => {
+    mockFetch({ ok: false, status: 403, jsonBody: { errors: [{ path: "", message: "only the campaign's Keeper can do this" }] } });
+
+    await expect(updateCampaign(CAMPAIGN.id, { packIds: [] })).rejects.toThrow(CampaignApiError);
   });
 });
 

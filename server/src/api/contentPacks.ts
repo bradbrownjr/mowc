@@ -3,6 +3,7 @@ import type Database from "better-sqlite3";
 import { ContentPackSchema, UuidSchema } from "@mowc/shared";
 import { zodErrorResponse } from "../http/validation.js";
 import { hasDangerousKeys } from "../http/proto.js";
+import type { CampaignsRepo } from "../campaigns/repo.js";
 
 interface ContentPackRow {
   id: string;
@@ -26,7 +27,10 @@ function toSummary(row: ContentPackRow) {
   };
 }
 
-export function createContentPacksRouter(db: Database.Database): Router {
+export function createContentPacksRouter(
+  db: Database.Database,
+  campaigns: Pick<CampaignsRepo, "listForUser">
+): Router {
   const router = Router();
 
   const insertPack = db.prepare(
@@ -34,6 +38,7 @@ export function createContentPacksRouter(db: Database.Database): Router {
       "VALUES (@id, @ownerUserId, @name, @author, @version, @payload, @createdAt, @updatedAt)"
   );
   const findById = db.prepare("SELECT * FROM content_packs WHERE id = ? AND owner_user_id = ?");
+  const findByIdAny = db.prepare("SELECT * FROM content_packs WHERE id = ?");
   const listByOwner = db.prepare(
     "SELECT * FROM content_packs WHERE owner_user_id = ? ORDER BY updated_at DESC"
   );
@@ -93,7 +98,18 @@ export function createContentPacksRouter(db: Database.Database): Router {
       return;
     }
 
-    const row = findById.get(idResult.data, req.user!.id) as ContentPackRow | undefined;
+    let row = findById.get(idResult.data, req.user!.id) as ContentPackRow | undefined;
+    if (!row) {
+      // Not the owner: docs/SECURITY.md section 7 says packs are private to
+      // their campaign, not to their uploader alone, so any member of a
+      // campaign the Keeper attached this pack to (Campaign.packIds) may
+      // still read it. The client's builder wizard (0.4.3) depends on this
+      // for hunters loading playbook data from Keeper-uploaded packs.
+      const memberPackIds = new Set(campaigns.listForUser(req.user!.id).flatMap((c) => c.packIds));
+      if (memberPackIds.has(idResult.data)) {
+        row = findByIdAny.get(idResult.data) as ContentPackRow | undefined;
+      }
+    }
     if (!row) {
       res.status(404).json({ errors: [{ path: "id", message: "pack not found" }] });
       return;

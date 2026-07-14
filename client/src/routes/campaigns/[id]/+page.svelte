@@ -9,8 +9,10 @@
     getCampaign,
     listInvites,
     revokeInvite,
+    updateCampaign,
     type InviteSummary
   } from "$lib/api/campaigns.js";
+  import { listPacks, type PackSummary } from "$lib/api/contentPacks.js";
   import type { PageProps } from "./$types.js";
 
   let { data }: PageProps = $props();
@@ -23,6 +25,10 @@
   let inviteError = $state<string | null>(null);
   let creatingInvite = $state(false);
 
+  let packs = $state<PackSummary[]>([]);
+  let packsError = $state<string | null>(null);
+  let togglingPackId = $state<string | null>(null);
+
   const isKeeper = $derived(campaign !== null && sessionState.user !== null && campaign.keeperUserId === sessionState.user.id);
 
   async function refreshInvites(): Promise<void> {
@@ -30,6 +36,14 @@
       invites = await listInvites(data.id);
     } catch {
       inviteError = "Could not load invites.";
+    }
+  }
+
+  async function refreshPacks(): Promise<void> {
+    try {
+      packs = await listPacks();
+    } catch {
+      packsError = "Could not load content packs.";
     }
   }
 
@@ -46,12 +60,28 @@
         loadError = null;
         if (result.keeperUserId === sessionState.user?.id) {
           void refreshInvites();
+          void refreshPacks();
         }
       })
       .catch(() => {
         loadError = "Campaign not found.";
       });
   });
+
+  async function onTogglePack(packId: string): Promise<void> {
+    if (!campaign) return;
+    const attached = campaign.packIds.includes(packId);
+    const packIds = attached ? campaign.packIds.filter((id) => id !== packId) : [...campaign.packIds, packId];
+    togglingPackId = packId;
+    packsError = null;
+    try {
+      campaign = await updateCampaign(data.id, { packIds });
+    } catch (err) {
+      packsError = err instanceof CampaignApiError ? err.message : "Could not update content packs.";
+    } finally {
+      togglingPackId = null;
+    }
+  }
 
   async function onCreateInvite(): Promise<void> {
     creatingInvite = true;
@@ -86,7 +116,37 @@
     <h1 class="title">{campaign.name}</h1>
     <p class="meta">{isKeeper ? "Keeper" : "Hunter"}</p>
 
+    <a class="submit-button" href={resolve("/campaigns/[id]/characters/new", { id: data.id })}>Create a character</a>
+
     {#if isKeeper}
+      <section class="panel">
+        <h2 class="section-title">Content packs</h2>
+        {#if packsError}
+          <p class="error">{packsError}</p>
+        {/if}
+        {#if packs.length > 0}
+          <ul class="invite-list">
+            {#each packs as pack (pack.id)}
+              {@const attached = campaign.packIds.includes(pack.id)}
+              <li class="invite-row">
+                <span class="campaign-meta">{pack.name} - {pack.author}</span>
+                <button
+                  type="button"
+                  class="toggle-button"
+                  class:attached
+                  onclick={() => onTogglePack(pack.id)}
+                  disabled={togglingPackId === pack.id}
+                >
+                  {attached ? "Detach" : "Attach"}
+                </button>
+              </li>
+            {/each}
+          </ul>
+        {:else}
+          <p class="campaign-meta">No content packs uploaded yet. <a href={resolve("/packs/new")}>Upload one</a>.</p>
+        {/if}
+      </section>
+
       <section class="panel">
         <h2 class="section-title">Invite codes</h2>
         <button type="button" class="submit-button" onclick={onCreateInvite} disabled={creatingInvite}>
@@ -187,6 +247,10 @@
   }
 
   .submit-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: flex-start;
     min-height: var(--tap-min);
     padding: var(--space-2) var(--space-4);
     background: var(--surface-2);
@@ -198,6 +262,7 @@
     font-size: var(--text-sm);
     letter-spacing: 0.08em;
     text-transform: uppercase;
+    text-decoration: none;
   }
 
   .submit-button:disabled {
@@ -261,6 +326,34 @@
   }
 
   .icon-button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .toggle-button {
+    min-height: var(--tap-min);
+    padding: var(--space-1) var(--space-3);
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-family: var(--font-meta);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .toggle-button.attached {
+    color: var(--danger);
+  }
+
+  .toggle-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .toggle-button:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }

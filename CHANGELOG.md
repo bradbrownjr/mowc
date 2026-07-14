@@ -7,6 +7,25 @@ All notable changes to MOWC are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- Character builder wizard (`/campaigns/:id/characters/new`): any campaign
+  member (Keeper or hunter) can create a hunter through a numbered
+  step-by-step flow with a progress rail, matching the D&D Beyond-style
+  builder described in docs/DESIGN.md - pick a playbook from the campaign's
+  attached content packs, a ratings line, a look per playbook-defined group
+  (with a "write your own" text option), exactly the playbook's move and
+  gear picks, and a name, then review everything before creating the
+  character. Going back to change the playbook resets every later choice;
+  every other step preserves earlier answers. The finished character is
+  written through the existing offline-first sync path (`writeEntity`) and
+  validated against `CharacterSchema` before it's saved. Keepers get a new
+  "Content packs" panel on the campaign page to attach or detach their
+  uploaded packs from a campaign (`updateCampaign` client wrapper over the
+  existing `PATCH /api/campaigns/:id`).
+- Content-pack reads are now scoped to campaign membership, not just the
+  uploader: `GET /api/content-packs/:id` also succeeds for any member of a
+  campaign the pack is attached to (docs/SECURITY.md section 7, "packs are
+  private to their campaign"), which is what lets a hunter's builder wizard
+  load playbook data the Keeper uploaded.
 - Client UI for accounts and campaigns: you can now register, log in, and
   log out from the app (`/register`, `/login`); a signed-in nav link shows
   who you are and takes you to `/campaigns`, where you can see the

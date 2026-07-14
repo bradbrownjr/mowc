@@ -60,7 +60,7 @@ export function createApp(version: string, db: Database.Database): Express {
   const authz = createAuthz(campaignsRepo);
 
   app.use("/api/auth", createAuthRouter(authRepo));
-  app.use("/api/content-packs", requireAuth, createContentPacksRouter(db));
+  app.use("/api/content-packs", requireAuth, createContentPacksRouter(db, campaignsRepo));
   app.use(
     "/api/campaigns/:campaignId/invites",
     requireAuth,

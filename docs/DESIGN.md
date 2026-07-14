@@ -130,3 +130,4 @@ user-themable; they are the product's identity.
 | Component | File | Notes |
 |---|---|---|
 | InstallButton | `client/src/lib/InstallButton.svelte` | Fixed bottom-right PWA install affordance; shown only when `beforeinstallprompt` fired. Tokens only (accent border, meta font). |
+| StepIndicator | `client/src/lib/StepIndicator.svelte` | Numbered wizard progress rail for Builders (the "Layout" section's Builders line). Props: `steps: string[]`, `current: number`. Purely presentational; current step gets an accent border, completed steps a filled `--surface-2` background. First user: the character builder wizard (`campaigns/[id]/characters/new`). |

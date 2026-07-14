@@ -190,6 +190,48 @@ describe("GET /api/content-packs/:id", () => {
 
     expect(res.status).toBe(400);
   });
+
+  it("allows a campaign member to read a pack the Keeper attached, even though they don't own it", async () => {
+    // docs/SECURITY.md section 7: packs are private to their campaign, not to
+    // their uploader alone. The Keeper uploads the pack, attaches it to a
+    // campaign via PATCH .../packIds, and a seated hunter must still be able
+    // to fetch full playbook data for the builder wizard (0.4.3).
+    const app = createTestApp();
+    const keeper = await authedAgent(app);
+    const pack = loadExamplePack();
+    await keeper.post("/api/content-packs").send(pack);
+    const campaignRes = await keeper.post("/api/campaigns").send({ name: "Shared Case" });
+    const campaignId = campaignRes.body.id as string;
+    await keeper.patch(`/api/campaigns/${campaignId}`).send({ packIds: [pack.id] });
+    const inviteRes = await keeper.post(`/api/campaigns/${campaignId}/invites`);
+
+    const hunter = request.agent(app);
+    await hunter
+      .post("/api/auth/register")
+      .send({ email: "hunter@example.com", password: "hunter2hunter", displayName: "Hunter" });
+    await hunter.post("/api/invites/redeem").send({ code: inviteRes.body.code });
+
+    const res = await hunter.get(`/api/content-packs/${pack.id}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.pack).toEqual(pack);
+  });
+
+  it("returns 404 for a pack the user neither owns nor shares a campaign for", async () => {
+    const app = createTestApp();
+    const owner = await authedAgent(app);
+    const pack = loadExamplePack();
+    await owner.post("/api/content-packs").send(pack);
+
+    const stranger = request.agent(app);
+    await stranger
+      .post("/api/auth/register")
+      .send({ email: "stranger@example.com", password: "hunter2hunter", displayName: "Stranger" });
+
+    const res = await stranger.get(`/api/content-packs/${pack.id}`);
+
+    expect(res.status).toBe(404);
+  });
 });
 
 describe("DELETE /api/content-packs/:id", () => {

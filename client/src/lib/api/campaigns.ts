@@ -1,4 +1,4 @@
-import type { Campaign, CampaignCreateInput } from "@mowc/shared";
+import type { Campaign, CampaignCreateInput, CampaignUpdateInput } from "@mowc/shared";
 import { ApiError, throwApiError } from "./http.js";
 
 export { ApiError as CampaignApiError };
@@ -34,6 +34,16 @@ export async function createCampaign(input: CampaignCreateInput): Promise<Campai
 
 export async function getCampaign(id: string): Promise<Campaign> {
   const res = await fetch(`/api/campaigns/${encodeURIComponent(id)}`);
+  if (!res.ok) await throwApiError(res);
+  return res.json() as Promise<Campaign>;
+}
+
+export async function updateCampaign(id: string, patch: CampaignUpdateInput): Promise<Campaign> {
+  const res = await fetch(`/api/campaigns/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch)
+  });
   if (!res.ok) await throwApiError(res);
   return res.json() as Promise<Campaign>;
 }
