@@ -7,6 +7,22 @@ All notable changes to MOWC are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- Editable character-sheet tracks and notes
+  (`/campaigns/:id/characters/:characterId`): Luck, Harm, and a new
+  Experience track are now tap-to-edit. Tapping a box marks forward
+  (filling every box up to the one tapped); tapping the last-filled box
+  undoes that mark. Crossing the Harm track's unstable threshold flips the
+  UNSTABLE stamp on automatically; because Monster of the Week recovery is
+  a table decision, the flag is never auto-cleared when Harm later drops,
+  so a "Clear unstable" action sits next to the stamp. Experience is a
+  fixed 5-box track (the engine's improvement threshold) and shows a
+  "Ready to level up" note at 5 (the improvement picker itself is a later
+  change). Notes became an editable text area, saved automatically a
+  moment after you stop typing. Every edit saves offline-first (local
+  IndexedDB immediately, synced in the background) so the sheet stays
+  responsive and works without a connection. Track boxes fill with the
+  120ms ink-blot motion from docs/DESIGN.md and honor reduced-motion
+  preferences, and are accessible tap targets with descriptive labels.
 - Read-only character sheet (`/campaigns/:id/characters/:characterId`):
   shows a hunter's ratings, Luck/Harm tracks, moves (with expandable
   10+/7-9/miss outcome text), gear, and notes, in the mobile-first order
