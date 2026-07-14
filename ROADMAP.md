@@ -140,7 +140,7 @@ Version 0.3
       active content-pack set - 0.3.2 [Sonnet]
 - [x] Invite codes: Keeper generates a short-lived code; a player joining
       with it gets a hunter seat in the campaign - 0.3.3 [Sonnet]
-- [ ] Roles and visibility rules: Keeper sees everything; hunters see own
+- [x] Roles and visibility rules: Keeper sees everything; hunters see own
       character + what the Keeper shares - 0.3.4 [Opus]
       (Design the check once, in one server-side module, and route every
       read through it. This rule set is the backbone of Phases 5-6.)

@@ -12,6 +12,7 @@ import { createAuthRouter } from "./auth/router.js";
 import { createGlobalRateLimiter } from "./auth/rateLimit.js";
 import { createCampaignsRepo } from "./campaigns/repo.js";
 import { createCampaignsRouter } from "./campaigns/router.js";
+import { createAuthz } from "./authz/index.js";
 import { createInvitesRepo } from "./invites/repo.js";
 import { createCampaignInvitesRouter, createInviteRedeemRouter } from "./invites/router.js";
 
@@ -53,15 +54,16 @@ export function createApp(version: string, db: Database.Database): Express {
 
   const campaignsRepo = createCampaignsRepo(db);
   const invitesRepo = createInvitesRepo(db);
+  const authz = createAuthz(campaignsRepo);
 
   app.use("/api/auth", createAuthRouter(authRepo));
   app.use("/api/content-packs", requireAuth, createContentPacksRouter(db));
   app.use(
     "/api/campaigns/:campaignId/invites",
     requireAuth,
-    createCampaignInvitesRouter(campaignsRepo, invitesRepo)
+    createCampaignInvitesRouter(invitesRepo, authz)
   );
-  app.use("/api/campaigns", requireAuth, createCampaignsRouter(campaignsRepo));
+  app.use("/api/campaigns", requireAuth, createCampaignsRouter(campaignsRepo, authz));
   app.use("/api/invites", requireAuth, createInviteRedeemRouter(campaignsRepo, invitesRepo));
 
   if (existsSync(CLIENT_DIR)) {

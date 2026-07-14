@@ -29,6 +29,8 @@ export interface CampaignsRepo {
   listForUser(userId: string): Campaign[];
   findById(id: string): Campaign | undefined;
   hasSeat(campaignId: string, userId: string): boolean;
+  /** Canonical role from the seats table; undefined when the user has no seat. */
+  roleOf(campaignId: string, userId: string): SeatRole | undefined;
   /** Idempotent: a no-op if the user already holds a seat. */
   addHunterSeat(campaignId: string, userId: string): void;
   update(id: string, patch: CampaignUpdateInput): Campaign | undefined;
@@ -49,6 +51,7 @@ export function createCampaignsRepo(db: Database.Database): CampaignsRepo {
       "WHERE s.user_id = ? ORDER BY c.updated_at DESC"
   );
   const selectSeat = db.prepare("SELECT 1 FROM seats WHERE campaign_id = ? AND user_id = ?");
+  const selectRole = db.prepare("SELECT role FROM seats WHERE campaign_id = ? AND user_id = ?");
   const updateCampaign = db.prepare(
     "UPDATE campaigns SET name = @name, pack_ids = @packIds, settings = @settings, " +
       "theme = @theme, updated_at = @updatedAt WHERE id = @id"
@@ -91,6 +94,11 @@ export function createCampaignsRepo(db: Database.Database): CampaignsRepo {
 
     hasSeat(campaignId, userId) {
       return selectSeat.get(campaignId, userId) !== undefined;
+    },
+
+    roleOf(campaignId, userId) {
+      const row = selectRole.get(campaignId, userId) as { role: SeatRole } | undefined;
+      return row?.role;
     },
 
     addHunterSeat(campaignId, userId) {

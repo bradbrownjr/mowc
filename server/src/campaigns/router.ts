@@ -1,12 +1,13 @@
 import { Router } from "express";
 import { CampaignCreateInputSchema, CampaignUpdateInputSchema, UuidSchema } from "@mowc/shared";
 import { zodErrorResponse } from "../http/validation.js";
+import type { Authz } from "../authz/index.js";
+import { requireKeeper } from "../authz/guard.js";
 import type { CampaignsRepo } from "./repo.js";
 
 const NOT_FOUND = { errors: [{ path: "id", message: "campaign not found" }] } as const;
-const KEEPER_ONLY = { errors: [{ path: "", message: "only the campaign's Keeper can do this" }] } as const;
 
-export function createCampaignsRouter(repo: CampaignsRepo): Router {
+export function createCampaignsRouter(repo: CampaignsRepo, authz: Authz): Router {
   const router = Router();
 
   router.post("/", (req, res) => {
@@ -33,7 +34,7 @@ export function createCampaignsRouter(repo: CampaignsRepo): Router {
 
     // Membership scoping (docs/SECURITY.md section 3): 404, not 403, for a
     // non-member so a guessed UUID cannot be distinguished from a real one.
-    if (!repo.hasSeat(idResult.data, req.user!.id)) {
+    if (!authz.canReadCampaign(idResult.data, req.user!.id)) {
       res.status(404).json(NOT_FOUND);
       return;
     }
@@ -54,13 +55,7 @@ export function createCampaignsRouter(repo: CampaignsRepo): Router {
       return;
     }
 
-    const campaign = repo.findById(idResult.data);
-    if (!campaign || !repo.hasSeat(idResult.data, req.user!.id)) {
-      res.status(404).json(NOT_FOUND);
-      return;
-    }
-    if (campaign.keeperUserId !== req.user!.id) {
-      res.status(403).json(KEEPER_ONLY);
+    if (!requireKeeper(authz, idResult.data, req.user!.id, res, NOT_FOUND)) {
       return;
     }
 
@@ -80,13 +75,7 @@ export function createCampaignsRouter(repo: CampaignsRepo): Router {
       return;
     }
 
-    const campaign = repo.findById(idResult.data);
-    if (!campaign || !repo.hasSeat(idResult.data, req.user!.id)) {
-      res.status(404).json(NOT_FOUND);
-      return;
-    }
-    if (campaign.keeperUserId !== req.user!.id) {
-      res.status(403).json(KEEPER_ONLY);
+    if (!requireKeeper(authz, idResult.data, req.user!.id, res, NOT_FOUND)) {
       return;
     }
 

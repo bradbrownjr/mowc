@@ -7,6 +7,16 @@ All notable changes to MOWC are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- Authorization module (`server/src/authz`): one server-side source of truth
+  for "can user U see/edit entity E" per docs/SECURITY.md section 3. Exposes
+  `roleFor` (keeper/hunter/none from the `seats` table), `canReadCampaign`,
+  `canManageCampaign`, and generic entity-level `canView`/`canEdit` shaped for
+  Phase 4/5 entities (Character, Mystery, Monster, Location) that carry
+  `campaignId`, an optional `ownerUserId`, and a `revealed` flag: Keeper sees
+  and edits everything, a hunter reads revealed or own entities and edits only
+  its own, non-members get nothing, and access never crosses campaigns. A
+  `requireKeeper` Express guard maps the decision to 404-for-non-member /
+  403-for-seated-hunter
 - Invite codes: `POST/GET /api/campaigns/:campaignId/invites` (Keeper-only,
   403 for a seated non-Keeper, 404 for a non-member so guessed campaign ids
   can't be distinguished from real ones), `DELETE
@@ -58,6 +68,11 @@ All notable changes to MOWC are documented here. Format follows
 - Pack import/export: upload a `.mowcpack.json` file from the pack list
   (client-side schema check before it reaches the API) and download any
   pack's full JSON from its detail page
+
+### Changed
+- Campaign and invite routers now resolve every role check through the new
+  authz module instead of inlining their own membership/Keeper logic; HTTP
+  status codes and response bodies are unchanged
 
 ### Fixed
 - The server's Content-Security-Policy header was unintentionally blocking

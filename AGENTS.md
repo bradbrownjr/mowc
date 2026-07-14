@@ -302,6 +302,7 @@ touching the affected file column is preserved.**
 | Auth (register/login/logout/me, sessions, CSRF, rate limits) | `server/src/auth/*`, `shared/src/schemas/user.ts` | `createAuthRouter`, `createAuthRepo`, `attachUser`, `requireAuth`, `csrfOriginCheck`, `SESSION_COOKIE_NAME` |
 | Campaign CRUD (Keeper-owned, seats table) | `server/src/campaigns/*`, `shared/src/schemas/campaign.ts` | `createCampaignsRouter`, `createCampaignsRepo`, `hasSeat` |
 | Invite codes (Keeper-managed, hunter redemption) | `server/src/invites/*`, `shared/src/schemas/invite.ts` | `createCampaignInvitesRouter`, `createInviteRedeemRouter`, `createInvitesRepo`, `addHunterSeat` |
+| Authorization (single source of truth for read/edit access) | `server/src/authz/index.ts`, `server/src/authz/guard.ts` | `createAuthz`, `roleFor`, `canReadCampaign`, `canManageCampaign`, `canView`, `canEdit`, `requireKeeper`. Route every new entity's checks through here, never inline. |
 
 Update this table whenever a new feature lands or an existing feature
 moves.
