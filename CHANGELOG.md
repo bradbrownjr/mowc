@@ -7,6 +7,22 @@ All notable changes to MOWC are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- Improvement picker on the character sheet
+  (`/campaigns/:id/characters/:characterId`): once Experience reaches 5,
+  a "Choose your improvement" action opens an inline picker (matching the
+  existing tracks, no separate route) listing the eligible basic
+  improvements from the character's playbook. Advanced improvements
+  unlock once every basic improvement has been taken (a documented engine
+  default, since the schema carries no unlock condition). Picking a
+  rating-bump improvement adjusts the rated stat; picking a fixed "add a
+  move" improvement grants that move; picking a "player picks a move"
+  improvement opens a second small picker over every move from every
+  attached pack the character doesn't already know; a narrative-only
+  improvement just records the pick. Every pick resets Experience to 0 in
+  the same write. The character sheet's Moves section now also resolves a
+  granted move from ANY attached pack's playbook (not just the
+  character's own), closing a gap where a cross-playbook grant wouldn't
+  have rendered.
 - Editable character-sheet tracks and notes
   (`/campaigns/:id/characters/:characterId`): Luck, Harm, and a new
   Experience track are now tap-to-edit. Tapping a box marks forward

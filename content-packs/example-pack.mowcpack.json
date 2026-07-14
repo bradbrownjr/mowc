@@ -112,6 +112,14 @@
             "kind": "addMove",
             "moveId": null
           }
+        },
+        {
+          "id": "improvement-placeholder-3",
+          "text": "Take the Understudy's Perform Magnificently move",
+          "effect": {
+            "kind": "addMove",
+            "moveId": "move-understudy-1"
+          }
         }
       ],
       "advancedImprovements": [

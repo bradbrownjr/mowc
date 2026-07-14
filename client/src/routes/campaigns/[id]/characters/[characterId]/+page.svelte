@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
-  import { CharacterSchema, type Character, type ContentPack } from "@mowc/shared";
+  import { CharacterSchema, type Character, type ContentPack, type ImprovementDef } from "@mowc/shared";
   import { sessionState } from "$lib/session.svelte";
   import { getCampaign } from "$lib/api/campaigns.js";
   import { getPack, type PackDetail } from "$lib/api/contentPacks.js";
@@ -14,6 +14,13 @@
     resolveCharacterPlaybook
   } from "$lib/character-sheet.js";
   import { crossesUnstable, nextTrackValue } from "$lib/track-tap.js";
+  import {
+    allBasicImprovementsTaken,
+    applyImprovement,
+    eligibleAdvancedImprovements,
+    eligibleImprovements,
+    pickableMoves
+  } from "$lib/level-up.js";
   import EvidenceTag from "$lib/EvidenceTag.svelte";
   import type { PageProps } from "./$types.js";
 
@@ -29,6 +36,14 @@
   let notFound = $state(false);
   let packs = $state<ContentPack[]>([]);
   let notesDraft = $state("");
+  // Inline "choose your improvement" picker (docs/DESIGN.md: tracks are
+  // already inline on this sheet, and this is a single list-pick, not a
+  // multi-step flow, so it doesn't warrant the separate-route pattern the
+  // character-creation wizard uses).
+  let showImprovementPicker = $state(false);
+  // Set only for an `addMove` improvement with `moveId: null` ("player picks
+  // a move"), while the second-step move picker is open.
+  let pendingImprovement = $state<ImprovementDef | null>(null);
 
   async function loadCharacter(): Promise<void> {
     const row = await db.entities.get(data.characterId);
@@ -87,6 +102,38 @@
     void applyUpdate({ unstable: false });
   }
 
+  function openImprovementPicker(): void {
+    showImprovementPicker = true;
+    pendingImprovement = null;
+  }
+
+  function closeImprovementPicker(): void {
+    showImprovementPicker = false;
+    pendingImprovement = null;
+  }
+
+  /**
+   * Picking an `addMove` improvement with `moveId: null` doesn't apply
+   * immediately; it opens a second small picker over pickableMoves() (see
+   * level-up.ts) so the player can choose which move to gain. Every other
+   * effect kind applies in one step.
+   */
+  function chooseImprovement(improvement: ImprovementDef): void {
+    if (!character) return;
+    if (improvement.effect.kind === "addMove" && improvement.effect.moveId === null) {
+      pendingImprovement = improvement;
+      return;
+    }
+    void applyUpdate(applyImprovement(character, improvement));
+    closeImprovementPicker();
+  }
+
+  function chooseGrantedMove(moveId: string): void {
+    if (!character || !pendingImprovement) return;
+    void applyUpdate(applyImprovement(character, pendingImprovement, moveId));
+    closeImprovementPicker();
+  }
+
   let notesTimer: ReturnType<typeof setTimeout> | undefined;
   function onNotesInput(): void {
     if (notesTimer) clearTimeout(notesTimer);
@@ -128,9 +175,13 @@
   });
 
   const resolved = $derived(character ? resolveCharacterPlaybook(character, packs) : null);
-  const moves = $derived(character ? resolveCharacterMoves(character, resolved) : []);
+  const moves = $derived(character ? resolveCharacterMoves(character, resolved, packs) : []);
   const luckMax = $derived(resolved?.playbook.luckMax ?? DEFAULT_LUCK_MAX);
   const harmTrack = $derived(resolved?.playbook.harmTrack ?? DEFAULT_HARM_TRACK);
+  const eligibleBasic = $derived(character && resolved ? eligibleImprovements(resolved.playbook, character) : []);
+  const advancedUnlocked = $derived(character && resolved ? allBasicImprovementsTaken(resolved.playbook, character) : false);
+  const eligibleAdvanced = $derived(character && resolved ? eligibleAdvancedImprovements(resolved.playbook, character) : []);
+  const moveOptions = $derived(character ? pickableMoves(character, packs) : []);
 </script>
 
 <main>
@@ -231,8 +282,55 @@
       </div>
       {#if character.experience >= EXPERIENCE_MAX}
         <p class="level-up">Ready to level up</p>
+        {#if resolved}
+          <button type="button" class="text-button" onclick={openImprovementPicker}>Choose your improvement</button>
+        {/if}
       {/if}
     </section>
+
+    {#if showImprovementPicker && resolved}
+      <section class="panel">
+        <h2 class="section-title">Choose your improvement</h2>
+        {#if pendingImprovement}
+          <p class="meta">{pendingImprovement.text} &mdash; pick a move</p>
+          {#if moveOptions.length === 0}
+            <p class="meta">No eligible moves to grant.</p>
+          {:else}
+            <ul class="moves">
+              {#each moveOptions as move (move.id)}
+                <li class="move">
+                  <button type="button" class="text-button" onclick={() => chooseGrantedMove(move.id)}>{move.name}</button>
+                </li>
+              {/each}
+            </ul>
+          {/if}
+          <button type="button" class="text-button" onclick={() => (pendingImprovement = null)}>Back</button>
+        {:else}
+          {#if eligibleBasic.length === 0 && eligibleAdvanced.length === 0}
+            <p class="meta">No more improvements available.</p>
+          {:else}
+            <ul class="moves">
+              {#each eligibleBasic as improvement (improvement.id)}
+                <li class="move">
+                  <button type="button" class="text-button" onclick={() => chooseImprovement(improvement)}>{improvement.text}</button>
+                </li>
+              {/each}
+            </ul>
+          {/if}
+          {#if advancedUnlocked && eligibleAdvanced.length > 0}
+            <h3 class="section-title">Advanced</h3>
+            <ul class="moves">
+              {#each eligibleAdvanced as improvement (improvement.id)}
+                <li class="move">
+                  <button type="button" class="text-button" onclick={() => chooseImprovement(improvement)}>{improvement.text}</button>
+                </li>
+              {/each}
+            </ul>
+          {/if}
+        {/if}
+        <button type="button" class="text-button" onclick={closeImprovementPicker}>Cancel</button>
+      </section>
+    {/if}
 
     <section class="panel">
       <h2 class="section-title">Moves</h2>

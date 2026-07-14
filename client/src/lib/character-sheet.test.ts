@@ -93,7 +93,7 @@ describe("resolveCharacterMoves", () => {
     const character = makeCharacter({ moves: ["move-1"] });
     const resolved = resolveCharacterPlaybook(character, [PACK]);
 
-    const moves = resolveCharacterMoves(character, resolved);
+    const moves = resolveCharacterMoves(character, resolved, [PACK]);
 
     expect(moves.map((m) => m.id)).toEqual(["basic-1", "move-1"]);
   });
@@ -102,7 +102,7 @@ describe("resolveCharacterMoves", () => {
     const character = makeCharacter({ moves: ["move-1"] });
     const resolved = resolveCharacterPlaybook(character, [PACK]);
 
-    const moves = resolveCharacterMoves(character, resolved);
+    const moves = resolveCharacterMoves(character, resolved, [PACK]);
 
     expect(moves.some((m) => m.id === "move-2")).toBe(false);
   });
@@ -110,7 +110,43 @@ describe("resolveCharacterMoves", () => {
   it("returns an empty list when the playbook could not be resolved", () => {
     const character = makeCharacter();
 
-    expect(resolveCharacterMoves(character, null)).toEqual([]);
+    expect(resolveCharacterMoves(character, null, [PACK])).toEqual([]);
+  });
+
+  it("resolves a granted move from a DIFFERENT playbook in the same pack (addMove improvement grant)", () => {
+    const otherPlaybook: PlaybookDef = {
+      ...PLAYBOOK,
+      id: "playbook-other",
+      moves: [{ id: "move-other-1", name: "Other Move", trigger: "When you...", rating: "tough", outcomes: null, tags: [] }]
+    };
+    const pack: ContentPack = { ...PACK, playbooks: [PLAYBOOK, otherPlaybook] };
+    const character = makeCharacter({ moves: ["move-1", "move-other-1"] });
+    const resolved = resolveCharacterPlaybook(character, [pack]);
+
+    const moves = resolveCharacterMoves(character, resolved, [pack]);
+
+    expect(moves.map((m) => m.id)).toEqual(["basic-1", "move-1", "move-other-1"]);
+  });
+
+  it("resolves a granted move from a DIFFERENT pack entirely", () => {
+    const otherPack: ContentPack = {
+      ...PACK,
+      id: "pack-b",
+      basicMoves: [],
+      playbooks: [
+        {
+          ...PLAYBOOK,
+          id: "playbook-b",
+          moves: [{ id: "move-b-1", name: "Pack B Move", trigger: "When you...", rating: "weird", outcomes: null, tags: [] }]
+        }
+      ]
+    };
+    const character = makeCharacter({ moves: ["move-1", "move-b-1"] });
+    const resolved = resolveCharacterPlaybook(character, [PACK, otherPack]);
+
+    const moves = resolveCharacterMoves(character, resolved, [PACK, otherPack]);
+
+    expect(moves.map((m) => m.id)).toEqual(["basic-1", "move-1", "move-b-1"]);
   });
 });
 
