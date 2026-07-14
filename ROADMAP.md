@@ -163,7 +163,7 @@ against D&D Beyond's builder flow described there.
       `character` entity type. Phase 7 hardens this (conflict edge cases,
       backoff, multi-device torture test, sync status UI) - it does not
       build it from scratch - 0.4.1 [Opus]
-- [ ] Auth + campaign shell: Phase 3 shipped register/login/logout,
+- [x] Auth + campaign shell: Phase 3 shipped register/login/logout,
       campaign CRUD, and invite codes as server-only APIs with no client
       UI at all. Nothing in this phase is reachable in a browser without
       it. Login/register forms, session-aware layout (redirect to login
