@@ -7,6 +7,19 @@ All notable changes to MOWC are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- Read-only character sheet (`/campaigns/:id/characters/:characterId`):
+  shows a hunter's ratings, Luck/Harm tracks, moves (with expandable
+  10+/7-9/miss outcome text), gear, and notes, in the mobile-first order
+  from docs/DESIGN.md (Ratings sticky under the header, then Tracks,
+  Moves, Gear, Notes). An UNSTABLE stamp appears in the header when the
+  character's `unstable` flag is set. The campaign page now lists every
+  character visible to the current user (a hunter's own, or all of them
+  for the Keeper) linking to this sheet, and the character builder
+  wizard's post-creation confirmation links straight to the new character
+  instead of dead-ending back at the campaign. This screen is read-only;
+  tap-to-edit for Harm/Luck/XP is a separate, later change. Adds a
+  reusable `EvidenceTag` chip component for move/gear tags (the
+  "evidence tag" motif from docs/DESIGN.md).
 - Character builder wizard (`/campaigns/:id/characters/new`): any campaign
   member (Keeper or hunter) can create a hunter through a numbered
   step-by-step flow with a progress rail, matching the D&D Beyond-style

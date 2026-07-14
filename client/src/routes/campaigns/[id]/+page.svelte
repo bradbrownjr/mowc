@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
-  import type { Campaign } from "@mowc/shared";
+  import type { Campaign, Character } from "@mowc/shared";
   import { sessionState } from "$lib/session.svelte";
   import {
     CampaignApiError,
@@ -13,6 +13,8 @@
     type InviteSummary
   } from "$lib/api/campaigns.js";
   import { listPacks, type PackSummary } from "$lib/api/contentPacks.js";
+  import { db } from "$lib/db.js";
+  import { pull } from "$lib/sync.js";
   import type { PageProps } from "./$types.js";
 
   let { data }: PageProps = $props();
@@ -28,6 +30,8 @@
   let packs = $state<PackSummary[]>([]);
   let packsError = $state<string | null>(null);
   let togglingPackId = $state<string | null>(null);
+
+  let characters = $state<Character[]>([]);
 
   const isKeeper = $derived(campaign !== null && sessionState.user !== null && campaign.keeperUserId === sessionState.user.id);
 
@@ -45,6 +49,22 @@
     } catch {
       packsError = "Could not load content packs.";
     }
+  }
+
+  /**
+   * Reads this campaign's characters from local IndexedDB. Pull already
+   * filters visibility server-side (hunters only ever receive their own
+   * character rows, Keepers receive everyone's, see
+   * server/src/entities/router.ts), so no extra client-side ownership
+   * filtering is needed here.
+   */
+  async function loadCharacters(): Promise<void> {
+    const rows = await db.entities
+      .where("[campaignId+type]")
+      .equals([data.id, "character"])
+      .and((row) => !row.deleted)
+      .toArray();
+    characters = rows.map((row) => row.payload as unknown as Character).sort((a, b) => a.name.localeCompare(b.name));
   }
 
   $effect(() => {
@@ -65,6 +85,15 @@
       })
       .catch(() => {
         loadError = "Campaign not found.";
+      });
+
+    // Offline-first (AGENTS.md rule 2): attempt a fresh pull on campaign
+    // open (docs/SYNC.md), but always fall back to whatever's already
+    // local if it fails or we're offline.
+    pull(data.id)
+      .catch(() => {})
+      .finally(() => {
+        void loadCharacters();
       });
   });
 
@@ -117,6 +146,26 @@
     <p class="meta">{isKeeper ? "Keeper" : "Hunter"}</p>
 
     <a class="submit-button" href={resolve("/campaigns/[id]/characters/new", { id: data.id })}>Create a character</a>
+
+    <section class="panel">
+      <h2 class="section-title">Characters</h2>
+      {#if characters.length > 0}
+        <ul class="invite-list">
+          {#each characters as character (character.id)}
+            <li class="invite-row">
+              <a
+                class="character-link"
+                href={resolve("/campaigns/[id]/characters/[characterId]", { id: data.id, characterId: character.id })}
+              >
+                {character.name}
+              </a>
+            </li>
+          {/each}
+        </ul>
+      {:else}
+        <p class="campaign-meta">No characters yet.</p>
+      {/if}
+    </section>
 
     {#if isKeeper}
       <section class="panel">
@@ -309,6 +358,21 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--ink-muted);
+  }
+
+  .character-link {
+    min-height: var(--tap-min);
+    display: flex;
+    align-items: center;
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    text-decoration: none;
+  }
+
+  .character-link:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .icon-button {

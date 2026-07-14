@@ -138,7 +138,12 @@
   {:else if created}
     <h1 class="title">Character created</h1>
     <p class="meta">{created.name} joins the case.</p>
-    <a class="submit-button" href={resolve("/campaigns/[id]", { id: data.id })}>Back to campaign</a>
+    <a
+      class="submit-button"
+      href={resolve("/campaigns/[id]/characters/[characterId]", { id: data.id, characterId: created.id })}
+    >
+      View character sheet
+    </a>
   {:else if !campaign}
     <p class="meta">Loading...</p>
   {:else if availablePlaybooks.length === 0}
