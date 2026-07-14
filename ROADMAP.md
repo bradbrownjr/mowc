@@ -129,7 +129,7 @@ group load their own game content. Read `docs/DATA-MODEL.md` and
       invented placeholder content, used by tests as fixture -
       0.2.6 [Haiku]
 
-## Phase 3: Accounts & Campaigns
+## Phase 3: Accounts & Campaigns ✅
 
 Version 0.3
 
