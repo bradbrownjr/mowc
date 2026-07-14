@@ -7,6 +7,16 @@ All notable changes to MOWC are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- Accounts: `POST /api/auth/register`, `POST /api/auth/login`,
+  `POST /api/auth/logout`, `GET /api/auth/me`. Argon2id password hashing,
+  httpOnly/SameSite=Lax session cookie with a 256-bit token stored hashed
+  (SHA-256) server-side and a 30-day rolling expiry, Origin-based CSRF check
+  on state-changing requests, and rate-limit buckets (300/min/IP global,
+  10/min/IP on login and register) per docs/SECURITY.md sections 2 and 4.
+  Content-pack routes now require a session and are scoped to the
+  authenticated user instead of the placeholder local owner
+- SQLite migration `0003_users_sessions.sql`: the `users` and `sessions`
+  tables
 - Shared zod schemas with inferred TypeScript types for all core entities
   (content pack definitions: ContentPack, PlaybookDef, MoveDef, GearDef,
   MonsterTypeDef; campaign entities: Campaign, Seat, Character, Mystery,

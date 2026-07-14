@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import { isTls } from "./isTls.js";
 
 /**
  * Global HTTP security headers required by docs/SECURITY.md section 5
@@ -21,8 +22,7 @@ export function securityHeaders(req: Request, res: Response, next: NextFunction)
   res.setHeader("Referrer-Policy", "no-referrer");
   res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
 
-  const isTls = req.secure || req.get("x-forwarded-proto") === "https";
-  if (isTls) {
+  if (isTls(req)) {
     res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains");
   }
 

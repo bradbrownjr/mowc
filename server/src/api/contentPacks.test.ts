@@ -42,12 +42,33 @@ function createTestApp() {
   return createApp("0.1.0-test", db);
 }
 
-describe("POST /api/content-packs", () => {
-  it("accepts a valid pack and returns a summary", async () => {
+/** Content-pack routes require auth; returns an agent carrying a session cookie. */
+async function authedAgent(app: ReturnType<typeof createApp>) {
+  const agent = request.agent(app);
+  await agent
+    .post("/api/auth/register")
+    .send({ email: "packer@example.com", password: "hunter2hunter", displayName: "Packer" });
+  return agent;
+}
+
+describe("auth requirement", () => {
+  it("rejects an unauthenticated upload with 401", async () => {
     const app = createTestApp();
     const pack = loadExamplePack();
 
     const res = await request(app).post("/api/content-packs").send(pack);
+
+    expect(res.status).toBe(401);
+  });
+});
+
+describe("POST /api/content-packs", () => {
+  it("accepts a valid pack and returns a summary", async () => {
+    const app = createTestApp();
+    const agent = await authedAgent(app);
+    const pack = loadExamplePack();
+
+    const res = await agent.post("/api/content-packs").send(pack);
 
     expect(res.status).toBe(201);
     expect(res.body).toMatchObject({ id: pack.id, name: pack.name, author: pack.author, version: pack.version });
@@ -56,10 +77,11 @@ describe("POST /api/content-packs", () => {
 
   it("rejects a pack missing a required field with path-precise errors", async () => {
     const app = createTestApp();
+    const agent = await authedAgent(app);
     const pack = loadExamplePack();
     const { name: _name, ...invalidPack } = pack;
 
-    const res = await request(app).post("/api/content-packs").send(invalidPack);
+    const res = await agent.post("/api/content-packs").send(invalidPack);
 
     expect(res.status).toBe(400);
     expect(res.body.errors).toEqual(
@@ -69,15 +91,17 @@ describe("POST /api/content-packs", () => {
 
   it("rejects unknown top-level keys", async () => {
     const app = createTestApp();
+    const agent = await authedAgent(app);
     const pack = { ...loadExamplePack(), unexpectedField: "nope" };
 
-    const res = await request(app).post("/api/content-packs").send(pack);
+    const res = await agent.post("/api/content-packs").send(pack);
 
     expect(res.status).toBe(400);
   });
 
   it("rejects a payload carrying a __proto__ key", async () => {
     const app = createTestApp();
+    const agent = await authedAgent(app);
     // Sent as a raw string with an explicit content-type: supertest's
     // object-merge path for .send(obj) assigns keys with `target[key] =
     // value`, which for a literal "__proto__" key sets the object's actual
@@ -89,7 +113,7 @@ describe("POST /api/content-packs", () => {
       '"__proto__":{"polluted":true},"gear"'
     );
 
-    const res = await request(app)
+    const res = await agent
       .post("/api/content-packs")
       .set("Content-Type", "application/json")
       .send(rawJson);
@@ -99,20 +123,22 @@ describe("POST /api/content-packs", () => {
 
   it("rejects a duplicate id with 409", async () => {
     const app = createTestApp();
+    const agent = await authedAgent(app);
     const pack = loadExamplePack();
 
-    await request(app).post("/api/content-packs").send(pack);
-    const res = await request(app).post("/api/content-packs").send(pack);
+    await agent.post("/api/content-packs").send(pack);
+    const res = await agent.post("/api/content-packs").send(pack);
 
     expect(res.status).toBe(409);
   });
 
   it("accepts a pack body larger than the global 1 MB limit but under the 5 MB pack limit", async () => {
     const app = createTestApp();
+    const agent = await authedAgent(app);
     const pack = loadExamplePack();
     const paddedPack = { ...pack, playbooks: [{ ...pack.playbooks[0], blurb: "x".repeat(2 * 1024 * 1024) }] };
 
-    const res = await request(app).post("/api/content-packs").send(paddedPack);
+    const res = await agent.post("/api/content-packs").send(paddedPack);
 
     expect(res.status).toBe(201);
   });
@@ -121,10 +147,11 @@ describe("POST /api/content-packs", () => {
 describe("GET /api/content-packs", () => {
   it("lists uploaded packs as summaries", async () => {
     const app = createTestApp();
+    const agent = await authedAgent(app);
     const pack = loadExamplePack();
-    await request(app).post("/api/content-packs").send(pack);
+    await agent.post("/api/content-packs").send(pack);
 
-    const res = await request(app).get("/api/content-packs");
+    const res = await agent.get("/api/content-packs");
 
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(1);
@@ -136,10 +163,11 @@ describe("GET /api/content-packs", () => {
 describe("GET /api/content-packs/:id", () => {
   it("returns the full pack payload", async () => {
     const app = createTestApp();
+    const agent = await authedAgent(app);
     const pack = loadExamplePack();
-    await request(app).post("/api/content-packs").send(pack);
+    await agent.post("/api/content-packs").send(pack);
 
-    const res = await request(app).get(`/api/content-packs/${pack.id}`);
+    const res = await agent.get(`/api/content-packs/${pack.id}`);
 
     expect(res.status).toBe(200);
     expect(res.body.pack).toEqual(pack);
@@ -147,16 +175,18 @@ describe("GET /api/content-packs/:id", () => {
 
   it("returns 404 for an unknown id", async () => {
     const app = createTestApp();
+    const agent = await authedAgent(app);
 
-    const res = await request(app).get("/api/content-packs/00000000-0000-0000-0000-000000000000");
+    const res = await agent.get("/api/content-packs/00000000-0000-0000-0000-000000000000");
 
     expect(res.status).toBe(404);
   });
 
   it("returns 400 for a non-uuid id", async () => {
     const app = createTestApp();
+    const agent = await authedAgent(app);
 
-    const res = await request(app).get("/api/content-packs/not-a-uuid");
+    const res = await agent.get("/api/content-packs/not-a-uuid");
 
     expect(res.status).toBe(400);
   });
@@ -165,20 +195,22 @@ describe("GET /api/content-packs/:id", () => {
 describe("DELETE /api/content-packs/:id", () => {
   it("deletes an existing pack", async () => {
     const app = createTestApp();
+    const agent = await authedAgent(app);
     const pack = loadExamplePack();
-    await request(app).post("/api/content-packs").send(pack);
+    await agent.post("/api/content-packs").send(pack);
 
-    const deleteRes = await request(app).delete(`/api/content-packs/${pack.id}`);
+    const deleteRes = await agent.delete(`/api/content-packs/${pack.id}`);
     expect(deleteRes.status).toBe(204);
 
-    const getRes = await request(app).get(`/api/content-packs/${pack.id}`);
+    const getRes = await agent.get(`/api/content-packs/${pack.id}`);
     expect(getRes.status).toBe(404);
   });
 
   it("returns 404 deleting an unknown id", async () => {
     const app = createTestApp();
+    const agent = await authedAgent(app);
 
-    const res = await request(app).delete("/api/content-packs/00000000-0000-0000-0000-000000000000");
+    const res = await agent.delete("/api/content-packs/00000000-0000-0000-0000-000000000000");
 
     expect(res.status).toBe(404);
   });

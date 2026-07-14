@@ -299,7 +299,7 @@ touching the affected file column is preserved.**
 
 | Feature | Key file(s) | Key identifiers |
 |---|---|---|
-| _(populate as features ship)_ | | |
+| Auth (register/login/logout/me, sessions, CSRF, rate limits) | `server/src/auth/*`, `shared/src/schemas/user.ts` | `createAuthRouter`, `createAuthRepo`, `attachUser`, `requireAuth`, `csrfOriginCheck`, `SESSION_COOKIE_NAME` |
 
 Update this table whenever a new feature lands or an existing feature
 moves.

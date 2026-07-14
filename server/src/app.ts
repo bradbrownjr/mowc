@@ -6,6 +6,10 @@ import type Database from "better-sqlite3";
 import { HealthzResponseSchema } from "@mowc/shared";
 import { securityHeaders } from "./http/securityHeaders.js";
 import { createContentPacksRouter } from "./api/contentPacks.js";
+import { attachUser, csrfOriginCheck, requireAuth } from "./auth/middleware.js";
+import { createAuthRepo } from "./auth/repo.js";
+import { createAuthRouter } from "./auth/router.js";
+import { createGlobalRateLimiter } from "./auth/rateLimit.js";
 
 /**
  * The built SvelteKit client is expected as a sibling of this package:
@@ -23,8 +27,10 @@ const CLIENT_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..",
  */
 export function createApp(version: string, db: Database.Database): Express {
   const app = express();
+  const authRepo = createAuthRepo(db);
 
   app.use(securityHeaders);
+  app.use("/api", createGlobalRateLimiter());
   /**
    * Content-pack uploads get a 5 MB body limit (docs/SECURITY.md section 7);
    * everything else stays at 1 MB. This router-specific parser must be
@@ -34,12 +40,15 @@ export function createApp(version: string, db: Database.Database): Express {
    */
   app.use("/api/content-packs", express.json({ limit: "5mb" }));
   app.use(express.json({ limit: "1mb" }));
+  app.use(attachUser(authRepo));
+  app.use(csrfOriginCheck);
 
   app.get("/healthz", (_req, res) => {
     res.json(HealthzResponseSchema.parse({ status: "ok", version }));
   });
 
-  app.use("/api/content-packs", createContentPacksRouter(db));
+  app.use("/api/auth", createAuthRouter(authRepo));
+  app.use("/api/content-packs", requireAuth, createContentPacksRouter(db));
 
   if (existsSync(CLIENT_DIR)) {
     app.use(express.static(CLIENT_DIR));

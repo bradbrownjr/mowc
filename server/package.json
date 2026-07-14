@@ -12,8 +12,11 @@
   },
   "dependencies": {
     "@mowc/shared": "*",
+    "argon2": "^0.41.1",
     "better-sqlite3": "^12.11.1",
-    "express": "^5.2.1"
+    "cookie": "^1.0.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^7.5.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

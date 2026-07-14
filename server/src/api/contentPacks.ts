@@ -1,14 +1,7 @@
 import { Router } from "express";
 import type Database from "better-sqlite3";
 import { ContentPackSchema, UuidSchema } from "@mowc/shared";
-
-/**
- * Real accounts land in Phase 3 (auth). Until then every pack is attributed
- * to this single local owner so the content_packs.owner_user_id NOT NULL
- * column (docs/DATA-MODEL.md) has a value; Phase 3.1 replaces this with the
- * session user id.
- */
-const LOCAL_OWNER_USER_ID = "local";
+import { zodErrorResponse } from "../http/validation.js";
 
 /** docs/SECURITY.md section 1: reject any JSON that could reach a merge
  * or property-assignment path and pollute a prototype. JSON.parse itself
@@ -77,17 +70,14 @@ export function createContentPacksRouter(db: Database.Database): Router {
 
     const result = ContentPackSchema.strict().safeParse(req.body);
     if (!result.success) {
-      res.status(400).json({
-        errors: result.error.issues.map((issue) => ({
-          path: issue.path.join("."),
-          message: issue.message
-        }))
-      });
+      res.status(400).json(zodErrorResponse(result.error));
       return;
     }
 
+    // requireAuth (mounted ahead of this router) guarantees req.user is set.
+    const ownerUserId = req.user!.id;
     const pack = result.data;
-    if (findById.get(pack.id, LOCAL_OWNER_USER_ID)) {
+    if (findById.get(pack.id, ownerUserId)) {
       res.status(409).json({ errors: [{ path: "id", message: "a pack with this id already exists" }] });
       return;
     }
@@ -95,7 +85,7 @@ export function createContentPacksRouter(db: Database.Database): Router {
     const now = new Date().toISOString();
     insertPack.run({
       id: pack.id,
-      ownerUserId: LOCAL_OWNER_USER_ID,
+      ownerUserId,
       name: pack.name,
       author: pack.author,
       version: pack.version,
@@ -114,8 +104,8 @@ export function createContentPacksRouter(db: Database.Database): Router {
     });
   });
 
-  router.get("/", (_req, res) => {
-    const rows = listByOwner.all(LOCAL_OWNER_USER_ID) as ContentPackRow[];
+  router.get("/", (req, res) => {
+    const rows = listByOwner.all(req.user!.id) as ContentPackRow[];
     res.json(rows.map(toSummary));
   });
 
@@ -126,7 +116,7 @@ export function createContentPacksRouter(db: Database.Database): Router {
       return;
     }
 
-    const row = findById.get(idResult.data, LOCAL_OWNER_USER_ID) as ContentPackRow | undefined;
+    const row = findById.get(idResult.data, req.user!.id) as ContentPackRow | undefined;
     if (!row) {
       res.status(404).json({ errors: [{ path: "id", message: "pack not found" }] });
       return;
@@ -142,7 +132,7 @@ export function createContentPacksRouter(db: Database.Database): Router {
       return;
     }
 
-    const { changes } = deleteById.run(idResult.data, LOCAL_OWNER_USER_ID);
+    const { changes } = deleteById.run(idResult.data, req.user!.id);
     if (changes === 0) {
       res.status(404).json({ errors: [{ path: "id", message: "pack not found" }] });
       return;

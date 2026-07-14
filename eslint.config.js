@@ -37,6 +37,18 @@ export default tseslint.config(
     }
   },
   {
+    // Plain-JS scripts served directly to the browser (e.g. app.html's
+    // pre-hydration theme script), outside the TS/Svelte toolchain that
+    // already gets browser globals via the overrides below.
+    files: ["client/static/**/*.js"],
+    languageOptions: {
+      globals: {
+        window: "readonly",
+        document: "readonly"
+      }
+    }
+  },
+  {
     files: ["**/*.svelte", "**/*.svelte.ts", "**/*.svelte.js"],
     languageOptions: {
       parserOptions: {

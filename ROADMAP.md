@@ -133,7 +133,7 @@ group load their own game content. Read `docs/DATA-MODEL.md` and
 
 Version 0.3
 
-- [ ] Auth: register/login/logout, Argon2 hashes, session cookie,
+- [x] Auth: register/login/logout, Argon2 hashes, session cookie,
       rate-limited (copy tangible's hardening pattern: security headers,
       origin CSRF check that allows missing Origin) - 0.3.1 [Sonnet]
 - [ ] Campaign CRUD: a campaign has one Keeper (owner), settings, and an

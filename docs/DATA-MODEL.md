@@ -58,6 +58,16 @@ Core rules constants the ENGINE does own (mechanics, not expression, and
 configurable per pack anyway): 2d6 + rating, 10+ full success, 7-9 mixed,
 miss on 6 or less, mark experience on a miss, 5 experience = improvement.
 
+## Accounts
+
+```
+User { id, email, displayName }
+```
+
+The public-safe shape only; `password_hash` and session tokens never leave
+the server (docs/SECURITY.md section 2). Stored in the conventional `users`
+table, one row per account, `email` unique and lowercased.
+
 ## Campaign entities
 
 ```
