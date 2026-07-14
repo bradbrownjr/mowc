@@ -180,7 +180,7 @@ against D&D Beyond's builder flow described there.
 - [x] Character sheet screen: ratings, Luck track, Harm track (with
       "unstable" marker at the pack-defined threshold), moves with
       expandable text, gear, notes; mobile-first layout - 0.4.4 [Sonnet]
-- [ ] Live edits: tap to mark Harm/Luck/experience; all writes go through
+- [x] Live edits: tap to mark Harm/Luck/experience; all writes go through
       the offline mutation queue (`docs/SYNC.md`) - 0.4.5 [Opus]
 - [ ] Level up: experience threshold triggers improvement picker from the
       playbook's improvement list; advanced improvements gated the same
