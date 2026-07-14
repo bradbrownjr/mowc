@@ -7,6 +7,13 @@ All notable changes to MOWC are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- Campaign CRUD: `POST/GET /api/campaigns`, `GET/PATCH/DELETE
+  /api/campaigns/:id`. Creating a campaign seats the creator as Keeper in
+  the new `seats` table; reads and writes are scoped by membership (404 for
+  non-members, so a guessed id can't be distinguished from a real one) and
+  edits/deletes are Keeper-only (403 for a seated non-Keeper)
+- SQLite migration `0004_campaigns_seats.sql`: the `campaigns` and `seats`
+  tables
 - Accounts: `POST /api/auth/register`, `POST /api/auth/login`,
   `POST /api/auth/logout`, `GET /api/auth/me`. Argon2id password hashing,
   httpOnly/SameSite=Lax session cookie with a 256-bit token stored hashed

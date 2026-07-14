@@ -10,6 +10,8 @@ import { attachUser, csrfOriginCheck, requireAuth } from "./auth/middleware.js";
 import { createAuthRepo } from "./auth/repo.js";
 import { createAuthRouter } from "./auth/router.js";
 import { createGlobalRateLimiter } from "./auth/rateLimit.js";
+import { createCampaignsRepo } from "./campaigns/repo.js";
+import { createCampaignsRouter } from "./campaigns/router.js";
 
 /**
  * The built SvelteKit client is expected as a sibling of this package:
@@ -49,6 +51,7 @@ export function createApp(version: string, db: Database.Database): Express {
 
   app.use("/api/auth", createAuthRouter(authRepo));
   app.use("/api/content-packs", requireAuth, createContentPacksRouter(db));
+  app.use("/api/campaigns", requireAuth, createCampaignsRouter(createCampaignsRepo(db)));
 
   if (existsSync(CLIENT_DIR)) {
     app.use(express.static(CLIENT_DIR));

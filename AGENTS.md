@@ -300,6 +300,7 @@ touching the affected file column is preserved.**
 | Feature | Key file(s) | Key identifiers |
 |---|---|---|
 | Auth (register/login/logout/me, sessions, CSRF, rate limits) | `server/src/auth/*`, `shared/src/schemas/user.ts` | `createAuthRouter`, `createAuthRepo`, `attachUser`, `requireAuth`, `csrfOriginCheck`, `SESSION_COOKIE_NAME` |
+| Campaign CRUD (Keeper-owned, seats table) | `server/src/campaigns/*`, `shared/src/schemas/campaign.ts` | `createCampaignsRouter`, `createCampaignsRepo`, `hasSeat` |
 
 Update this table whenever a new feature lands or an existing feature
 moves.
