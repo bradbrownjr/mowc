@@ -177,7 +177,7 @@ against D&D Beyond's builder flow described there.
       step-by-step with progress indicator; creates the Character through
       the local-first write path from 0.4.1, scoped to the active campaign
       from 0.4.2 - 0.4.3 [Sonnet]
-- [ ] Character sheet screen: ratings, Luck track, Harm track (with
+- [x] Character sheet screen: ratings, Luck track, Harm track (with
       "unstable" marker at the pack-defined threshold), moves with
       expandable text, gear, notes; mobile-first layout - 0.4.4 [Sonnet]
 - [ ] Live edits: tap to mark Harm/Luck/experience; all writes go through
