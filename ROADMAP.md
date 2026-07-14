@@ -150,7 +150,7 @@ Version 0.3
 Version 0.4 — the flagship player feature. Read `docs/DESIGN.md`; compare
 against D&D Beyond's builder flow described there.
 
-- [ ] Sync foundation: this phase is the first to touch campaign entities,
+- [x] Sync foundation: this phase is the first to touch campaign entities,
       so the local-first write path required by AGENTS.md rule 2 must land
       before anything can persist a Character. Client: Dexie schema
       (`entities`, `oplog`, `syncState` per `docs/SYNC.md`) and a generic
@@ -163,21 +163,31 @@ against D&D Beyond's builder flow described there.
       `character` entity type. Phase 7 hardens this (conflict edge cases,
       backoff, multi-device torture test, sync status UI) - it does not
       build it from scratch - 0.4.1 [Opus]
+- [ ] Auth + campaign shell: Phase 3 shipped register/login/logout,
+      campaign CRUD, and invite codes as server-only APIs with no client
+      UI at all. Nothing in this phase is reachable in a browser without
+      it. Login/register forms, session-aware layout (redirect to login
+      when logged out), a "my campaigns" list, create-campaign form,
+      invite-code redemption screen, and a simple active-campaign
+      selection (persisted client-side, e.g. a store or route param) that
+      the rest of Phase 4 reads to know which `campaignId` to write into
+      - 0.4.2 [Sonnet]
 - [ ] Builder wizard: pick playbook (from loaded packs), choose ratings
       line, looks, moves, gear per the playbook definition; guided
       step-by-step with progress indicator; creates the Character through
-      the local-first write path from 0.4.1 - 0.4.2 [Sonnet]
+      the local-first write path from 0.4.1, scoped to the active campaign
+      from 0.4.2 - 0.4.3 [Sonnet]
 - [ ] Character sheet screen: ratings, Luck track, Harm track (with
       "unstable" marker at the pack-defined threshold), moves with
-      expandable text, gear, notes; mobile-first layout - 0.4.3 [Sonnet]
+      expandable text, gear, notes; mobile-first layout - 0.4.4 [Sonnet]
 - [ ] Live edits: tap to mark Harm/Luck/experience; all writes go through
-      the offline mutation queue (`docs/SYNC.md`) - 0.4.4 [Opus]
+      the offline mutation queue (`docs/SYNC.md`) - 0.4.5 [Opus]
 - [ ] Level up: experience threshold triggers improvement picker from the
       playbook's improvement list; advanced improvements gated the same
-      way - 0.4.5 [Sonnet]
+      way - 0.4.6 [Sonnet]
 - [ ] Dice: 2d6+rating roller on every move; result banner shows the
       move's 10+/7-9/miss outcome text from the pack; roll history in the
-      session log - 0.4.6 [Sonnet]
+      session log - 0.4.7 [Sonnet]
 
 ## Phase 5: Keeper Tools
 
