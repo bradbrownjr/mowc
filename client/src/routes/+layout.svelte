@@ -7,13 +7,66 @@
   import "$lib/styles.css";
   import InstallButton from "$lib/InstallButton.svelte";
   import { initPwa } from "$lib/pwa.svelte";
+  import { goto } from "$app/navigation";
+  import { resolve } from "$app/paths";
+  import { initSession, logout, sessionState } from "$lib/session.svelte";
 
   let { children } = $props();
 
   onMount(() => {
-    if (browser) initPwa();
+    if (browser) {
+      initPwa();
+      void initSession();
+    }
   });
+
+  async function onLogout(): Promise<void> {
+    await logout();
+    await goto(resolve("/login"));
+  }
 </script>
+
+<nav class="top-nav">
+  {#if sessionState.user}
+    <a class="nav-link" href={resolve("/campaigns")}>My campaigns</a>
+    <button type="button" class="nav-link nav-logout" onclick={onLogout}>
+      Log out ({sessionState.user.displayName})
+    </button>
+  {:else if sessionState.status === "ready"}
+    <a class="nav-link" href={resolve("/login")}>Log in</a>
+  {/if}
+</nav>
 
 {@render children()}
 <InstallButton />
+
+<style>
+  .top-nav {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-3) var(--space-6);
+  }
+
+  .nav-link {
+    color: var(--accent);
+    font-family: var(--font-meta);
+    font-size: var(--text-sm);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
+  }
+
+  .nav-logout {
+    margin-left: auto;
+    min-height: var(--tap-min);
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  .nav-logout:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+</style>

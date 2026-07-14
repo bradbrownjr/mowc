@@ -7,6 +7,14 @@ All notable changes to MOWC are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- Client UI for accounts and campaigns: you can now register, log in, and
+  log out from the app (`/register`, `/login`); a signed-in nav link shows
+  who you are and takes you to `/campaigns`, where you can see the
+  campaigns you belong to (with your role, Keeper or Hunter), create a new
+  campaign, and join one with an invite code. Opening a campaign
+  (`/campaigns/:id`) shows its name and your role, and Keepers get a simple
+  panel to generate, list, and revoke invite codes. Logged-out or offline
+  visits to `/campaigns` show a clear message instead of crashing.
 - Offline sync foundation (docs/SYNC.md), the local-first write path every
   Phase 4/5 campaign entity builds on. This is internal infrastructure: no
   user-visible screen ships with it yet (the character builder that uses it is
