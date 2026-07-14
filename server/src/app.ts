@@ -77,7 +77,13 @@ export function createApp(version: string, db: Database.Database): Express {
         next();
         return;
       }
-      res.sendFile(path.join(CLIENT_DIR, "index.html"));
+      // 200.html, not index.html: adapter-static's dedicated SPA fallback
+      // uses absolute /_app/... asset paths (index.html's are relative,
+      // correct only when served from the site root). A GET at any nested
+      // route (e.g. a bookmarked /campaigns/:id) served index.html's
+      // relative paths, which resolve wrong at depth and silently break
+      // the whole client bundle.
+      res.sendFile(path.join(CLIENT_DIR, "200.html"));
     });
   }
 
