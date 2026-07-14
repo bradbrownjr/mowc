@@ -36,3 +36,20 @@ export function createAuthRateLimiter(): ReturnType<typeof rateLimit> {
 export function createInviteRateLimiter(): ReturnType<typeof rateLimit> {
   return limiter({ windowMs: 60_000, limit: 10 });
 }
+
+/**
+ * Sync push bucket: 60 requests/min per authenticated user (docs/SECURITY.md
+ * section 4). Keyed by user id (the route is behind requireAuth) rather than
+ * IP, so several players behind one NAT are not throttled together. The 500-op
+ * batch cap is enforced separately by SyncPushRequestSchema.
+ */
+export function createSyncPushRateLimiter(): ReturnType<typeof rateLimit> {
+  return rateLimit({
+    windowMs: 60_000,
+    limit: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req: Request) => req.user?.id ?? "anonymous",
+    handler: loggedHandler
+  });
+}

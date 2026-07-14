@@ -7,6 +7,21 @@ All notable changes to MOWC are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- Offline sync foundation (docs/SYNC.md), the local-first write path every
+  Phase 4/5 campaign entity builds on. This is internal infrastructure: no
+  user-visible screen ships with it yet (the character builder that uses it is
+  the next task). Client gains a Dexie database (`client/src/lib/db.ts`) with
+  `entities`, `oplog`, and `syncState` tables plus a generic write path
+  (`client/src/lib/sync.ts`: `writeEntity`/`deleteEntity` write locally and
+  queue an op without ever awaiting the network, with debounced background
+  push, pull-on-open, an `online`-event flush, and capped-exponential retry).
+  Server gains `POST /api/sync/:campaignId` (push) and
+  `GET /api/sync/:campaignId?since=` (pull) for the `character` type: ops merge
+  at the top-level-field level so two devices editing different fields both
+  survive, diverging fields resolve last-write-wins by timestamp, replays are
+  idempotent by opId, and both push and pull run through the authz module so a
+  hunter only ever reads or writes their own character (docs/SECURITY.md
+  sections 3 and 4, sync push rate-limited 60/min/user, 500 ops/batch)
 - Authorization module (`server/src/authz`): one server-side source of truth
   for "can user U see/edit entity E" per docs/SECURITY.md section 3. Exposes
   `roleFor` (keeper/hunter/none from the `seats` table), `canReadCampaign`,

@@ -15,6 +15,8 @@ import { createCampaignsRouter } from "./campaigns/router.js";
 import { createAuthz } from "./authz/index.js";
 import { createInvitesRepo } from "./invites/repo.js";
 import { createCampaignInvitesRouter, createInviteRedeemRouter } from "./invites/router.js";
+import { createEntitiesRepo } from "./entities/repo.js";
+import { createSyncRouter } from "./entities/router.js";
 
 /**
  * The built SvelteKit client is expected as a sibling of this package:
@@ -54,6 +56,7 @@ export function createApp(version: string, db: Database.Database): Express {
 
   const campaignsRepo = createCampaignsRepo(db);
   const invitesRepo = createInvitesRepo(db);
+  const entitiesRepo = createEntitiesRepo(db);
   const authz = createAuthz(campaignsRepo);
 
   app.use("/api/auth", createAuthRouter(authRepo));
@@ -65,6 +68,7 @@ export function createApp(version: string, db: Database.Database): Express {
   );
   app.use("/api/campaigns", requireAuth, createCampaignsRouter(campaignsRepo, authz));
   app.use("/api/invites", requireAuth, createInviteRedeemRouter(campaignsRepo, invitesRepo));
+  app.use("/api/sync/:campaignId", requireAuth, createSyncRouter(entitiesRepo, authz));
 
   if (existsSync(CLIENT_DIR)) {
     app.use(express.static(CLIENT_DIR));

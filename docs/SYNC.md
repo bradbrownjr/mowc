@@ -9,41 +9,57 @@ fix one in the same PR.
 
 - `entities`: mirror of the server envelope (id, campaignId, type, payload,
   rev, seq, updatedAt, deleted)
-- `oplog`: pending local mutations `{opId: uuid, entityId, baseRev,
-  newPayload, deleted, ts}`
+- `oplog`: pending local mutations `{opId: uuid, entityId, campaignId, type,
+  baseRev, patch, deleted, ts}`. `patch` holds only the top-level fields the
+  write changed (the full payload for a brand-new entity); `campaignId` and
+  `type` let a push target one campaign and route validation by type; `ts` is
+  the client write time, used as the last-write-wins key.
 - `syncState`: `{campaignId, lastServerSeq}`
 
 A UI write = update `entities` locally + append to `oplog`. The UI never
 waits on the network.
 
+Every route below is mounted under the app's `/api` prefix (e.g.
+`POST /api/sync/:campaignId`), like every other MOWC endpoint.
+
 ## Push (client → server)
 
-`POST /sync/:campaignId` with the oplog batch. For each op the server:
+`POST /api/sync/:campaignId` with the oplog batch (max 500 ops,
+docs/SECURITY.md section 4). For each op the server:
 
-1. Validates payload against the shared zod schema for its type.
-2. Loads the current row. If none: insert (rev = op.baseRev + 1).
-3. Conflict check: if `current.rev > op.baseRev`, another device wrote
-   concurrently. Resolution is **last-write-wins by `updatedAt`**, with one
-   exception: for `character` entities, merge at the top-level-field level
-   (a Harm tick on one phone and a note edit on another must both survive).
-   The loser's full payload is returned to the client as a `conflict` entry
-   so the UI can toast "your edit to X was overridden".
-4. Assigns the next per-campaign `seq`, bumps `rev = max(current.rev,
-   op.baseRev) + 1`, stores `updated_by`.
-5. Ops are idempotent by `opId`: the server remembers applied opIds per
-   campaign (table `applied_ops`, pruned after 30 days) so a retried batch
-   never double-applies.
+1. Skips the op if its `opId` is already in `applied_ops` (idempotent replay).
+2. Loads the current row. If none: the `patch` is the full payload and the
+   entity is inserted (rev = op.baseRev + 1).
+3. Merge: the op's `patch` is applied onto the current payload at the
+   top-level-field level. Fields the op does not mention are always preserved,
+   so a Harm tick on one phone and a note edit on another both survive
+   (invariant 1). A field that diverges from the current row is **last-write-
+   wins by `updatedAt`**: the op wins only when its `ts` is at least the
+   current row's `updated_at`; otherwise the current value is kept and the op
+   is returned as a `conflict` entry (with the server payload) so the UI can
+   toast "your edit to X was overridden". (Non-character types added later can
+   use whole-payload LWW by sending every field in the patch.)
+4. The merged payload is validated against the shared zod schema for its type
+   (`CharacterSchema`, strict), and both the current owner and the resulting
+   owner are checked through the authz module (`canEdit`) so a hunter can only
+   ever write their own character. An op that fails validation or authz is
+   dropped (not applied).
+5. Assigns the next per-campaign `seq`, bumps `rev = max(current.rev,
+   op.baseRev) + 1`, stores `updated_by`, and records the `opId` in
+   `applied_ops` (pruned after 30 days) so a retried batch never double-applies.
 
 Response: `{applied: [opId], conflicts: [{opId, serverPayload}],
 newSeq: n}`. Client removes applied ops from the oplog.
 
 ## Pull (server → client)
 
-`GET /sync/:campaignId?since=<lastServerSeq>` returns all envelope rows
-with `seq > since` (including tombstones), filtered by the caller's
-visibility (hunters never receive unrevealed Keeper entities; see
-Phase 3.4). Client upserts into `entities` unless the entity has a pending
-op in `oplog` (local-wins until push resolves it), then stores the new
+`GET /api/sync/:campaignId?since=<lastServerSeq>` returns
+`{rows, seq}`: envelope rows with `seq > since` (including tombstones),
+filtered by the caller's visibility (a hunter receives only characters they
+own; see Phase 3.4), and the new `lastServerSeq`. `seq` advances past every
+scanned row, including ones withheld for visibility, so they are never
+re-scanned. Client upserts each row into `entities` unless the entity has a
+pending op in `oplog` (local-wins until push resolves it), then stores the new
 `lastServerSeq`.
 
 ## When sync runs

@@ -14,13 +14,15 @@
     "@fontsource/big-shoulders": "^5.2.6",
     "@fontsource/courier-prime": "^5.2.8",
     "@lucide/svelte": "^1.24.0",
-    "@mowc/shared": "*"
+    "@mowc/shared": "*",
+    "dexie": "^4.4.4"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.10",
     "@sveltejs/kit": "^2.69.2",
     "@sveltejs/vite-plugin-svelte": "^7.2.0",
     "@vite-pwa/sveltekit": "^1.1.0",
+    "fake-indexeddb": "^6.2.5",
     "svelte": "^5.56.4",
     "svelte-check": "^4.7.2",
     "typescript": "^5.5.4",
