@@ -172,7 +172,7 @@ against D&D Beyond's builder flow described there.
       selection (persisted client-side, e.g. a store or route param) that
       the rest of Phase 4 reads to know which `campaignId` to write into
       - 0.4.2 [Sonnet]
-- [ ] Builder wizard: pick playbook (from loaded packs), choose ratings
+- [x] Builder wizard: pick playbook (from loaded packs), choose ratings
       line, looks, moves, gear per the playbook definition; guided
       step-by-step with progress indicator; creates the Character through
       the local-first write path from 0.4.1, scoped to the active campaign
