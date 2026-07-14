@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
-  import { CharacterSchema, type Character, type ContentPack, type ImprovementDef } from "@mowc/shared";
+  import { CharacterSchema, type Character, type ContentPack, type ImprovementDef, type MoveDef } from "@mowc/shared";
   import { sessionState } from "$lib/session.svelte";
   import { getCampaign } from "$lib/api/campaigns.js";
   import { getPack, type PackDetail } from "$lib/api/contentPacks.js";
@@ -21,7 +21,9 @@
     eligibleImprovements,
     pickableMoves
   } from "$lib/level-up.js";
+  import { rollMove, type RollResult } from "$lib/dice.js";
   import EvidenceTag from "$lib/EvidenceTag.svelte";
+  import DiceBanner from "$lib/DiceBanner.svelte";
   import type { PageProps } from "./$types.js";
 
   // Fixed engine constant (docs/DATA-MODEL.md): 5 experience = an
@@ -29,6 +31,9 @@
   // PlaybookDef.
   const EXPERIENCE_MAX = 5;
   const NOTES_DEBOUNCE_MS = 600;
+  // 0.4.7: roll history is local-only (not synced, see CHANGELOG), capped
+  // so it doesn't grow unbounded over a long session.
+  const ROLL_HISTORY_MAX = 20;
 
   let { data }: PageProps = $props();
 
@@ -44,6 +49,27 @@
   // Set only for an `addMove` improvement with `moveId: null` ("player picks
   // a move"), while the second-step move picker is open.
   let pendingImprovement = $state<ImprovementDef | null>(null);
+
+  // The Dice banner (docs/DESIGN.md's signature interaction). Null when no
+  // roll has been made yet or the banner has been dismissed.
+  let currentRoll = $state<{
+    moveName: string;
+    ratingLabel: string;
+    result: RollResult;
+    outcomeText: string | null;
+  } | null>(null);
+
+  interface RollHistoryEntry {
+    moveName: string;
+    ratingLabel: string;
+    result: RollResult;
+    ts: number;
+  }
+
+  // Local-only roll history (0.4.7 scope boundary, see CHANGELOG): not a
+  // synced SessionLog entity (that's 0.6.3), just an in-memory list for this
+  // browser session, most-recent-first, capped at ROLL_HISTORY_MAX.
+  let rollHistory = $state<RollHistoryEntry[]>([]);
 
   async function loadCharacter(): Promise<void> {
     const row = await db.entities.get(data.characterId);
@@ -100,6 +126,41 @@
 
   function clearUnstable(): void {
     void applyUpdate({ unstable: false });
+  }
+
+  function formatSigned(value: number): string {
+    return value >= 0 ? `+${value}` : `${value}`;
+  }
+
+  function capitalize(value: string): string {
+    return value.charAt(0).toUpperCase() + value.slice(1);
+  }
+
+  /**
+   * Rolls a move (2d6 + rating, docs/DATA-MODEL.md engine constants), shows
+   * the result in the Dice banner, prepends it to the local roll history,
+   * and marks experience on a miss (one applyUpdate call, clamped to
+   * EXPERIENCE_MAX per the "mark experience on a miss" rule).
+   */
+  function rollFor(move: MoveDef): void {
+    if (!character || move.rating === null) return;
+    const ratingValue = character.ratings[move.rating];
+    const result = rollMove(ratingValue);
+    const ratingLabel = `${capitalize(move.rating)} ${formatSigned(ratingValue)}`;
+    currentRoll = {
+      moveName: move.name,
+      ratingLabel,
+      result,
+      outcomeText: move.outcomes ? move.outcomes[result.band] : null
+    };
+    rollHistory = [{ moveName: move.name, ratingLabel, result, ts: Date.now() }, ...rollHistory].slice(0, ROLL_HISTORY_MAX);
+    if (result.band === "miss") {
+      void applyUpdate({ experience: Math.min(EXPERIENCE_MAX, character.experience + 1) });
+    }
+  }
+
+  function dismissRoll(): void {
+    currentRoll = null;
   }
 
   function openImprovementPicker(): void {
@@ -183,6 +244,16 @@
   const eligibleAdvanced = $derived(character && resolved ? eligibleAdvancedImprovements(resolved.playbook, character) : []);
   const moveOptions = $derived(character ? pickableMoves(character, packs) : []);
 </script>
+
+{#if currentRoll}
+  <DiceBanner
+    moveName={currentRoll.moveName}
+    ratingLabel={currentRoll.ratingLabel}
+    result={currentRoll.result}
+    outcomeText={currentRoll.outcomeText}
+    onDismiss={dismissRoll}
+  />
+{/if}
 
 <main>
   <a class="back-link" href={resolve("/campaigns/[id]", { id: data.id })}>Back to campaign</a>
@@ -354,6 +425,11 @@
                     <p class="outcome"><strong>Miss:</strong> {move.outcomes.miss}</p>
                   </details>
                 {/if}
+                {#if move.rating !== null}
+                  <button type="button" class="roll-button" onclick={() => rollFor(move)}>
+                    Roll {capitalize(move.rating)} ({formatSigned(character.ratings[move.rating])})
+                  </button>
+                {/if}
               </li>
             {/each}
           </ul>
@@ -369,6 +445,22 @@
         <p class="meta">No moves.</p>
       {/if}
     </section>
+
+    {#if rollHistory.length > 0}
+      <section class="panel">
+        <h2 class="section-title">Roll History</h2>
+        <p class="meta">This session only, not synced (last {ROLL_HISTORY_MAX})</p>
+        <ul class="roll-history">
+          {#each rollHistory as entry (entry.ts)}
+            <li class="roll-entry band-{entry.result.band}">
+              <span class="roll-move">{entry.moveName}</span>
+              <span class="roll-detail">{entry.ratingLabel} &middot; {entry.result.die1}+{entry.result.die2} = {entry.result.total}</span>
+              <span class="stamp roll-stamp">{entry.result.band === "full" ? "10+" : entry.result.band === "mixed" ? "7-9" : "Miss"}</span>
+            </li>
+          {/each}
+        </ul>
+      </section>
+    {/if}
 
     <section class="panel">
       <h2 class="section-title">Gear</h2>
@@ -655,6 +747,78 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--ink-muted);
+  }
+
+  .roll-button {
+    min-height: var(--tap-min);
+    margin-top: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    background: var(--surface);
+    border: 2px solid var(--accent);
+    border-radius: var(--radius-sm);
+    color: var(--accent);
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .roll-button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .roll-history {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+  }
+
+  .roll-entry {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+
+  .roll-move {
+    font-family: var(--font-body);
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .roll-detail {
+    font-family: var(--font-meta);
+    font-size: var(--text-xs);
+    letter-spacing: 0.05em;
+    color: var(--ink-muted);
+  }
+
+  .roll-stamp {
+    margin-left: auto;
+    padding: 0 var(--space-2);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-size: var(--text-xs);
+  }
+
+  .roll-entry.band-full .roll-stamp {
+    border-color: var(--ok);
+    color: var(--ok);
+  }
+
+  .roll-entry.band-miss .roll-stamp {
+    border-color: var(--danger);
+    color: var(--danger);
   }
 
   .gear-list {

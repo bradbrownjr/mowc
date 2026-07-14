@@ -185,7 +185,7 @@ against D&D Beyond's builder flow described there.
 - [x] Level up: experience threshold triggers improvement picker from the
       playbook's improvement list; advanced improvements gated the same
       way - 0.4.6 [Sonnet]
-- [ ] Dice: 2d6+rating roller on every move; result banner shows the
+- [x] Dice: 2d6+rating roller on every move; result banner shows the
       move's 10+/7-9/miss outcome text from the pack; roll history in the
       session log - 0.4.7 [Sonnet]
 

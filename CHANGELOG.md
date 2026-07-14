@@ -7,6 +7,26 @@ All notable changes to MOWC are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- Dice roller on the character sheet
+  (`/campaigns/:id/characters/:characterId`): every move with a rated
+  stat gets a "Roll [Stat] ([+/-N])" button that rolls 2d6 + rating and
+  shows the result in the Dice banner, docs/DESIGN.md's signature
+  interaction: a torn-slip card sliding in with the move name, the total
+  in big display type, the outcome band (10+/7-9/Miss) as a colored
+  stamp, then the move's matching outcome text (skipped for moves with no
+  outcome text). The banner honors the documented 400ms slide + stamp
+  thunk motion, falling back to an instant opacity-only fade under
+  `prefers-reduced-motion`, and dismisses via a close button or a tap
+  outside it. Moves with no rated stat (narrative-only moves) show no
+  roll button. A miss (total 6 or less) marks one Experience,
+  clamped to the 5-box track, in the same offline-first write path as
+  every other sheet edit. Roll history renders below Moves as a
+  reverse-chronological list capped at the last 20 rolls; this history is
+  intentionally **local to the browser session only, not synced** to the
+  server or other devices. A full synced session log (session-wide feed
+  of rolls/changes/reveals, exportable as markdown) is a separate later
+  roadmap item (0.6.3) once the sync layer supports more than the
+  Character entity type; this is a deliberate stepping stone, not a gap.
 - Improvement picker on the character sheet
   (`/campaigns/:id/characters/:characterId`): once Experience reaches 5,
   a "Choose your improvement" action opens an inline picker (matching the
