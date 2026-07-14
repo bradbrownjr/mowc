@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type Database from "better-sqlite3";
 import type { User } from "@mowc/shared";
-import { generateSessionToken, hashSessionToken } from "./security.js";
+import { generateToken, hashToken } from "./security.js";
 
 /** 30 days, rolling (docs/SECURITY.md section 2). */
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -60,14 +60,14 @@ export function createAuthRepo(db: Database.Database): AuthRepo {
     },
 
     createSession(userId) {
-      const token = generateSessionToken();
+      const token = generateToken();
       const expiresAt = new Date(Date.now() + SESSION_TTL_MS).toISOString();
-      insertSession.run(hashSessionToken(token), userId, new Date().toISOString(), expiresAt);
+      insertSession.run(hashToken(token), userId, new Date().toISOString(), expiresAt);
       return { token, expiresAt };
     },
 
     touchSession(token) {
-      const tokenHash = hashSessionToken(token);
+      const tokenHash = hashToken(token);
       const row = selectSession.get(tokenHash) as { user_id: string; expires_at: string } | undefined;
       if (!row || new Date(row.expires_at).getTime() < Date.now()) {
         return undefined;
@@ -82,7 +82,7 @@ export function createAuthRepo(db: Database.Database): AuthRepo {
     },
 
     deleteSession(token) {
-      deleteSessionByHash.run(hashSessionToken(token));
+      deleteSessionByHash.run(hashToken(token));
     }
   };
 }

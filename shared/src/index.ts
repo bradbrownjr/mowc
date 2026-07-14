@@ -16,6 +16,7 @@ export * from "./schemas/common.js";
 export * from "./schemas/user.js";
 export * from "./schemas/contentPack.js";
 export * from "./schemas/campaign.js";
+export * from "./schemas/invite.js";
 export * from "./schemas/character.js";
 export * from "./schemas/mystery.js";
 export * from "./schemas/world.js";

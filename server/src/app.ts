@@ -12,6 +12,8 @@ import { createAuthRouter } from "./auth/router.js";
 import { createGlobalRateLimiter } from "./auth/rateLimit.js";
 import { createCampaignsRepo } from "./campaigns/repo.js";
 import { createCampaignsRouter } from "./campaigns/router.js";
+import { createInvitesRepo } from "./invites/repo.js";
+import { createCampaignInvitesRouter, createInviteRedeemRouter } from "./invites/router.js";
 
 /**
  * The built SvelteKit client is expected as a sibling of this package:
@@ -49,9 +51,18 @@ export function createApp(version: string, db: Database.Database): Express {
     res.json(HealthzResponseSchema.parse({ status: "ok", version }));
   });
 
+  const campaignsRepo = createCampaignsRepo(db);
+  const invitesRepo = createInvitesRepo(db);
+
   app.use("/api/auth", createAuthRouter(authRepo));
   app.use("/api/content-packs", requireAuth, createContentPacksRouter(db));
-  app.use("/api/campaigns", requireAuth, createCampaignsRouter(createCampaignsRepo(db)));
+  app.use(
+    "/api/campaigns/:campaignId/invites",
+    requireAuth,
+    createCampaignInvitesRouter(campaignsRepo, invitesRepo)
+  );
+  app.use("/api/campaigns", requireAuth, createCampaignsRouter(campaignsRepo));
+  app.use("/api/invites", requireAuth, createInviteRedeemRouter(campaignsRepo, invitesRepo));
 
   if (existsSync(CLIENT_DIR)) {
     app.use(express.static(CLIENT_DIR));

@@ -10,11 +10,14 @@ export function verifyPassword(hash: string, password: string): Promise<boolean>
   return argon2.verify(hash, password);
 }
 
-/** Random 256-bit session token, hex-encoded. Never persisted raw. */
-export function generateSessionToken(): string {
-  return randomBytes(32).toString("hex");
+/**
+ * Random hex-encoded bearer token (session cookies, invite codes). Never
+ * persisted raw; callers store hashToken(token) and compare hashes.
+ */
+export function generateToken(bytes = 32): string {
+  return randomBytes(bytes).toString("hex");
 }
 
-export function hashSessionToken(token: string): string {
+export function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }

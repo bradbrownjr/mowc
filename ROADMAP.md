@@ -138,7 +138,7 @@ Version 0.3
       origin CSRF check that allows missing Origin) - 0.3.1 [Sonnet]
 - [x] Campaign CRUD: a campaign has one Keeper (owner), settings, and an
       active content-pack set - 0.3.2 [Sonnet]
-- [ ] Invite codes: Keeper generates a short-lived code; a player joining
+- [x] Invite codes: Keeper generates a short-lived code; a player joining
       with it gets a hunter seat in the campaign - 0.3.3 [Sonnet]
 - [ ] Roles and visibility rules: Keeper sees everything; hunters see own
       character + what the Keeper shares - 0.3.4 [Opus]

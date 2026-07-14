@@ -7,6 +7,15 @@ All notable changes to MOWC are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- Invite codes: `POST/GET /api/campaigns/:campaignId/invites` (Keeper-only,
+  403 for a seated non-Keeper, 404 for a non-member so guessed campaign ids
+  can't be distinguished from real ones), `DELETE
+  /api/campaigns/:campaignId/invites/:inviteId` to revoke, and
+  `POST /api/invites/redeem` for any authenticated user to join as a
+  hunter. Codes are random 128-bit, stored hashed (never persisted raw),
+  multi-use until a 72h default expiry or revocation, and rate-limited
+  10/min/IP on redemption per docs/SECURITY.md sections 2 and 4
+- SQLite migration `0005_invites.sql`: the `invites` table
 - Campaign CRUD: `POST/GET /api/campaigns`, `GET/PATCH/DELETE
   /api/campaigns/:id`. Creating a campaign seats the creator as Keeper in
   the new `seats` table; reads and writes are scoped by membership (404 for

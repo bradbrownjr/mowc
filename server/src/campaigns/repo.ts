@@ -29,6 +29,8 @@ export interface CampaignsRepo {
   listForUser(userId: string): Campaign[];
   findById(id: string): Campaign | undefined;
   hasSeat(campaignId: string, userId: string): boolean;
+  /** Idempotent: a no-op if the user already holds a seat. */
+  addHunterSeat(campaignId: string, userId: string): void;
   update(id: string, patch: CampaignUpdateInput): Campaign | undefined;
   remove(id: string): boolean;
 }
@@ -89,6 +91,13 @@ export function createCampaignsRepo(db: Database.Database): CampaignsRepo {
 
     hasSeat(campaignId, userId) {
       return selectSeat.get(campaignId, userId) !== undefined;
+    },
+
+    addHunterSeat(campaignId, userId) {
+      if (selectSeat.get(campaignId, userId) !== undefined) {
+        return;
+      }
+      createSeat(campaignId, userId, "hunter");
     },
 
     update(id, patch) {

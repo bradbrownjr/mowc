@@ -73,6 +73,10 @@ table, one row per account, `email` unique and lowercased.
 ```
 Campaign  { id, name, keeperUserId, packIds[], settings, theme }
 Seat      { campaignId, userId, role: keeper|hunter }
+Invite    { id, campaignId, createdAt, expiresAt, revoked: bool }
+            -- the raw redemption code is never stored (docs/SECURITY.md
+            -- section 2); only its hash. Shown to the Keeper once, at
+            -- creation. Multi-use until expiry or revocation.
 Character { id, campaignId, ownerUserId, playbookId, name, look,
             ratings {charm,cool,sharp,tough,weird},
             luckSpent, harm, unstable, experience,

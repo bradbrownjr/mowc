@@ -31,3 +31,8 @@ export function createGlobalRateLimiter(): ReturnType<typeof rateLimit> {
 export function createAuthRateLimiter(): ReturnType<typeof rateLimit> {
   return limiter({ windowMs: 60_000, limit: 10 });
 }
+
+/** Invite redemption bucket: 10 requests/min/IP. */
+export function createInviteRateLimiter(): ReturnType<typeof rateLimit> {
+  return limiter({ windowMs: 60_000, limit: 10 });
+}
