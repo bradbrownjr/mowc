@@ -12,6 +12,7 @@ All notable changes to MOWC are documented here. Format follows
   Previously these pages rendered the full content-pack UI regardless of
   auth state and every API call silently 401'd, surfaced as a misleading
   "Could not reach the server" message.
+- `style-src` in the CSP now includes `'unsafe-inline'`
   (`client/svelte.config.js`, docs/SECURITY.md section 5). Confirmed by
   running the production build in a real browser: SvelteKit's static
   wrapper markup and Svelte 5's own compiled hydration-boundary template

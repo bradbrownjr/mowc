@@ -100,13 +100,29 @@ Set globally (helmet or hand-rolled middleware, one module):
   app.html) are unavoidably inline and adapter-static has no per-request
   server to hand out a nonce. The HTTP header (securityHeaders.ts) sets
   only `frame-ancestors 'none'` (the one directive a `<meta>` tag cannot
-  express). `default-src 'self'`, `script-src`/`style-src` with a
-  build-time sha256 hash per page, `img-src 'self' data:`, and
-  `connect-src 'self'` come from a `<meta http-equiv="Content-Security-
-  Policy">` tag that SvelteKit generates per prerendered page
-  (`client/svelte.config.js`'s `kit.csp`, mode `"auto"`). A header-level
-  `default-src`/`script-src` here would win the browser's intersection of
-  both policies and block the hash the meta tag allows, so do not add one.
+  express). `default-src 'self'`, `script-src` with a build-time sha256
+  hash per page, `img-src 'self' data:`, and `connect-src 'self'` come
+  from a `<meta http-equiv="Content-Security-Policy">` tag that SvelteKit
+  generates per prerendered page (`client/svelte.config.js`'s `kit.csp`,
+  mode `"auto"`). A header-level `default-src`/`script-src` here would win
+  the browser's intersection of both policies and block the hash the meta
+  tag allows, so do not add one.
+  `style-src` is `'self' 'unsafe-inline'`, deliberately looser than
+  `script-src`: SvelteKit's static wrapper markup (`app.html`'s
+  `<div style="display: contents">`) and Svelte 5's own compiled
+  hydration-boundary template use the identical `style="display:
+  contents"` pattern, one statically in the served HTML and one applied
+  at runtime by Svelte's client bundle. Both are `style-src-attr`
+  violations under a strict policy, confirmed by running the built app
+  in a real browser and listening for `securitypolicyviolation` events
+  (`vite dev` never applies the header, which is why this wasn't caught
+  earlier). Neither hashes nor nonces apply to `style` attributes without
+  `'unsafe-hashes'`, and the runtime-generated instance has no fixed,
+  hashable value across builds, so `'unsafe-inline'` is the only stable
+  fix. `script-src` remains hash-only with no `'unsafe-inline'`; CSS
+  injection cannot execute arbitrary script, only alter presentation or
+  attempt narrow CSS-based exfiltration via attribute selectors, an
+  accepted residual risk for a self-hosted, no-third-party-content app.
 - `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
   `Referrer-Policy: no-referrer`,
   `Strict-Transport-Security` when TLS is detected,
