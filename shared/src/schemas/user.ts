@@ -9,6 +9,15 @@ export const UserSchema = z.object({
 });
 export type User = z.infer<typeof UserSchema>;
 
+// Response shape for auth endpoints only: isAdmin is computed per-request
+// from MOWC_ADMIN_EMAIL (server/src/authz/admin.ts), never stored on the
+// user row, so it stays out of the plain User type used internally
+// (req.user, authz, campaigns).
+export const AuthUserSchema = UserSchema.extend({
+  isAdmin: z.boolean()
+});
+export type AuthUser = z.infer<typeof AuthUserSchema>;
+
 export const PasswordSchema = z.string().min(8).max(128);
 
 export const RegisterInputSchema = z.object({

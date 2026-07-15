@@ -1,4 +1,4 @@
-import type { LoginInput, RegisterInput, User } from "@mowc/shared";
+import type { AuthUser, LoginInput, RegisterInput } from "@mowc/shared";
 import { ApiError, throwApiError } from "./http.js";
 
 export { ApiError as AuthApiError };
@@ -13,12 +13,12 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export async function register(input: RegisterInput): Promise<User> {
-  return postJson<User>("/api/auth/register", input);
+export async function register(input: RegisterInput): Promise<AuthUser> {
+  return postJson<AuthUser>("/api/auth/register", input);
 }
 
-export async function login(input: LoginInput): Promise<User> {
-  return postJson<User>("/api/auth/login", input);
+export async function login(input: LoginInput): Promise<AuthUser> {
+  return postJson<AuthUser>("/api/auth/login", input);
 }
 
 export async function logout(): Promise<void> {
@@ -26,8 +26,8 @@ export async function logout(): Promise<void> {
   if (!res.ok) await throwApiError(res);
 }
 
-export async function me(): Promise<User> {
+export async function me(): Promise<AuthUser> {
   const res = await fetch("/api/auth/me");
   if (!res.ok) await throwApiError(res);
-  return res.json() as Promise<User>;
+  return res.json() as Promise<AuthUser>;
 }

@@ -1,15 +1,20 @@
 import { Router } from "express";
-import { LoginInputSchema, RegisterInputSchema } from "@mowc/shared";
+import { LoginInputSchema, RegisterInputSchema, type AuthUser, type User } from "@mowc/shared";
 import { zodErrorResponse } from "../http/validation.js";
+import { isAdmin } from "../authz/admin.js";
 import type { AuthRepo } from "./repo.js";
 import { hashPassword, verifyPassword } from "./security.js";
 import { clearSessionCookie, readSessionToken, setSessionCookie } from "./cookie.js";
 import { requireAuth } from "./middleware.js";
 import { createAuthRateLimiter } from "./rateLimit.js";
 
-export function createAuthRouter(repo: AuthRepo): Router {
+export function createAuthRouter(repo: AuthRepo, adminEmail?: string): Router {
   const router = Router();
   const authRateLimiter = createAuthRateLimiter();
+
+  function toAuthUser(user: User): AuthUser {
+    return { ...user, isAdmin: isAdmin(user, adminEmail) };
+  }
 
   router.post("/register", authRateLimiter, async (req, res) => {
     const result = RegisterInputSchema.strict().safeParse(req.body);
@@ -28,7 +33,7 @@ export function createAuthRouter(repo: AuthRepo): Router {
     const user = repo.createUser({ email, passwordHash, displayName: result.data.displayName });
     const session = repo.createSession(user.id);
     setSessionCookie(req, res, session.token, session.expiresAt);
-    res.status(201).json(user);
+    res.status(201).json(toAuthUser(user));
   });
 
   router.post("/login", authRateLimiter, async (req, res) => {
@@ -49,7 +54,7 @@ export function createAuthRouter(repo: AuthRepo): Router {
 
     const session = repo.createSession(found.user.id);
     setSessionCookie(req, res, session.token, session.expiresAt);
-    res.status(200).json(found.user);
+    res.status(200).json(toAuthUser(found.user));
   });
 
   router.post("/logout", (req, res) => {
@@ -62,7 +67,7 @@ export function createAuthRouter(repo: AuthRepo): Router {
   });
 
   router.get("/me", requireAuth, (req, res) => {
-    res.json(req.user);
+    res.json(toAuthUser(req.user!));
   });
 
   return router;

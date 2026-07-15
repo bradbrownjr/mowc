@@ -3,12 +3,15 @@
   import Icon from "$lib/Icon.svelte";
   import { Plus, Trash2 } from "@lucide/svelte";
   import { generateUuid } from "$lib/uuid.js";
+  import ConversionNote from "./ConversionNote.svelte";
 
   interface Props {
     moves: MoveDef[];
+    /** Conversion notes for the move at this index (packs/convert review only). */
+    notesForIndex?: (index: number) => string[];
   }
 
-  let { moves = $bindable() }: Props = $props();
+  let { moves = $bindable(), notesForIndex }: Props = $props();
 
   function addMove(): void {
     moves.push({ id: generateUuid(), name: "", trigger: "", rating: null, outcomes: null, tags: [] });
@@ -86,6 +89,12 @@
         <span class="field-label">Tags (comma separated)</span>
         <input type="text" value={tagsToText(move.tags)} onchange={(e) => onTagsChange(move, e.currentTarget.value)} />
       </label>
+
+      {#if notesForIndex}
+        {#each notesForIndex(index) as note (note)}
+          <ConversionNote {note} />
+        {/each}
+      {/if}
     </div>
   {/each}
   <button type="button" class="add-button" onclick={addMove}>

@@ -20,11 +20,11 @@ afterEach(() => {
   }
 });
 
-function createTestApp() {
+function createTestApp(adminEmail?: string) {
   tempDir = mkdtempSync(path.join(tmpdir(), "mowc-auth-"));
   db = openDb(tempDir);
   runMigrations(db);
-  return createApp("0.1.0-test", db);
+  return createApp("0.1.0-test", db, adminEmail);
 }
 
 const CREDENTIALS = { email: "Hunter@Example.com", password: "hunter2hunter", displayName: "Hunter" };
@@ -36,9 +36,23 @@ describe("POST /api/auth/register", () => {
     const res = await request(app).post("/api/auth/register").send(CREDENTIALS);
 
     expect(res.status).toBe(201);
-    expect(res.body).toEqual({ id: expect.any(String), email: "hunter@example.com", displayName: "Hunter" });
+    expect(res.body).toEqual({
+      id: expect.any(String),
+      email: "hunter@example.com",
+      displayName: "Hunter",
+      isAdmin: false
+    });
     expect(res.body.passwordHash).toBeUndefined();
     expect(res.headers["set-cookie"]?.[0]).toMatch(/^mowc_session=/);
+  });
+
+  it("marks the designated admin account with isAdmin: true", async () => {
+    const app = createTestApp("hunter@example.com");
+
+    const res = await request(app).post("/api/auth/register").send(CREDENTIALS);
+
+    expect(res.status).toBe(201);
+    expect(res.body.isAdmin).toBe(true);
   });
 
   it("rejects a duplicate email (case-insensitively) with 409", async () => {
@@ -79,7 +93,12 @@ describe("POST /api/auth/login", () => {
       .send({ email: CREDENTIALS.email, password: CREDENTIALS.password });
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ id: expect.any(String), email: "hunter@example.com", displayName: "Hunter" });
+    expect(res.body).toEqual({
+      id: expect.any(String),
+      email: "hunter@example.com",
+      displayName: "Hunter",
+      isAdmin: false
+    });
     expect(res.headers["set-cookie"]?.[0]).toMatch(/^mowc_session=/);
   });
 

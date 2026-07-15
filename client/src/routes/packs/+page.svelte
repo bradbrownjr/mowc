@@ -3,10 +3,12 @@
   import { resolve } from "$app/paths";
   import { createPack, deletePack, listPacks, PackApiError, type PackSummary } from "$lib/api/contentPacks.js";
   import { extractPacksFromFiles } from "$lib/pack-import.js";
+  import { convertPdf, ConversionApiError } from "$lib/api/conversion.js";
+  import { setConversionResult } from "$lib/conversion.svelte";
   import { sessionState } from "$lib/session.svelte";
   import Icon from "$lib/Icon.svelte";
   import EvidenceTag from "$lib/EvidenceTag.svelte";
-  import { Plus, Trash2, Upload } from "@lucide/svelte";
+  import { FileText, Plus, Trash2, Upload } from "@lucide/svelte";
 
   interface ImportResultRow {
     name: string;
@@ -19,6 +21,9 @@
   let importResults = $state<ImportResultRow[]>([]);
   let importing = $state(false);
   let fileInput: HTMLInputElement | undefined = $state();
+  let convertInput: HTMLInputElement | undefined = $state();
+  let converting = $state(false);
+  let convertError = $state<string | null>(null);
 
   async function refresh(): Promise<void> {
     try {
@@ -76,6 +81,25 @@
       input.value = "";
     }
   }
+
+  async function onConvertFileSelected(e: Event): Promise<void> {
+    const input = e.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    converting = true;
+    convertError = null;
+    try {
+      const result = await convertPdf(file);
+      setConversionResult(result);
+      await goto(resolve("/packs/convert"));
+    } catch (err) {
+      convertError = err instanceof ConversionApiError ? err.message : "Could not convert that PDF.";
+    } finally {
+      converting = false;
+      input.value = "";
+    }
+  }
 </script>
 
 <main>
@@ -94,12 +118,29 @@
         class="visually-hidden"
         onchange={onFileSelected}
       />
+      {#if sessionState.user?.isAdmin}
+        <button type="button" class="add-button" onclick={() => convertInput?.click()} disabled={converting}>
+          <Icon icon={FileText} size={18} />
+          {converting ? "Converting..." : "Convert PDF"}
+        </button>
+        <input
+          bind:this={convertInput}
+          type="file"
+          accept=".pdf,application/pdf"
+          class="visually-hidden"
+          onchange={onConvertFileSelected}
+        />
+      {/if}
       <a class="add-button" href={resolve("/packs/new")}>
         <Icon icon={Plus} size={18} />
         New pack
       </a>
     </div>
   </div>
+
+  {#if convertError}
+    <p class="error">{convertError}</p>
+  {/if}
 
   {#if importResults.length > 0}
     {@const failed = importResults.filter((r) => !r.ok)}

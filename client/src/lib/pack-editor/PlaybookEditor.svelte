@@ -3,12 +3,17 @@
   import RatingsLinesEditor from "./RatingsLinesEditor.svelte";
   import MovesEditor from "./MovesEditor.svelte";
   import GearChoicesEditor from "./GearChoicesEditor.svelte";
+  import ConversionNote from "./ConversionNote.svelte";
 
   interface Props {
     playbook: PlaybookDef;
+    /** Playbook-general conversion notes (packs/convert review only). */
+    generalNotes?: string[];
+    /** Conversion notes for the move at this index (packs/convert review only). */
+    notesForMove?: (index: number) => string[];
   }
 
-  let { playbook = $bindable() }: Props = $props();
+  let { playbook = $bindable(), generalNotes, notesForMove }: Props = $props();
 </script>
 
 <div class="playbook">
@@ -21,6 +26,12 @@
     <span class="field-label">Blurb</span>
     <textarea bind:value={playbook.blurb} rows="2"></textarea>
   </label>
+
+  {#if generalNotes}
+    {#each generalNotes as note (note)}
+      <ConversionNote {note} />
+    {/each}
+  {/if}
 
   <div class="row">
     <label class="field small">
@@ -48,7 +59,7 @@
 
   <section>
     <h3 class="section-title">Moves</h3>
-    <MovesEditor bind:moves={playbook.moves} />
+    <MovesEditor bind:moves={playbook.moves} notesForIndex={notesForMove} />
   </section>
 
   <section>

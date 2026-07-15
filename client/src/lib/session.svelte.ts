@@ -10,10 +10,10 @@
  * route's own params (see client/src/routes/campaigns/[id]/+page.ts) rather
  * than a separate "active campaign" global.
  */
-import type { LoginInput, RegisterInput, User } from "@mowc/shared";
+import type { AuthUser, LoginInput, RegisterInput } from "@mowc/shared";
 import { login as apiLogin, logout as apiLogout, me as apiMe, register as apiRegister } from "./api/auth.js";
 
-export const sessionState = $state<{ user: User | null; status: "loading" | "ready" }>({
+export const sessionState = $state<{ user: AuthUser | null; status: "loading" | "ready" }>({
   user: null,
   status: "loading"
 });
@@ -33,13 +33,13 @@ export async function initSession(): Promise<void> {
   }
 }
 
-export async function login(input: LoginInput): Promise<User> {
+export async function login(input: LoginInput): Promise<AuthUser> {
   const user = await apiLogin(input);
   sessionState.user = user;
   return user;
 }
 
-export async function register(input: RegisterInput): Promise<User> {
+export async function register(input: RegisterInput): Promise<AuthUser> {
   const user = await apiRegister(input);
   sessionState.user = user;
   return user;

@@ -7,6 +7,18 @@ All notable changes to MOWC are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- Convert UI: the `/packs` page now shows an admin-only "Convert PDF"
+  button (gated on a new `isAdmin` flag returned by the auth endpoints)
+  that uploads a PDF to the 0.9.6 conversion endpoint and opens a review
+  screen (`/packs/convert`) listing every draft pack it produced. Each
+  draft is editable in place (reusing the existing playbook/moves editors)
+  and saved individually through the existing content-pack pipeline;
+  `conversionNotes` are shown inline next to the field they flag (a new
+  "Conversion flags" callout, docs/DESIGN.md) instead of as a flat dump,
+  so the admin can review and correct best-effort playbook names and
+  flagged fields before anything is saved. The conversion result lives in
+  browser memory only, matching the endpoint's stateless design; a page
+  refresh loses unsaved drafts.
 - Admin PDF-to-content-pack conversion (server engine). The server-owner
   account can POST a rulebook or playbook PDF to `POST
   /api/admin/conversions` and get back draft content packs: one per

@@ -51,6 +51,11 @@ font never used for paragraphs.
   display-font total, outcome band (10+/7-9/miss) as a stamp, then the
   outcome text. This is THE signature interaction; it gets the motion
   budget.
+- **Conversion flags**: admin PDF-conversion notes (docs/adr/0001) render as
+  a bordered callout, `--accent` border (never `--danger`; a flag means
+  "verify this", not a failure), a flag icon, the message in body font, and
+  any verbatim source excerpt in Courier at `--text-xs` inside its own
+  scrollable block below the message.
 
 ## Tokens (CSS custom properties, defined once in `client/src/lib/styles.css`)
 
@@ -134,3 +139,4 @@ user-themable; they are the product's identity.
 | EvidenceTag | `client/src/lib/EvidenceTag.svelte` | The "evidence tag" motif: rectangular chip, one clipped corner (`--tag-clip`), Courier label. Props: `label: string`. First user: the character sheet's move/gear tags (`campaigns/[id]/characters/[characterId]`). `client/src/routes/packs/[id]/+page.svelte` has an earlier inline `.tag` style predating this component; not yet migrated (out of scope for the change that added this row). |
 | DiceBanner | `client/src/lib/DiceBanner.svelte` | The "Dice banner" motif (Motifs section): a torn-slip card, fixed near the top of the viewport with a full-screen transparent tap-to-dismiss backdrop, showing the move name, a die/rating breakdown line, the total in oversized display type, the outcome band (10+/7-9/Miss) as a rotated stamp, then the matching outcome text. Props: `moveName: string`, `ratingLabel: string`, `result: RollResult`, `outcomeText: string \| null`, `onDismiss: () => void`. 400ms slide-in + stamp thunk (scale 1.1→1.0) per the Motion section; opacity-only fade under `prefers-reduced-motion`. Stamp/border color is `--accent` for a mixed result, `--ok` for full success, `--danger` for a miss. First user: the character sheet's move rollers (`campaigns/[id]/characters/[characterId]`). |
 | Footer | `client/src/lib/Footer.svelte` | Rendered once in the root layout, below `{@render children()}`, on every route. Two centered `--font-meta` lines at `--text-xs`, `--ink-muted`, uppercase, letterspaced 0.08em (the same "field caption" treatment as `.meta`/`.nav-link` elsewhere), separated from page content by a `--border` top rule. Line 1 is the LICENSING.md-required "unofficial fan project, not affiliated with Evil Hat" notice; line 2 is copyright, MIT license, and the running app version pulled from `healthState` (`client/src/lib/health.svelte.ts`). |
+| ConversionNote | `client/src/lib/pack-editor/ConversionNote.svelte` | Renders one `conversionNotes` string (`<fieldPath>: <message>`, optionally a blank line then a verbatim source excerpt; grammar is `formatConversionNote` in `shared/src/schemas/conversion.ts`) as the "Conversion flags" motif callout. Props: `note: string`. First user: the admin PDF-conversion review screen (`packs/convert`); also threaded optionally into `PlaybookEditor`/`MovesEditor` via a `notes` prop that defaults to none, so the plain `packs/new` flow is unaffected. |

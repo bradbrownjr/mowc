@@ -67,7 +67,7 @@ export function createApp(version: string, db: Database.Database, adminEmail?: s
   const entitiesRepo = createEntitiesRepo(db);
   const authz = createAuthz(campaignsRepo);
 
-  app.use("/api/auth", createAuthRouter(authRepo));
+  app.use("/api/auth", createAuthRouter(authRepo, adminEmail));
   app.use("/api/content-packs", requireAuth, createContentPacksRouter(db, campaignsRepo, adminEmail));
   app.use("/api/admin/conversions", requireAuth, createConversionRouter(adminEmail));
   app.use(
