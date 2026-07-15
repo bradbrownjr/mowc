@@ -6,6 +6,12 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+### Fixed
+- Pack import errors now list every failing field in a file, not just
+  the first. A file with several null/missing fields (e.g. multiple
+  moves each missing trigger or "on a miss" outcome text) previously
+  took one fix-and-reupload cycle per field to fully diagnose.
+
 ## [0.4.12] - 2026-07-15
 
 ### Added
