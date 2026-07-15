@@ -50,6 +50,28 @@ describe("parsePackJson", () => {
     expect(outcome.ok).toBe(false);
     expect(outcome.message).toContain("basicMoves.0.id");
   });
+
+  it("lists every failing field, not just the first", () => {
+    const outcome = parsePackJson(
+      "a.mowcpack.json",
+      JSON.stringify({
+        ...PLACEHOLDER_PACK,
+        basicMoves: [
+          { id: "act-under-pressure", name: "Act Under Pressure", trigger: null, rating: null, outcomes: null },
+          {
+            id: "help-out",
+            name: "Help Out",
+            trigger: "you help someone",
+            rating: null,
+            outcomes: { full: "full text", mixed: "mixed text", miss: null }
+          }
+        ]
+      })
+    );
+    expect(outcome.ok).toBe(false);
+    expect(outcome.message).toContain("basicMoves.0.trigger");
+    expect(outcome.message).toContain("basicMoves.1.outcomes.miss");
+  });
 });
 
 describe("isZipFile", () => {

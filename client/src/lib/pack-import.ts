@@ -18,13 +18,13 @@ export function parsePackJson(name: string, text: string): ImportOutcome {
 
   const result = ContentPackSchema.safeParse(parsed);
   if (!result.success) {
-    const issue = result.error.issues[0];
-    const path = issue?.path.join(".") || "(root)";
-    const detail = issue ? `${path}: ${issue.message}` : "invalid format";
+    const details = result.error.issues
+      .map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`)
+      .join("; ");
     return {
       name,
       ok: false,
-      message: `${name} is not a valid .mowcpack.json file: ${detail}`
+      message: `${name} is not a valid .mowcpack.json file: ${details || "invalid format"}`
     };
   }
 
