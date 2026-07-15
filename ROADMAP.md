@@ -261,9 +261,10 @@ Version 0.9
       user's filled official playbook PDF into a character (fields only,
       never bundled text) - 0.9.3 [Opus]
 - [ ] Obsidian/markdown export of mysteries and session logs - 0.9.4 [Haiku]
-- [ ] Admin PDF-to-content-pack conversion: schema/security/endpoint
+- [x] Admin PDF-to-content-pack conversion: schema/security/endpoint
       contract design ADR (upload limits, admin gating, `conversionNotes`
       contract, one-PDF-to-many-draft-packs shape) - 0.9.5 [Fable]
+      Done: `docs/adr/0001-admin-pdf-to-pack-conversion.md` (accepted).
       Distinct from 9.3 (that's AcroForm character-field import from a
       filled PDF; this is full-text extraction of a rulebook/playbook PDF
       into a draft ContentPack). Never bundle extracted text into the repo
