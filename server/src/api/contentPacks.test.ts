@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import request from "supertest";
 import type Database from "better-sqlite3";
-import type { ContentPack } from "@mowc/shared";
+import { ContentPackSchema, type ContentPack } from "@mowc/shared";
 import { createApp } from "../app.js";
 import { openDb } from "../db/index.js";
 import { runMigrations } from "../db/migrate.js";
@@ -177,7 +177,7 @@ describe("GET /api/content-packs/:id", () => {
     const res = await agent.get(`/api/content-packs/${pack.id}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.pack).toEqual(pack);
+    expect(res.body.pack).toEqual(ContentPackSchema.parse(pack));
   });
 
   it("returns 404 for an unknown id", async () => {
@@ -221,7 +221,7 @@ describe("GET /api/content-packs/:id", () => {
     const res = await hunter.get(`/api/content-packs/${pack.id}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.pack).toEqual(pack);
+    expect(res.body.pack).toEqual(ContentPackSchema.parse(pack));
   });
 
   it("returns 404 for a pack the user neither owns nor shares a campaign for", async () => {
@@ -331,7 +331,7 @@ describe("shared content packs", () => {
     const res = await stranger.get(`/api/content-packs/${pack.id}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.pack).toEqual(pack);
+    expect(res.body.pack).toEqual(ContentPackSchema.parse(pack));
   });
 
   it("does not list a private pack for a user who did not upload it", async () => {

@@ -6,6 +6,24 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+- Content packs can now carry reference content alongside playbooks and
+  moves: a `$format` file-format tag, a `license` string, transcriber
+  `conversionNotes`, hunter/Keeper agendas and principles, core-rules
+  text (roll, harm, luck, recovery, leveling up, end of session), Keeper
+  move lists (including harm-tier moves), mystery-creation steps,
+  location archetypes (`locationTypes`), and per-category guidance text.
+  Previously these fields were rejected on import.
+- Playbook extras support a new "composite" kind: an intro blurb plus
+  ordered sections that are either pick-lists (numeric or prose pick
+  rules like "2+") or free-text prompts, with optional example
+  suggestions. Covers fate/breed/background-style playbook widgets.
+
+### Changed
+- Monster, minion, bystander, and (new) location archetypes now share
+  one shape with a `motivation` field; bystander and minion types
+  previously used a `description` field that the game text never used.
+
 ## [0.4.13] - 2026-07-15
 
 ### Fixed

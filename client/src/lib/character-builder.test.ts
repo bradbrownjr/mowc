@@ -68,6 +68,7 @@ describe("flattenPlaybooks", () => {
       monsterTypes: [],
       bystanderTypes: [],
       minionTypes: [],
+      locationTypes: [],
       gear: []
     };
     const packB: ContentPack = { ...packA, id: "pack-b", playbooks: [{ ...PLAYBOOK, id: "playbook-2" }] };

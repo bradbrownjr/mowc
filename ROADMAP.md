@@ -261,6 +261,28 @@ Version 0.9
       user's filled official playbook PDF into a character (fields only,
       never bundled text) - 0.9.3 [Opus]
 - [ ] Obsidian/markdown export of mysteries and session logs - 0.9.4 [Haiku]
+- [ ] Admin PDF-to-content-pack conversion: schema/security/endpoint
+      contract design ADR (upload limits, admin gating, `conversionNotes`
+      contract, one-PDF-to-many-draft-packs shape) - 0.9.5 [Fable]
+      Distinct from 9.3 (that's AcroForm character-field import from a
+      filled PDF; this is full-text extraction of a rulebook/playbook PDF
+      into a draft ContentPack). Never bundle extracted text into the repo
+      or a Docker image (AGENTS.md rule 1) — this only ever runs at
+      runtime against an admin-uploaded file, output stays in
+      `$MOWC_DATA_DIR`/the DB like any other pack.
+- [ ] Conversion parser engine: poppler `pdftotext -layout` extraction,
+      playbook-boundary detection across a consolidated PDF, best-effort
+      structural splitting (moves, gear, improvements, extras) - 0.9.6
+      [Opus]. Conservative by design: flag anything uncertain into
+      `conversionNotes` with the raw source text attached rather than
+      guess. A prior manual conversion session hit a real boundary-
+      detection bug (non-colon-terminated bullets bled unrelated gear-list
+      text into a move's trigger) — the parser must default to flagging,
+      not silently misplacing text.
+- [ ] Convert UI: admin-only upload flow on `/packs`, review screen
+      extending the existing pack editor (Phase 2.4) to surface
+      `conversionNotes` inline against the fields they reference before
+      the admin saves - 0.9.7 [Sonnet]
 
 ## Phase 10: Polish & 1.0
 

@@ -12,6 +12,7 @@ const PLACEHOLDER_PACK: ContentPack = {
   monsterTypes: [],
   bystanderTypes: [],
   minionTypes: [],
+  locationTypes: [],
   gear: []
 };
 

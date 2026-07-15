@@ -77,6 +77,7 @@ const PACK: ContentPack = {
   monsterTypes: [],
   bystanderTypes: [],
   minionTypes: [],
+  locationTypes: [],
   gear: []
 };
 

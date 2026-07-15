@@ -19,11 +19,35 @@ ship itself (see docs/LICENSING.md).
 ContentPack {
   id: uuid
   name, author, version: string
+  $format: "mowc-content-pack/v1"    // optional file-format tag
+  license: string                    // optional; source/usage terms verbatim
+  conversionNotes: string[]          // transcriber flags for anything it
+                                     // couldn't confidently transcribe
+                                     // ("flag, never guess"); also the
+                                     // channel for the planned PDF
+                                     // auto-conversion to report gaps
   playbooks: PlaybookDef[]
-  basicMoves: MoveDef[]          // moves shared by all hunters
-  monsterTypes: MonsterTypeDef[] // e.g. motivation archetypes
-  bystanderTypes / minionTypes: NamedDef[]
+  basicMoves: MoveDef[]              // moves shared by all hunters
+  monsterTypes / bystanderTypes / minionTypes / locationTypes:
+    ArchetypeDef[]                   // {id, name, motivation} - all four
+                                     // categories use "motivation" as the
+                                     // semantic concept
   gear: GearDef[]
+
+  // Optional reference content (hunter/Keeper sheets). Metadata, not
+  // gameplay-critical; a playbook-only pack has none of it.
+  hunterAgenda: string[]
+  coreRules { roll, recovery, levelingUp, endOfSession: string,
+              harm: {max, unstableAt, text}, luck: {max, text} }
+  keeperAgenda / keeperPrinciples / alwaysSay: string[]
+  keeperMoves { basic/monster/minion/bystander/location: string[],
+                harm: { note, tiers: [{label, effects[]}] } }
+                                     // tiers keep the book's presentational
+                                     // bucket labels ("0-harm or more") as
+                                     // ordered data, not object keys
+  mysteryCreation { steps: [{step, prompts[], countdownSteps?}] }
+  monsterGuidance / minionGuidance / bystanderGuidance /
+    locationGuidance / customMoveGuidance: string
 }
 
 PlaybookDef {
@@ -39,7 +63,13 @@ PlaybookDef {
   advancedImprovements: ImprovementDef[]
   extras: ExtraDef[]             // playbook-specific widgets: magic, haven,
                                  // mystic library, etc. Rendered generically
-                                 // as titled checklists/counters/text blocks.
+                                 // as titled checklists/counters/text blocks,
+                                 // plus "composite" (fate, breed, background):
+                                 // intro text + ordered sections, each a
+                                 // pick-list ({pick: int|string, options[]},
+                                 // string pick for prose rules like "2+") or
+                                 // a free-text prompt; optional suggestions[]
+                                 // (e.g. example breed builds).
 }
 
 MoveDef {

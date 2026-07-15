@@ -37,6 +37,7 @@
     monsterTypes: [],
     bystanderTypes: [],
     minionTypes: [],
+    locationTypes: [],
     gear: []
   });
 

@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  ArchetypeDefSchema,
   ContentPackSchema,
   ExtraDefSchema,
+  ExtraSectionSchema,
   GearChoiceSchema,
   GearDefSchema,
   ImprovementDefSchema,
-  MonsterTypeDefSchema,
   MoveDefSchema,
-  NamedDefSchema,
+  PACK_FORMAT,
   PlaybookDefSchema
 } from "./contentPack.js";
 
@@ -73,31 +74,23 @@ describe("GearDefSchema", () => {
   });
 });
 
-describe("NamedDefSchema", () => {
-  it("parses and defaults description", () => {
-    const def = NamedDefSchema.parse({ id: "type-test-1", name: "Test Bystander Type" });
-    expect(def.description).toBe("");
-  });
-
-  it("rejects an empty name", () => {
-    expect(() => NamedDefSchema.parse({ id: "type-test-1", name: "" })).toThrow();
-  });
-});
-
-describe("MonsterTypeDefSchema", () => {
-  it("parses a valid monster type", () => {
-    const def = MonsterTypeDefSchema.parse({
+describe("ArchetypeDefSchema", () => {
+  it("parses a valid archetype", () => {
+    const def = ArchetypeDefSchema.parse({
       id: "monster-type-test-1",
       name: "Test Archetype",
       motivation: "to placeholder"
     });
-    expect(def.name).toBe("Test Archetype");
+    expect(def.motivation).toBe("to placeholder");
   });
 
-  it("rejects a missing motivation", () => {
-    expect(() =>
-      MonsterTypeDefSchema.parse({ id: "monster-type-test-1", name: "Test Archetype" })
-    ).toThrow();
+  it("defaults a missing motivation to empty string", () => {
+    const def = ArchetypeDefSchema.parse({ id: "type-test-1", name: "Test Bystander Type" });
+    expect(def.motivation).toBe("");
+  });
+
+  it("rejects an empty name", () => {
+    expect(() => ArchetypeDefSchema.parse({ id: "type-test-1", name: "" })).toThrow();
   });
 });
 
@@ -181,6 +174,88 @@ describe("ExtraDefSchema", () => {
       ExtraDefSchema.parse({ kind: "checklist", id: "extra-test-4", title: "Broken" })
     ).toThrow();
   });
+
+  it("parses a composite extra with pick and text sections", () => {
+    const composite = ExtraDefSchema.parse({
+      kind: "composite",
+      id: "extra-test-5",
+      title: "Test Destiny Widget",
+      text: "A placeholder intro blurb for the widget.",
+      sections: [
+        {
+          kind: "pick",
+          id: "section-test-1",
+          title: "Test Pick Section",
+          pick: 2,
+          options: ["Placeholder option A", "Placeholder option B", "Placeholder option C"]
+        },
+        {
+          kind: "text",
+          id: "section-test-2",
+          title: "Test Text Section",
+          prompt: "Describe your placeholder in a few words."
+        }
+      ]
+    });
+    expect(composite.kind).toBe("composite");
+    if (composite.kind === "composite") {
+      expect(composite.sections).toHaveLength(2);
+      expect(composite.suggestions).toEqual([]);
+    }
+  });
+
+  it("parses a composite extra with a prose pick rule and suggestions", () => {
+    const composite = ExtraDefSchema.parse({
+      kind: "composite",
+      id: "extra-test-6",
+      title: "Test Loadout Widget",
+      sections: [
+        {
+          kind: "pick",
+          id: "section-test-3",
+          title: "Test Prose Pick",
+          pick: "one base and one extra, or two bases",
+          options: ["Base: test prod", "Extra: test glitter"]
+        }
+      ],
+      suggestions: ["Test Combo: base test prod plus extra test glitter."]
+    });
+    if (composite.kind === "composite") {
+      expect(composite.text).toBe("");
+      expect(composite.suggestions).toHaveLength(1);
+    }
+  });
+
+  it("rejects a composite extra whose section has an unknown kind", () => {
+    expect(() =>
+      ExtraDefSchema.parse({
+        kind: "composite",
+        id: "extra-test-7",
+        title: "Broken Widget",
+        sections: [{ kind: "slider", id: "section-test-4", title: "Broken" }]
+      })
+    ).toThrow();
+  });
+});
+
+describe("ExtraSectionSchema", () => {
+  it("rejects a pick section with pick of zero", () => {
+    expect(() =>
+      ExtraSectionSchema.parse({
+        kind: "pick",
+        id: "section-test-5",
+        title: "Broken Pick",
+        pick: 0,
+        options: ["Placeholder option"]
+      })
+    ).toThrow();
+  });
+
+  it("rejects a text section without a prompt", () => {
+    expect(() =>
+      ExtraSectionSchema.parse({ kind: "text", id: "section-test-6", title: "Broken Text" })
+    ).toThrow();
+  });
 });
 
 describe("PlaybookDefSchema", () => {
@@ -233,5 +308,116 @@ describe("ContentPackSchema", () => {
     expect(() =>
       ContentPackSchema.parse({ id: "pack-1", name: "Test Pack", author: "A", version: "1" })
     ).toThrow();
+  });
+
+  it("defaults the reference-content fields on a minimal pack", () => {
+    const pack = ContentPackSchema.parse({
+      id: "00000000-0000-4000-8000-000000000001",
+      name: "Test Pack",
+      author: "Test Author",
+      version: "1.0.0"
+    });
+    expect(pack.$format).toBeUndefined();
+    expect(pack.license).toBeUndefined();
+    expect(pack.conversionNotes).toBeUndefined();
+    expect(pack.locationTypes).toEqual([]);
+    expect(pack.hunterAgenda).toBeUndefined();
+    expect(pack.keeperAgenda).toBeUndefined();
+    expect(pack.coreRules).toBeUndefined();
+    expect(pack.keeperMoves).toBeUndefined();
+    expect(pack.mysteryCreation).toBeUndefined();
+    expect(pack.monsterGuidance).toBeUndefined();
+  });
+
+  it("parses a pack with format tag, license, and conversion notes", () => {
+    const pack = ContentPackSchema.parse({
+      id: "00000000-0000-4000-8000-000000000002",
+      name: "Test Pack",
+      author: "Test Author",
+      version: "1.0.0",
+      $format: PACK_FORMAT,
+      license: "Placeholder license text for tests only.",
+      conversionNotes: ["The placeholder gizmo's name was unreadable in the test source."]
+    });
+    expect(pack.$format).toBe("mowc-content-pack/v1");
+    expect(pack.conversionNotes).toHaveLength(1);
+  });
+
+  it("rejects an unknown format tag", () => {
+    expect(() =>
+      ContentPackSchema.parse({
+        id: "00000000-0000-4000-8000-000000000003",
+        name: "Test Pack",
+        author: "Test Author",
+        version: "1.0.0",
+        $format: "mowc-content-pack/v99"
+      })
+    ).toThrow();
+  });
+
+  it("parses hunter reference content (agenda and core rules)", () => {
+    const pack = ContentPackSchema.parse({
+      id: "00000000-0000-4000-8000-000000000004",
+      name: "Test Rules Pack",
+      author: "Test Author",
+      version: "1.0.0",
+      hunterAgenda: ["Be a placeholder.", "Test the placeholder."],
+      coreRules: {
+        roll: "Roll 2d6 plus a placeholder rating.",
+        harm: { max: 7, unstableAt: 4, text: "Placeholder harm rules." },
+        luck: { max: 7, text: "Placeholder luck rules." },
+        recovery: "Placeholder recovery rules.",
+        levelingUp: "Placeholder leveling rules.",
+        endOfSession: "Placeholder end-of-session rules."
+      }
+    });
+    expect(pack.hunterAgenda).toHaveLength(2);
+    expect(pack.coreRules?.harm?.max).toBe(7);
+    expect(pack.coreRules?.luck?.text).toBe("Placeholder luck rules.");
+  });
+
+  it("parses keeper reference content", () => {
+    const pack = ContentPackSchema.parse({
+      id: "00000000-0000-4000-8000-000000000005",
+      name: "Test Keeper Pack",
+      author: "Test Author",
+      version: "1.0.0",
+      keeperAgenda: ["Make the placeholder seem real"],
+      keeperPrinciples: ["Test everything twice"],
+      alwaysSay: ["What the test demands"],
+      keeperMoves: {
+        basic: ["Separate the placeholders"],
+        monster: ["Hint at the test monster's presence"],
+        minion: ["Send a test goon"],
+        bystander: ["Get in the way"],
+        location: ["Present a placeholder hazard"],
+        harm: {
+          note: "Every time a placeholder gets hurt, use one.",
+          tiers: [
+            { label: "0-harm or more", effects: ["Momentarily placeholdered"] },
+            { label: "8-harm or more", effects: ["The test dummy is destroyed."] }
+          ]
+        }
+      },
+      mysteryCreation: {
+        steps: [
+          { step: "Test Concept", prompts: ["A placeholder from a test legend."] },
+          {
+            step: "Test Countdown",
+            prompts: ["Break the test into events."],
+            countdownSteps: ["Step one", "Step two"]
+          }
+        ]
+      },
+      monsterGuidance: "Name the test monster.",
+      minionGuidance: "Name the test goon.",
+      bystanderGuidance: "Name the test bystander.",
+      locationTypes: [{ id: "location-type-test-1", name: "Test Lair", motivation: "to placeholder" }],
+      locationGuidance: "Name the test location.",
+      customMoveGuidance: "Describe the test move."
+    });
+    expect(pack.keeperMoves?.harm?.tiers).toHaveLength(2);
+    expect(pack.mysteryCreation?.steps[1].countdownSteps).toEqual(["Step one", "Step two"]);
+    expect(pack.locationTypes[0].motivation).toBe("to placeholder");
   });
 });
