@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "mowc",
-  "version": "0.4.9",
+  "version": "0.4.10",
   "type": "module",
   "engines": {
     "node": ">=20"

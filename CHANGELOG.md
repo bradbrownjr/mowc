@@ -6,6 +6,8 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+## [0.4.10] - 2026-07-15
+
 ### Added
 - Shared content packs: an optional `MOWC_ADMIN_EMAIL` env var designates a
   server-owner account (docker-compose files document it, commented out).
