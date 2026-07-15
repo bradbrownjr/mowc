@@ -6,10 +6,12 @@
   import "@fontsource/courier-prime";
   import "$lib/styles.css";
   import InstallButton from "$lib/InstallButton.svelte";
+  import Footer from "$lib/Footer.svelte";
   import { initPwa } from "$lib/pwa.svelte";
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
   import { initSession, logout, sessionState } from "$lib/session.svelte";
+  import { initHealth } from "$lib/health.svelte";
 
   let { children } = $props();
 
@@ -17,6 +19,7 @@
     if (browser) {
       initPwa();
       void initSession();
+      void initHealth();
     }
   });
 
@@ -39,6 +42,7 @@
 </nav>
 
 {@render children()}
+<Footer />
 <InstallButton />
 
 <style>

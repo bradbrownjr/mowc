@@ -1,28 +1,14 @@
 <script lang="ts">
-  import { HealthzResponseSchema, type HealthzResponse } from "@mowc/shared";
   import { resolve } from "$app/paths";
-
-  let health = $state<HealthzResponse | null>(null);
-  let error = $state<string | null>(null);
-
-  $effect(() => {
-    fetch("/healthz")
-      .then((res) => res.json())
-      .then((data) => {
-        health = HealthzResponseSchema.parse(data);
-      })
-      .catch(() => {
-        error = "Offline. Could not reach the server.";
-      });
-  });
+  import { healthState } from "$lib/health.svelte";
 </script>
 
 <main>
   <h1 class="title">MOWC</h1>
-  {#if health}
-    <p class="meta">Status: {health.status} / Version: {health.version}</p>
-  {:else if error}
-    <p class="meta">{error}</p>
+  {#if healthState.status === "ready" && healthState.health}
+    <p class="meta">Status: {healthState.health.status} / Version: {healthState.health.version}</p>
+  {:else if healthState.status === "offline"}
+    <p class="meta">Offline. Could not reach the server.</p>
   {:else}
     <p class="meta">Checking server...</p>
   {/if}

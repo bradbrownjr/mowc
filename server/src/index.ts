@@ -7,7 +7,7 @@ import { openDb } from "./db/index.js";
 import { runMigrations } from "./db/migrate.js";
 
 const pkg = JSON.parse(
-  readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "package.json"), "utf-8")
+  readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "package.json"), "utf-8")
 ) as { version: string };
 
 const db = openDb(config.dataDir);
