@@ -38,6 +38,18 @@ describe("parsePackJson", () => {
     expect(outcome.ok).toBe(false);
     expect(outcome.message).toContain("not a valid .mowcpack.json file");
   });
+
+  it("includes the failing field path in the error message", () => {
+    const outcome = parsePackJson(
+      "a.mowcpack.json",
+      JSON.stringify({
+        ...PLACEHOLDER_PACK,
+        basicMoves: [{ id: null, name: "Act Under Pressure", trigger: "", rating: null, outcomes: null }]
+      })
+    );
+    expect(outcome.ok).toBe(false);
+    expect(outcome.message).toContain("basicMoves.0.id");
+  });
 });
 
 describe("isZipFile", () => {
