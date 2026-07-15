@@ -164,6 +164,10 @@ Packs are the only user-supplied file type. Treat them as hostile:
   designated admin account can create, edit, or delete a shared pack
   (enforced by ownership on write, same as any other pack); every other
   account's uploads default to private, unchanged from before.
+- The planned admin PDF-to-pack conversion endpoint (Phase 9) is governed
+  by docs/adr/0001-admin-pdf-to-pack-conversion.md: admin-only, stateless,
+  25 MB raw-PDF body, sandboxed pdftotext subprocess with timeout/output/
+  concurrency caps, 10 conversions/hour. Its caps must land with 0.9.6.
 
 ## 8. Container & deployment hardening
 
@@ -220,4 +224,5 @@ credential or authz bugs get a release regardless of the roadmap phase.
 | 3 | Argon2id, hashed session tokens, CSRF origin check, rate-limit buckets, authz module + tests |
 | 6 | SSE auth via cookie, per-user stream caps |
 | 7 | Sync visibility filter tests, op batch caps, idempotency table pruning |
+| 9 | Conversion endpoint caps per docs/adr/0001 (with 0.9.6) |
 | 10 | Full review vs this doc; npm audit hard-fail on high/critical |

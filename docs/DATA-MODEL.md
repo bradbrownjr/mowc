@@ -25,7 +25,10 @@ ContentPack {
                                      // couldn't confidently transcribe
                                      // ("flag, never guess"); also the
                                      // channel for the planned PDF
-                                     // auto-conversion to report gaps
+                                     // auto-conversion to report gaps.
+                                     // Note grammar (field-path prefix +
+                                     // optional source excerpt):
+                                     // docs/adr/0001-admin-pdf-to-pack-conversion.md
   playbooks: PlaybookDef[]
   basicMoves: MoveDef[]              // moves shared by all hunters
   monsterTypes / bystanderTypes / minionTypes / locationTypes:
