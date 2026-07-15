@@ -36,9 +36,11 @@ ENV NODE_ENV=production \
     PUID=99 \
     PGID=100
 
-# tini (PID 1, reaps zombies) and gosu (drop to PUID:PGID at start).
+# tini (PID 1, reaps zombies), gosu (drop to PUID:PGID at start), and
+# poppler-utils (pdftotext/pdfinfo for the admin PDF-to-pack conversion
+# endpoint, ADR 0001). poppler-utils ships no game content, only the tool.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends tini gosu \
+    && apt-get install -y --no-install-recommends tini gosu poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

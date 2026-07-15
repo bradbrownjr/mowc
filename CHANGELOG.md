@@ -7,6 +7,23 @@ All notable changes to MOWC are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- Admin PDF-to-content-pack conversion (server engine). The server-owner
+  account can POST a rulebook or playbook PDF to `POST
+  /api/admin/conversions` and get back draft content packs: one per
+  detected playbook plus a single reference draft, each ready to review
+  and save through the existing pack pipeline. Text is extracted with
+  poppler `pdftotext -layout`, de-columnized into reading order, and split
+  conservatively: moves are recognised from their roll triggers, and
+  anything the parser cannot place with confidence (outcomes, gear,
+  improvements, unrecognised sections, invented default fields) is flagged
+  verbatim in `conversionNotes` with a field path rather than guessed into
+  a value. The endpoint is admin-only, stateless (no PDF is written to
+  disk, no draft is persisted), rate-limited to 10 conversions/hour with
+  single-flight concurrency, and runs pdftotext fully sandboxed (fixed
+  argv, 25 MB body cap, 30 s timeout, 4 MB output cap). Playbook-name
+  detection on consolidated multi-playbook PDFs is best-effort; the review
+  UI (0.9.7) is where an admin corrects names and fills flagged fields. No
+  game text ships in the repo or image; poppler-utils is only a tool.
 - Content packs can now carry reference content alongside playbooks and
   moves: a `$format` file-format tag, a `license` string, transcriber
   `conversionNotes`, hunter/Keeper agendas and principles, core-rules

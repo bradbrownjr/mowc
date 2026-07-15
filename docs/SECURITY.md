@@ -84,7 +84,15 @@ The app must still be safe if exposed directly.
 - Global: 300 requests/min per IP (express-rate-limit).
 - Strict buckets: login and register 10/min per IP, invite redemption
   10/min, content-pack upload 10/hour per user, sync push 60/min per
-  user with max 500 ops per batch.
+  user with max 500 ops per batch, admin PDF conversion 10/hour per user
+  (single-flight: one conversion at a time per server process, else 429).
+- Admin PDF conversion (`POST /api/admin/conversions`, ADR 0001): raw
+  `application/pdf` body capped at 25 MB (413 over-limit), magic-byte
+  checked (`%PDF-`, else 400), piped to a sandboxed `pdftotext`/`pdfinfo`
+  subprocess with a fixed argv (no shell, no temp file), a 30 s wall-clock
+  timeout, and a 4 MB captured-output cap (both kill the process; 422 on
+  any extraction failure). Admin-only (403 otherwise); stateless (nothing
+  written to disk or persisted server-side).
 - SSE: max 5 concurrent streams per user; heartbeat every 30 s; dead
   connections reaped.
 - Log every 429 and failed login with IP (structured log line) so
@@ -164,10 +172,12 @@ Packs are the only user-supplied file type. Treat them as hostile:
   designated admin account can create, edit, or delete a shared pack
   (enforced by ownership on write, same as any other pack); every other
   account's uploads default to private, unchanged from before.
-- The planned admin PDF-to-pack conversion endpoint (Phase 9) is governed
+- The admin PDF-to-pack conversion endpoint (Phase 9, 0.9.6) is governed
   by docs/adr/0001-admin-pdf-to-pack-conversion.md: admin-only, stateless,
   25 MB raw-PDF body, sandboxed pdftotext subprocess with timeout/output/
-  concurrency caps, 10 conversions/hour. Its caps must land with 0.9.6.
+  concurrency caps, 10 conversions/hour (see section 4 for the caps). Its
+  drafts are saved through this same content-pack pipeline, so all the
+  hardening above applies unchanged.
 
 ## 8. Container & deployment hardening
 

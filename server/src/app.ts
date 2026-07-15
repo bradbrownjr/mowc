@@ -6,6 +6,7 @@ import type Database from "better-sqlite3";
 import { HealthzResponseSchema } from "@mowc/shared";
 import { securityHeaders } from "./http/securityHeaders.js";
 import { createContentPacksRouter } from "./api/contentPacks.js";
+import { createConversionRouter } from "./api/conversion/router.js";
 import { attachUser, csrfOriginCheck, requireAuth } from "./auth/middleware.js";
 import { createAuthRepo } from "./auth/repo.js";
 import { createAuthRouter } from "./auth/router.js";
@@ -46,6 +47,13 @@ export function createApp(version: string, db: Database.Database, adminEmail?: s
    * makes the wider limit apply only to this path.
    */
   app.use("/api/content-packs", express.json({ limit: "5mb" }));
+  /**
+   * The admin PDF conversion endpoint takes a raw PDF body (ADR 0001), not
+   * JSON. Scope a 25 MB raw parser to this path only, mounted before the JSON
+   * parsers so they never try to parse the PDF bytes. An over-limit body makes
+   * express.raw throw, which Express renders as 413.
+   */
+  app.use("/api/admin/conversions", express.raw({ type: "application/pdf", limit: "25mb" }));
   app.use(express.json({ limit: "1mb" }));
   app.use(attachUser(authRepo));
   app.use(csrfOriginCheck);
@@ -61,6 +69,7 @@ export function createApp(version: string, db: Database.Database, adminEmail?: s
 
   app.use("/api/auth", createAuthRouter(authRepo));
   app.use("/api/content-packs", requireAuth, createContentPacksRouter(db, campaignsRepo, adminEmail));
+  app.use("/api/admin/conversions", requireAuth, createConversionRouter(adminEmail));
   app.use(
     "/api/campaigns/:campaignId/invites",
     requireAuth,

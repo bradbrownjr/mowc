@@ -271,7 +271,7 @@ Version 0.9
       or a Docker image (AGENTS.md rule 1) — this only ever runs at
       runtime against an admin-uploaded file, output stays in
       `$MOWC_DATA_DIR`/the DB like any other pack.
-- [ ] Conversion parser engine: poppler `pdftotext -layout` extraction,
+- [x] Conversion parser engine: poppler `pdftotext -layout` extraction,
       playbook-boundary detection across a consolidated PDF, best-effort
       structural splitting (moves, gear, improvements, extras) - 0.9.6
       [Opus]. Conservative by design: flag anything uncertain into
@@ -280,6 +280,13 @@ Version 0.9
       detection bug (non-colon-terminated bullets bled unrelated gear-list
       text into a move's trigger) — the parser must default to flagging,
       not silently misplacing text.
+      Done: `POST /api/admin/conversions` (server/src/api/conversion/*).
+      Column reflow + ratings-anchored playbook split + confident move
+      extraction (name/trigger/rating from the roll pattern); outcomes,
+      gear, improvements, extras, and invented defaults are flagged with
+      source, never guessed. Regression covered by test. Move-outcome and
+      playbook-name recall on consolidated sheets is intentionally
+      best-effort, resolved by the 0.9.7 review UI.
 - [ ] Convert UI: admin-only upload flow on `/packs`, review screen
       extending the existing pack editor (Phase 2.4) to surface
       `conversionNotes` inline against the fields they reference before

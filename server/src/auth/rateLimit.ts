@@ -53,3 +53,20 @@ export function createSyncPushRateLimiter(): ReturnType<typeof rateLimit> {
     handler: loggedHandler
   });
 }
+
+/**
+ * PDF conversion bucket: 10 conversions/hour per authenticated user
+ * (docs/SECURITY.md section 4, ADR 0001). Keyed by user id (admin-only route
+ * behind requireAuth). Single-flight concurrency is enforced separately in the
+ * router.
+ */
+export function createConversionRateLimiter(): ReturnType<typeof rateLimit> {
+  return rateLimit({
+    windowMs: 60 * 60_000,
+    limit: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req: Request) => req.user?.id ?? "anonymous",
+    handler: loggedHandler
+  });
+}
