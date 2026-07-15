@@ -29,6 +29,7 @@
 <nav class="top-nav">
   {#if sessionState.user}
     <a class="nav-link" href={resolve("/campaigns")}>My campaigns</a>
+    <a class="nav-link" href={resolve("/packs")}>Content packs</a>
     <button type="button" class="nav-link nav-logout" onclick={onLogout}>
       Log out ({sessionState.user.displayName})
     </button>

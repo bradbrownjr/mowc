@@ -6,6 +6,14 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+## [0.4.11] - 2026-07-15
+
+### Fixed
+- Added a "Content packs" link to the top nav for signed-in users. Login
+  and register both redirect to `/campaigns`, and until now the only path
+  to `/packs` was a home-page link with no way back to it once signed in,
+  so the feature was unreachable without typing the URL directly.
+
 ## [0.4.10] - 2026-07-15
 
 ### Added
