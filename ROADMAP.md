@@ -287,10 +287,18 @@ Version 0.9
       source, never guessed. Regression covered by test. Move-outcome and
       playbook-name recall on consolidated sheets is intentionally
       best-effort, resolved by the 0.9.7 review UI.
-- [ ] Convert UI: admin-only upload flow on `/packs`, review screen
+- [x] Convert UI: admin-only upload flow on `/packs`, review screen
       extending the existing pack editor (Phase 2.4) to surface
       `conversionNotes` inline against the fields they reference before
       the admin saves - 0.9.7 [Sonnet]
+      Done: `isAdmin` exposed on auth responses to gate the button;
+      `/packs/convert` review screen with per-draft save/discard, reusing
+      `PlaybookEditor`/`MovesEditor` with a new optional `notes` prop path
+      and the "Conversion flags" callout (docs/DESIGN.md) to surface each
+      note next to its field. `hunterAgenda`/`keeperAgenda` on reference
+      drafts are read-only (no editor exists for them anywhere yet, a
+      deliberate scope cut). Result lives in client memory only, never
+      persisted, matching the endpoint's stateless design.
 
 ## Phase 10: Polish & 1.0
 
