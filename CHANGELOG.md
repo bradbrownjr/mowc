@@ -6,6 +6,8 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+## [0.4.13] - 2026-07-15
+
 ### Fixed
 - Pack import errors now list every failing field in a file, not just
   the first. A file with several null/missing fields (e.g. multiple
