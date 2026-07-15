@@ -6,6 +6,8 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+## [0.4.9] - 2026-07-15
+
 ### Fixed
 - `/packs`, `/packs/new`, and `/packs/[id]` now redirect to `/login` when
   visited without a session, matching the guard `/campaigns` already had.
