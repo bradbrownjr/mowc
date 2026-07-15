@@ -4,6 +4,7 @@
   import { deletePack, getPack, type PackDetail } from "$lib/api/contentPacks.js";
   import { sessionState } from "$lib/session.svelte";
   import Icon from "$lib/Icon.svelte";
+  import EvidenceTag from "$lib/EvidenceTag.svelte";
   import { Download, Trash2 } from "@lucide/svelte";
   import type { PageProps } from "./$types.js";
 
@@ -54,7 +55,12 @@
   {:else if detail}
     <div class="header">
       <div>
-        <h1 class="title">{detail.pack.name}</h1>
+        <h1 class="title-row">
+          <span class="title">{detail.pack.name}</span>
+          {#if detail.visibility === "shared"}
+            <EvidenceTag label="Shared" />
+          {/if}
+        </h1>
         <p class="meta">{detail.pack.author} - v{detail.pack.version}</p>
       </div>
       <div class="actions">
@@ -62,10 +68,12 @@
           <Icon icon={Download} size={18} />
           Export
         </button>
-        <button type="button" class="action-button danger" onclick={onDelete}>
-          <Icon icon={Trash2} size={18} />
-          Delete
-        </button>
+        {#if detail.ownerUserId === sessionState.user?.id}
+          <button type="button" class="action-button danger" onclick={onDelete}>
+            <Icon icon={Trash2} size={18} />
+            Delete
+          </button>
+        {/if}
       </div>
     </div>
 
@@ -121,8 +129,14 @@
     gap: var(--space-3);
   }
 
-  .title {
+  .title-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
     margin: 0;
+  }
+
+  .title {
     font-family: var(--font-display);
     font-size: var(--text-2xl);
     letter-spacing: 0.02em;

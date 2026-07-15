@@ -2,6 +2,8 @@ import type { ContentPack } from "@mowc/shared";
 
 export interface PackSummary {
   id: string;
+  ownerUserId: string;
+  visibility: "private" | "shared";
   name: string;
   author: string;
   version: string;

@@ -152,9 +152,18 @@ Packs are the only user-supplied file type. Treat them as hostile:
   reject unknown keys.
 - All pack strings are rendered as text only (no HTML/markdown), so a
   malicious pack cannot script other users' browsers.
-- Packs are private to their campaign; no global sharing gallery without
-  a dedicated security review (ROADMAP note) and licensing review
-  (docs/LICENSING.md).
+- Packs are private to their owner and the campaigns a Keeper explicitly
+  attaches them to, with one exception: packs uploaded by the server-owner
+  account (`MOWC_ADMIN_EMAIL`, `server/src/authz/admin.ts`) are `visibility:
+  'shared'` and readable/attachable by every authenticated user on this
+  instance, so a group doesn't each need their own copy of the same
+  official-content pack. This is still one self-hosted instance, i.e. "the
+  user's own table" per docs/LICENSING.md, not the cross-instance/public
+  sharing gallery that bullet always meant to rule out; that still needs a
+  dedicated security and licensing review before it happens. Only the
+  designated admin account can create, edit, or delete a shared pack
+  (enforced by ownership on write, same as any other pack); every other
+  account's uploads default to private, unchanged from before.
 
 ## 8. Container & deployment hardening
 

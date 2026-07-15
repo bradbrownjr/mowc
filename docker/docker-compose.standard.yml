@@ -11,6 +11,11 @@ services:
       # These names must match the server's config reader exactly.
       MOWC_PORT: "7120"
       MOWC_DATA_DIR: /data
+      # Email of the account that becomes the server owner: only this
+      # account's content packs are shared with every user (docs/
+      # SECURITY.md section 7). Register this account first, then set
+      # this to match. Optional; omit to leave every pack private.
+      # MOWC_ADMIN_EMAIL: keeper@example.com
       # Owner of files written to the data volume. Set to your host user.
       PUID: "1000"
       PGID: "1000"

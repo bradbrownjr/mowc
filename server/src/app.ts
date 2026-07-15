@@ -32,7 +32,7 @@ const CLIENT_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..",
  * Builds the Express app without binding a port, so tests can exercise it
  * directly (e.g. with supertest).
  */
-export function createApp(version: string, db: Database.Database): Express {
+export function createApp(version: string, db: Database.Database, adminEmail?: string): Express {
   const app = express();
   const authRepo = createAuthRepo(db);
 
@@ -60,7 +60,7 @@ export function createApp(version: string, db: Database.Database): Express {
   const authz = createAuthz(campaignsRepo);
 
   app.use("/api/auth", createAuthRouter(authRepo));
-  app.use("/api/content-packs", requireAuth, createContentPacksRouter(db, campaignsRepo));
+  app.use("/api/content-packs", requireAuth, createContentPacksRouter(db, campaignsRepo, adminEmail));
   app.use(
     "/api/campaigns/:campaignId/invites",
     requireAuth,

@@ -5,6 +5,7 @@
   import { extractPacksFromFiles } from "$lib/pack-import.js";
   import { sessionState } from "$lib/session.svelte";
   import Icon from "$lib/Icon.svelte";
+  import EvidenceTag from "$lib/EvidenceTag.svelte";
   import { Plus, Trash2, Upload } from "@lucide/svelte";
 
   interface ImportResultRow {
@@ -124,12 +125,19 @@
       {#each packs as pack (pack.id)}
         <li class="pack-row">
           <a class="pack-link" href={resolve("/packs/[id]", { id: pack.id })}>
-            <span class="pack-name">{pack.name}</span>
+            <span class="pack-name-row">
+              <span class="pack-name">{pack.name}</span>
+              {#if pack.visibility === "shared"}
+                <EvidenceTag label="Shared" />
+              {/if}
+            </span>
             <span class="pack-meta">{pack.author} - v{pack.version}</span>
           </a>
-          <button type="button" class="icon-button" onclick={() => onDelete(pack.id)} aria-label={`Delete ${pack.name}`}>
-            <Icon icon={Trash2} size={18} />
-          </button>
+          {#if pack.ownerUserId === sessionState.user?.id}
+            <button type="button" class="icon-button" onclick={() => onDelete(pack.id)} aria-label={`Delete ${pack.name}`}>
+              <Icon icon={Trash2} size={18} />
+            </button>
+          {/if}
         </li>
       {/each}
     </ul>
@@ -221,6 +229,12 @@
     gap: var(--space-1);
     color: var(--ink);
     text-decoration: none;
+  }
+
+  .pack-name-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
   }
 
   .pack-name {

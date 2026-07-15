@@ -6,6 +6,19 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+- Shared content packs: an optional `MOWC_ADMIN_EMAIL` env var designates a
+  server-owner account (docker-compose files document it, commented out).
+  Packs that account uploads are `shared`: listed and readable for every
+  authenticated user on the instance without needing their own copy or a
+  campaign attachment, so a whole group no longer each has to import the
+  same official-content pack separately. Every other account's uploads
+  stay `private` as before, still with the in-app editor (`/packs/new`)
+  for homebrew content scoped to their own campaigns. Only the uploading
+  account can edit or delete a pack, shared or private. The `/packs` list
+  and detail page show a "Shared" tag and hide the delete action for
+  packs the current user doesn't own.
+
 ## [0.4.9] - 2026-07-15
 
 ### Fixed

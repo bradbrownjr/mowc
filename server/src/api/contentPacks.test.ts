@@ -35,11 +35,11 @@ afterEach(() => {
   }
 });
 
-function createTestApp() {
+function createTestApp(adminEmail?: string) {
   tempDir = mkdtempSync(path.join(tmpdir(), "mowc-content-packs-"));
   db = openDb(tempDir);
   runMigrations(db);
-  return createApp("0.1.0-test", db);
+  return createApp("0.1.0-test", db, adminEmail);
 }
 
 /** Content-pack routes require auth; returns an agent carrying a session cookie. */
@@ -48,6 +48,13 @@ async function authedAgent(app: ReturnType<typeof createApp>) {
   await agent
     .post("/api/auth/register")
     .send({ email: "packer@example.com", password: "hunter2hunter", displayName: "Packer" });
+  return agent;
+}
+
+/** Registers a distinct user and returns an agent carrying their session cookie. */
+async function registerAgent(app: ReturnType<typeof createApp>, email: string, displayName: string) {
+  const agent = request.agent(app);
+  await agent.post("/api/auth/register").send({ email, password: "hunter2hunter", displayName });
   return agent;
 }
 
@@ -255,5 +262,87 @@ describe("DELETE /api/content-packs/:id", () => {
     const res = await agent.delete("/api/content-packs/00000000-0000-0000-0000-000000000000");
 
     expect(res.status).toBe(404);
+  });
+
+  it("returns 404 when a non-owner tries to delete a shared pack", async () => {
+    const app = createTestApp("admin@example.com");
+    const admin = await registerAgent(app, "admin@example.com", "Admin");
+    const pack = loadExamplePack();
+    await admin.post("/api/content-packs").send(pack);
+
+    const other = await registerAgent(app, "other@example.com", "Other");
+    const res = await other.delete(`/api/content-packs/${pack.id}`);
+
+    expect(res.status).toBe(404);
+    expect((await admin.get(`/api/content-packs/${pack.id}`)).status).toBe(200);
+  });
+});
+
+describe("shared content packs", () => {
+  it("marks a pack uploaded by the admin account as shared", async () => {
+    const app = createTestApp("admin@example.com");
+    const admin = await registerAgent(app, "admin@example.com", "Admin");
+    const pack = loadExamplePack();
+
+    const res = await admin.post("/api/content-packs").send(pack);
+
+    expect(res.body).toMatchObject({ visibility: "shared", ownerUserId: expect.any(String) });
+  });
+
+  it("marks a pack uploaded by a non-admin account as private", async () => {
+    const app = createTestApp("admin@example.com");
+    const agent = await registerAgent(app, "someone@example.com", "Someone");
+    const pack = loadExamplePack();
+
+    const res = await agent.post("/api/content-packs").send(pack);
+
+    expect(res.body).toMatchObject({ visibility: "private" });
+  });
+
+  it("is case-insensitive when matching the admin email", async () => {
+    const app = createTestApp("Admin@Example.com");
+    const admin = await registerAgent(app, "admin@example.com", "Admin");
+    const pack = loadExamplePack();
+
+    const res = await admin.post("/api/content-packs").send(pack);
+
+    expect(res.body.visibility).toBe("shared");
+  });
+
+  it("lists a shared pack for a user who never uploaded it and has no campaign in common", async () => {
+    const app = createTestApp("admin@example.com");
+    const admin = await registerAgent(app, "admin@example.com", "Admin");
+    const pack = loadExamplePack();
+    await admin.post("/api/content-packs").send(pack);
+
+    const stranger = await registerAgent(app, "stranger@example.com", "Stranger");
+    const res = await stranger.get("/api/content-packs");
+
+    expect(res.body).toEqual([expect.objectContaining({ id: pack.id, visibility: "shared" })]);
+  });
+
+  it("reads a shared pack's full payload for a user who never uploaded it", async () => {
+    const app = createTestApp("admin@example.com");
+    const admin = await registerAgent(app, "admin@example.com", "Admin");
+    const pack = loadExamplePack();
+    await admin.post("/api/content-packs").send(pack);
+
+    const stranger = await registerAgent(app, "stranger@example.com", "Stranger");
+    const res = await stranger.get(`/api/content-packs/${pack.id}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.pack).toEqual(pack);
+  });
+
+  it("does not list a private pack for a user who did not upload it", async () => {
+    const app = createTestApp("admin@example.com");
+    const owner = await registerAgent(app, "owner@example.com", "Owner");
+    const pack = loadExamplePack();
+    await owner.post("/api/content-packs").send(pack);
+
+    const stranger = await registerAgent(app, "stranger@example.com", "Stranger");
+    const res = await stranger.get("/api/content-packs");
+
+    expect(res.body).toEqual([]);
   });
 });

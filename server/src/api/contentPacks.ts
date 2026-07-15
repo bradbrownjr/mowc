@@ -3,7 +3,10 @@ import type Database from "better-sqlite3";
 import { ContentPackSchema, UuidSchema } from "@mowc/shared";
 import { zodErrorResponse } from "../http/validation.js";
 import { hasDangerousKeys } from "../http/proto.js";
+import { isAdmin } from "../authz/admin.js";
 import type { CampaignsRepo } from "../campaigns/repo.js";
+
+type PackVisibility = "private" | "shared";
 
 interface ContentPackRow {
   id: string;
@@ -12,6 +15,7 @@ interface ContentPackRow {
   author: string;
   version: string;
   payload: string;
+  visibility: PackVisibility;
   created_at: string;
   updated_at: string;
 }
@@ -19,6 +23,8 @@ interface ContentPackRow {
 function toSummary(row: ContentPackRow) {
   return {
     id: row.id,
+    ownerUserId: row.owner_user_id,
+    visibility: row.visibility,
     name: row.name,
     author: row.author,
     version: row.version,
@@ -29,18 +35,19 @@ function toSummary(row: ContentPackRow) {
 
 export function createContentPacksRouter(
   db: Database.Database,
-  campaigns: Pick<CampaignsRepo, "listForUser">
+  campaigns: Pick<CampaignsRepo, "listForUser">,
+  adminEmail: string | undefined
 ): Router {
   const router = Router();
 
   const insertPack = db.prepare(
-    "INSERT INTO content_packs (id, owner_user_id, name, author, version, payload, created_at, updated_at) " +
-      "VALUES (@id, @ownerUserId, @name, @author, @version, @payload, @createdAt, @updatedAt)"
+    "INSERT INTO content_packs (id, owner_user_id, name, author, version, payload, visibility, created_at, updated_at) " +
+      "VALUES (@id, @ownerUserId, @name, @author, @version, @payload, @visibility, @createdAt, @updatedAt)"
   );
   const findById = db.prepare("SELECT * FROM content_packs WHERE id = ? AND owner_user_id = ?");
   const findByIdAny = db.prepare("SELECT * FROM content_packs WHERE id = ?");
-  const listByOwner = db.prepare(
-    "SELECT * FROM content_packs WHERE owner_user_id = ? ORDER BY updated_at DESC"
+  const listVisible = db.prepare(
+    "SELECT * FROM content_packs WHERE owner_user_id = ? OR visibility = 'shared' ORDER BY updated_at DESC"
   );
   const deleteById = db.prepare("DELETE FROM content_packs WHERE id = ? AND owner_user_id = ?");
 
@@ -64,6 +71,11 @@ export function createContentPacksRouter(
       return;
     }
 
+    // The server-owner's uploads become the shared library everyone can
+    // attach without their own copy (docs/SECURITY.md section 7); everyone
+    // else's stay private to their own account and campaigns, as before.
+    const visibility: PackVisibility = isAdmin(req.user!, adminEmail) ? "shared" : "private";
+
     const now = new Date().toISOString();
     insertPack.run({
       id: pack.id,
@@ -72,12 +84,15 @@ export function createContentPacksRouter(
       author: pack.author,
       version: pack.version,
       payload: JSON.stringify(pack),
+      visibility,
       createdAt: now,
       updatedAt: now
     });
 
     res.status(201).json({
       id: pack.id,
+      ownerUserId,
+      visibility,
       name: pack.name,
       author: pack.author,
       version: pack.version,
@@ -87,7 +102,7 @@ export function createContentPacksRouter(
   });
 
   router.get("/", (req, res) => {
-    const rows = listByOwner.all(req.user!.id) as ContentPackRow[];
+    const rows = listVisible.all(req.user!.id) as ContentPackRow[];
     res.json(rows.map(toSummary));
   });
 
@@ -98,19 +113,23 @@ export function createContentPacksRouter(
       return;
     }
 
-    let row = findById.get(idResult.data, req.user!.id) as ContentPackRow | undefined;
-    if (!row) {
-      // Not the owner: docs/SECURITY.md section 7 says packs are private to
-      // their campaign, not to their uploader alone, so any member of a
-      // campaign the Keeper attached this pack to (Campaign.packIds) may
-      // still read it. The client's builder wizard (0.4.3) depends on this
-      // for hunters loading playbook data from Keeper-uploaded packs.
-      const memberPackIds = new Set(campaigns.listForUser(req.user!.id).flatMap((c) => c.packIds));
-      if (memberPackIds.has(idResult.data)) {
-        row = findByIdAny.get(idResult.data) as ContentPackRow | undefined;
-      }
-    }
-    if (!row) {
+    const row = findByIdAny.get(idResult.data) as ContentPackRow | undefined;
+    const userId = req.user!.id;
+    const isOwner = row?.owner_user_id === userId;
+    const isShared = row?.visibility === "shared";
+    // Not the owner and not shared: docs/SECURITY.md section 7 says packs
+    // are also private to their campaign, not just their uploader, so any
+    // member of a campaign the Keeper attached this pack to (Campaign.
+    // packIds) may still read it. The client's builder wizard (0.4.3)
+    // depends on this for hunters loading playbook data from Keeper-
+    // uploaded packs.
+    const isCampaignAttached =
+      row !== undefined &&
+      !isOwner &&
+      !isShared &&
+      campaigns.listForUser(userId).some((c) => c.packIds.includes(row.id));
+
+    if (!row || (!isOwner && !isShared && !isCampaignAttached)) {
       res.status(404).json({ errors: [{ path: "id", message: "pack not found" }] });
       return;
     }
