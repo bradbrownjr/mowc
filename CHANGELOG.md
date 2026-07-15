@@ -6,6 +6,26 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+## [0.4.12] - 2026-07-15
+
+### Added
+- A footer on every page showing the "unofficial fan project, not
+  affiliated with or endorsed by Evil Hat Productions" notice, the MIT
+  license line, and the running app version, so it's possible to confirm
+  at a glance which version is deployed.
+
+### Fixed
+- Pack import errors now include the failing field's path (e.g.
+  `basicMoves.0.id: Expected string, received null`) instead of just the
+  bare zod message, so a bad `.mowcpack.json` inside a zip can be
+  diagnosed without guessing which of dozens of nested `id`/`name` fields
+  is null or missing.
+- `/healthz` (and therefore the new footer) reported the server
+  workspace's own `package.json` version, which was hardcoded at `0.1.0`
+  since the very first commit and never bumped by the release procedure.
+  It now reads the root `package.json` version, the one the release
+  procedure actually bumps.
+
 ## [0.4.11] - 2026-07-15
 
 ### Fixed
