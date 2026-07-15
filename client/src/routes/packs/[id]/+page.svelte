@@ -2,6 +2,7 @@
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
   import { deletePack, getPack, type PackDetail } from "$lib/api/contentPacks.js";
+  import { sessionState } from "$lib/session.svelte";
   import Icon from "$lib/Icon.svelte";
   import { Download, Trash2 } from "@lucide/svelte";
   import type { PageProps } from "./$types.js";
@@ -12,6 +13,11 @@
   let loadError = $state<string | null>(null);
 
   $effect(() => {
+    if (sessionState.status !== "ready") return;
+    if (!sessionState.user) {
+      void goto(resolve("/login"));
+      return;
+    }
     getPack(data.id)
       .then((result) => {
         detail = result;

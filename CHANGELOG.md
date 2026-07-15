@@ -6,6 +6,22 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+### Fixed
+- `/packs`, `/packs/new`, and `/packs/[id]` now redirect to `/login` when
+  visited without a session, matching the guard `/campaigns` already had.
+  Previously these pages rendered the full content-pack UI regardless of
+  auth state and every API call silently 401'd, surfaced as a misleading
+  "Could not reach the server" message.
+  (`client/svelte.config.js`, docs/SECURITY.md section 5). Confirmed by
+  running the production build in a real browser: SvelteKit's static
+  wrapper markup and Svelte 5's own compiled hydration-boundary template
+  both use a `style="display: contents"` attribute (one static, one
+  runtime-applied), which CSP's `style-src-attr` blocks regardless of the
+  build-time script/style hashes already in place, since hashes and
+  nonces never cover the `style` attribute without `'unsafe-hashes'`.
+  This was previously undetected because `vite dev` never applies the CSP
+  header. `script-src` is unaffected and stays hash-only.
+
 ## [0.4.8] - 2026-07-14
 
 ### Added

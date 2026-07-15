@@ -1,7 +1,9 @@
 <script lang="ts">
+  import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
   import { createPack, deletePack, listPacks, PackApiError, type PackSummary } from "$lib/api/contentPacks.js";
   import { extractPacksFromFiles } from "$lib/pack-import.js";
+  import { sessionState } from "$lib/session.svelte";
   import Icon from "$lib/Icon.svelte";
   import { Plus, Trash2, Upload } from "@lucide/svelte";
 
@@ -27,7 +29,12 @@
   }
 
   $effect(() => {
-    refresh();
+    if (sessionState.status !== "ready") return;
+    if (!sessionState.user) {
+      void goto(resolve("/login"));
+      return;
+    }
+    void refresh();
   });
 
   async function onDelete(id: string): Promise<void> {

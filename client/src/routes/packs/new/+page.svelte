@@ -4,6 +4,7 @@
   import { resolve } from "$app/paths";
   import { createPack, PackApiError, type PackValidationError } from "$lib/api/contentPacks.js";
   import { generateUuid } from "$lib/uuid.js";
+  import { sessionState } from "$lib/session.svelte";
   import PlaybookEditor from "$lib/pack-editor/PlaybookEditor.svelte";
   import Icon from "$lib/Icon.svelte";
   import { Plus, Trash2 } from "@lucide/svelte";
@@ -41,6 +42,13 @@
 
   let errors = $state<PackValidationError[]>([]);
   let saving = $state(false);
+
+  $effect(() => {
+    if (sessionState.status !== "ready") return;
+    if (!sessionState.user) {
+      void goto(resolve("/login"));
+    }
+  });
 
   function addPlaybook(): void {
     pack.playbooks.push(newPlaybook());
