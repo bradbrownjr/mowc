@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
-  import type { Campaign, Character, Minion, Bystander, Location, Monster } from "@mowc/shared";
+  import type { Campaign, Character, Minion, Bystander, Location, Monster, Mystery } from "@mowc/shared";
   import { sessionState } from "$lib/session.svelte";
   import {
     CampaignApiError,
@@ -36,6 +36,7 @@
   let bystanders = $state<Bystander[]>([]);
   let locations = $state<Location[]>([]);
   let monsters = $state<Monster[]>([]);
+  let mysteries = $state<Mystery[]>([]);
 
   const isKeeper = $derived(campaign !== null && sessionState.user !== null && campaign.keeperUserId === sessionState.user.id);
 
@@ -113,6 +114,15 @@
     monsters = rows.map((row) => row.payload as unknown as Monster).sort((a, b) => a.name.localeCompare(b.name));
   }
 
+  async function loadMysteries(): Promise<void> {
+    const rows = await db.entities
+      .where("[campaignId+type]")
+      .equals([data.id, "mystery"])
+      .and((row) => !row.deleted)
+      .toArray();
+    mysteries = rows.map((row) => row.payload as unknown as Mystery).sort((a, b) => a.title.localeCompare(b.title));
+  }
+
   $effect(() => {
     if (sessionState.status !== "ready") return;
     if (!sessionState.user) {
@@ -144,6 +154,7 @@
         void loadBystanders();
         void loadLocations();
         void loadMonsters();
+        void loadMysteries();
       });
   });
 
@@ -218,6 +229,28 @@
     </section>
 
     {#if isKeeper}
+      <section class="panel">
+        <h2 class="section-title">Mysteries</h2>
+        <a class="submit-button" href={resolve("/campaigns/[id]/mysteries/new", { id: data.id })}>Create a mystery</a>
+        {#if mysteries.length > 0}
+          <ul class="invite-list">
+            {#each mysteries as mystery (mystery.id)}
+              <li class="invite-row">
+                <a
+                  class="character-link"
+                  href={resolve("/campaigns/[id]/mysteries/[mysteryId]", { id: data.id, mysteryId: mystery.id })}
+                >
+                  {mystery.title}
+                </a>
+                <span class="campaign-meta">{mystery.status}</span>
+              </li>
+            {/each}
+          </ul>
+        {:else}
+          <p class="campaign-meta">No mysteries yet.</p>
+        {/if}
+      </section>
+
       <section class="panel">
         <h2 class="section-title">Monsters</h2>
         <a class="submit-button" href={resolve("/campaigns/[id]/monsters/new", { id: data.id })}>Create a monster</a>

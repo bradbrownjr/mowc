@@ -29,6 +29,14 @@ All notable changes to MOWC are documented here. Format follows
   is read-only for anyone else who can see a revealed monster). Only the
   Keeper sees the create/edit affordances; a hunter never has the option to
   create or edit a Monster.
+- Mystery builder (ROADMAP 0.5.1): the Keeper can now create a Mystery
+  through a numbered wizard (title, concept, hook, an editable countdown
+  with add/remove/reorder steps, cast picked from the campaign's own
+  monsters/minions/bystanders, locations, and status). The mystery sheet
+  lets the Keeper keep editing everything after creation, including ticking
+  off countdown steps as they happen during play, and links out to each
+  cast member's or location's own sheet. Keeper-only prep notes stay
+  separate from the fields a revealed mystery would show hunters.
 
 ### Performance
 - Large-campaign performance pass (ROADMAP 0.10.4):
