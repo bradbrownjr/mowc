@@ -44,11 +44,14 @@ docs/SECURITY.md section 4). For each op the server:
    than 5 minutes ahead of the server clock is clamped to the server clock
    before the merge and before storage, so a client with a poisoned clock
    cannot post a far-future timestamp that wins every later merge forever.
-4. The merged payload is validated against the shared zod schema for its type
-   (`CharacterSchema`, strict), and both the current owner and the resulting
-   owner are checked through the authz module (`canEdit`) so a hunter can only
-   ever write their own character. An op that fails validation or authz is
-   dropped (not applied).
+4. The merged payload is validated against the shared zod schema for its type,
+   looked up by `type` in the server's per-type schema map (`character`,
+   `mystery`, `monster`, `minion`, `bystander`, `location`, each `.strict()`),
+   and both the current owner and the resulting owner are checked through the
+   authz module (`canEdit`) so a hunter can only ever write their own character
+   (the Keeper-owned world entities carry no `ownerUserId`, so only the Keeper
+   passes `canEdit`). An op that fails validation or authz is dropped (not
+   applied).
 5. Assigns the next per-campaign `seq`, bumps `rev = max(current.rev,
    op.baseRev) + 1`, stores `updated_by`, and records the `opId` in
    `applied_ops` (pruned after 30 days, on server startup) so a retried
@@ -62,7 +65,8 @@ newSeq: n}`. Client removes applied ops from the oplog.
 `GET /api/sync/:campaignId?since=<lastServerSeq>` returns
 `{rows, seq}`: envelope rows with `seq > since` (including tombstones),
 filtered by the caller's visibility (a hunter receives only characters they
-own; see Phase 3.4), and the new `lastServerSeq`. `seq` advances past every
+own plus Keeper-owned world entities that are `revealed`; see Phase 3.4), and
+the new `lastServerSeq`. `seq` advances past every
 scanned row, including ones withheld for visibility, so they are never
 re-scanned. Client upserts each row into `entities` unless the entity has a
 pending op in `oplog` (local-wins until push resolves it), then stores the new
@@ -89,5 +93,8 @@ and are never purged from the server (they are tiny). The client hides
 2. Replaying the same push batch twice changes nothing (idempotency).
 3. A client that missed 10,000 seqs converges with one pull.
 4. A hunter's pull never contains an unrevealed entity, even a tombstone.
+   Enforced for every Keeper-owned world entity (mystery, monster, minion,
+   bystander, location) via `revealed`-gated `canView` on pull, and tested in
+   `server/src/entities/router.test.ts`.
 5. `lastServerSeq` only moves forward after the upserts are committed
    locally (crash between pull and store must not skip rows).

@@ -3,10 +3,18 @@ import { UuidSchema } from "./common.js";
 
 /**
  * Entity types that replicate through the sync envelope (docs/SYNC.md).
- * Phase 4 ships only `character`; Phase 5 adds mystery, monster, etc. by
- * extending this enum, reusing the same push/pull machinery.
+ * Character is hunter-owned; the five Keeper-owned world entities (mystery,
+ * monster, minion, bystander, location) reuse the same push/pull machinery,
+ * with per-type schema validation on the server.
  */
-export const SyncEntityTypeSchema = z.enum(["character"]);
+export const SyncEntityTypeSchema = z.enum([
+  "character",
+  "mystery",
+  "monster",
+  "minion",
+  "bystander",
+  "location"
+]);
 export type SyncEntityType = z.infer<typeof SyncEntityTypeSchema>;
 
 /**
@@ -40,8 +48,9 @@ export type SyncPushRequest = z.infer<typeof SyncPushRequestSchema>;
 
 /**
  * A server envelope row as returned by pull. `payload` is left as unknown here;
- * the server validates it against the per-type schema (CharacterSchema) before
- * storing, and the client validates on read.
+ * the server validates it against the per-type schema for `type` (see the
+ * server-side ENTITY_SCHEMAS map) before storing, and the client validates on
+ * read.
  */
 export const SyncEnvelopeSchema = z.object({
   id: UuidSchema,

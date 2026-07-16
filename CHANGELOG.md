@@ -6,6 +6,14 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+- The offline sync layer now supports Keeper-owned entity types beyond
+  characters. Mysteries, monsters, minions, bystanders, and locations flow
+  through the same push/pull machinery, with per-type schema validation and
+  `revealed`-gated visibility (a hunter never pulls an unrevealed entity).
+  This is infrastructure groundwork for the upcoming Keeper tools; no new
+  screens ship with it yet.
+
 ### Performance
 - Large-campaign performance pass (ROADMAP 0.10.4):
   - Pulling sync updates no longer runs one IndexedDB query per incoming

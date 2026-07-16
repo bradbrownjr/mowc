@@ -65,6 +65,30 @@ function character(campaignId: string, ownerUserId: string, overrides: Record<st
   };
 }
 
+/** Minimal valid placeholder Monster payload (invented content, per AGENTS.md). */
+function monster(campaignId: string, overrides: Record<string, unknown> = {}) {
+  return {
+    id: randomUUID(),
+    campaignId,
+    name: "Test Monster",
+    harmCapacity: 3,
+    revealed: false,
+    ...overrides
+  };
+}
+
+/**
+ * Minimal valid payload builders for the five Keeper-owned world entity types,
+ * keyed by sync type. Invented placeholder content only (AGENTS.md rule 1).
+ */
+const worldPayloads: Record<string, (campaignId: string) => Record<string, unknown>> = {
+  mystery: (campaignId) => ({ id: randomUUID(), campaignId, title: "Test Mystery" }),
+  monster: (campaignId) => monster(campaignId),
+  minion: (campaignId) => ({ id: randomUUID(), campaignId, name: "Test Minion", harmCapacity: 1 }),
+  bystander: (campaignId) => ({ id: randomUUID(), campaignId, name: "Test Bystander" }),
+  location: (campaignId) => ({ id: randomUUID(), campaignId, name: "Test Location" })
+};
+
 function op(entityId: string, patch: Record<string, unknown>, extra: Record<string, unknown> = {}) {
   return {
     opId: randomUUID(),
@@ -288,5 +312,151 @@ describe("deletes", () => {
     const pull = await keeper.get(`/api/sync/${campaignId}?since=0`);
     expect(pull.body.rows).toHaveLength(1);
     expect(pull.body.rows[0].deleted).toBe(true);
+  });
+});
+
+describe("Keeper-owned entity authz (monster)", () => {
+  it("drops a seated hunter's push of a brand-new monster", async () => {
+    const app = createTestApp();
+    const { agent: keeper } = await registerAgent(app, "keeper@example.com");
+    const { agent: hunter, userId: hunterId } = await registerAgent(app, "hunter@example.com");
+    const created = await keeper.post("/api/campaigns").send({ name: "The Vermont Job" });
+    const campaignId = created.body.id as string;
+    seatAsHunter(campaignId, hunterId);
+
+    const mon = monster(campaignId);
+    const push = await hunter
+      .post(`/api/sync/${campaignId}`)
+      .send({ ops: [op(mon.id, mon, { type: "monster" })] });
+    expect(push.body.applied).toHaveLength(0);
+
+    // Keeper sees nothing was written.
+    const keeperPull = await keeper.get(`/api/sync/${campaignId}?since=0`);
+    expect(keeperPull.body.rows).toHaveLength(0);
+  });
+
+  it("drops a seated hunter's edit of an existing Keeper-created monster", async () => {
+    const app = createTestApp();
+    const { agent: keeper } = await registerAgent(app, "keeper@example.com");
+    const { agent: hunter, userId: hunterId } = await registerAgent(app, "hunter@example.com");
+    const created = await keeper.post("/api/campaigns").send({ name: "The Vermont Job" });
+    const campaignId = created.body.id as string;
+    seatAsHunter(campaignId, hunterId);
+
+    const mon = monster(campaignId);
+    await keeper.post(`/api/sync/${campaignId}`).send({ ops: [op(mon.id, mon, { type: "monster" })] });
+
+    const hunterEdit = await hunter.post(`/api/sync/${campaignId}`).send({
+      ops: [op(mon.id, { name: "Hijacked" }, { type: "monster", baseRev: 1 })]
+    });
+    expect(hunterEdit.body.applied).toHaveLength(0);
+
+    const keeperPull = await keeper.get(`/api/sync/${campaignId}?since=0`);
+    expect(keeperPull.body.rows[0].payload.name).toBe("Test Monster");
+  });
+
+  it("applies the Keeper's own push of the same monster op", async () => {
+    const app = createTestApp();
+    const { agent: keeper } = await registerAgent(app, "keeper@example.com");
+    const created = await keeper.post("/api/campaigns").send({ name: "The Vermont Job" });
+    const campaignId = created.body.id as string;
+
+    const mon = monster(campaignId);
+    const theOp = op(mon.id, mon, { type: "monster" });
+    const push = await keeper.post(`/api/sync/${campaignId}`).send({ ops: [theOp] });
+    expect(push.body.applied).toEqual([theOp.opId]);
+
+    const pull = await keeper.get(`/api/sync/${campaignId}?since=0`);
+    expect(pull.body.rows).toHaveLength(1);
+    expect(pull.body.rows[0].type).toBe("monster");
+  });
+});
+
+describe("revealed-gated pull (invariant 4)", () => {
+  it("hides an unrevealed monster from a hunter and reveals it after a revealed:true patch", async () => {
+    const app = createTestApp();
+    const { agent: keeper } = await registerAgent(app, "keeper@example.com");
+    const { agent: hunter, userId: hunterId } = await registerAgent(app, "hunter@example.com");
+    const created = await keeper.post("/api/campaigns").send({ name: "The Vermont Job" });
+    const campaignId = created.body.id as string;
+    seatAsHunter(campaignId, hunterId);
+
+    const mon = monster(campaignId, { revealed: false });
+    await keeper.post(`/api/sync/${campaignId}`).send({ ops: [op(mon.id, mon, { type: "monster" })] });
+
+    // Unrevealed: hidden from the hunter, visible to the Keeper.
+    const hunterPull = await hunter.get(`/api/sync/${campaignId}?since=0`);
+    expect(hunterPull.body.rows).toHaveLength(0);
+    const keeperPull = await keeper.get(`/api/sync/${campaignId}?since=0`);
+    expect(keeperPull.body.rows).toHaveLength(1);
+
+    // Keeper reveals it.
+    await keeper.post(`/api/sync/${campaignId}`).send({
+      ops: [op(mon.id, { revealed: true }, { type: "monster", baseRev: 1 })]
+    });
+
+    const hunterPull2 = await hunter.get(`/api/sync/${campaignId}?since=0`);
+    expect(hunterPull2.body.rows).toHaveLength(1);
+    expect(hunterPull2.body.rows[0].payload.revealed).toBe(true);
+  });
+});
+
+describe("Keeper-owned world entities round-trip", () => {
+  for (const type of ["mystery", "monster", "minion", "bystander", "location"] as const) {
+    it(`round-trips a ${type}`, async () => {
+      const app = createTestApp();
+      const { agent: keeper } = await registerAgent(app, "keeper@example.com");
+      const created = await keeper.post("/api/campaigns").send({ name: "The Vermont Job" });
+      const campaignId = created.body.id as string;
+
+      const payload = worldPayloads[type]!(campaignId);
+      const theOp = op(payload["id"] as string, payload, { type });
+      const push = await keeper.post(`/api/sync/${campaignId}`).send({ ops: [theOp] });
+      expect(push.body.applied).toEqual([theOp.opId]);
+
+      const pull = await keeper.get(`/api/sync/${campaignId}?since=0`);
+      expect(pull.body.rows).toHaveLength(1);
+      expect(pull.body.rows[0].type).toBe(type);
+    });
+  }
+});
+
+describe("per-type schema dispatch", () => {
+  it("drops a monster op whose payload is missing a required field", async () => {
+    const app = createTestApp();
+    const { agent: keeper } = await registerAgent(app, "keeper@example.com");
+    const created = await keeper.post("/api/campaigns").send({ name: "The Vermont Job" });
+    const campaignId = created.body.id as string;
+
+    // Missing harmCapacity: valid for no schema, must not fall back to Character.
+    const entityId = randomUUID();
+    const bad = { id: entityId, campaignId, name: "Test Monster" };
+    const push = await keeper
+      .post(`/api/sync/${campaignId}`)
+      .send({ ops: [op(entityId, bad, { type: "monster" })] });
+    expect(push.body.applied).toHaveLength(0);
+
+    const pull = await keeper.get(`/api/sync/${campaignId}?since=0`);
+    expect(pull.body.rows).toHaveLength(0);
+  });
+
+  it("applies the same monster opId only once (idempotent replay)", async () => {
+    const app = createTestApp();
+    const { agent: keeper } = await registerAgent(app, "keeper@example.com");
+    const created = await keeper.post("/api/campaigns").send({ name: "The Vermont Job" });
+    const campaignId = created.body.id as string;
+
+    const mon = monster(campaignId);
+    const theOp = op(mon.id, mon, { type: "monster" });
+    const first = await keeper.post(`/api/sync/${campaignId}`).send({ ops: [theOp] });
+    const second = await keeper.post(`/api/sync/${campaignId}`).send({ ops: [theOp] });
+
+    expect(first.body.applied).toEqual([theOp.opId]);
+    expect(second.body.applied).toEqual([theOp.opId]);
+
+    const pull = await keeper.get(`/api/sync/${campaignId}?since=0`);
+    expect(pull.body.rows).toHaveLength(1);
+    expect(pull.body.rows[0].rev).toBe(1);
+    expect(pull.body.rows[0].seq).toBe(1);
   });
 });

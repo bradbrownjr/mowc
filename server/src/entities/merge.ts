@@ -20,7 +20,7 @@ function sameValue(a: unknown, b: unknown): boolean {
  *
  * A brand-new entity (no current row) takes the patch as its full payload.
  */
-export function mergeCharacterPatch(
+export function mergePatch(
   current: Payload | undefined,
   patch: Payload,
   opTs: string,

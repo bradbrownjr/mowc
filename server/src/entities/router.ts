@@ -1,17 +1,40 @@
 import { Router, type Request, type Response } from "express";
+import type { ZodTypeAny } from "zod";
 import {
+  BystanderSchema,
   CharacterSchema,
+  LocationSchema,
+  MinionSchema,
+  MonsterSchema,
+  MysterySchema,
   SyncPushRequestSchema,
   UuidSchema,
   type SyncConflict,
+  type SyncEntityType,
   type SyncEnvelope
 } from "@mowc/shared";
 import { zodErrorResponse } from "../http/validation.js";
 import { hasDangerousKeys } from "../http/proto.js";
 import type { Authz, EntityAccessContext } from "../authz/index.js";
 import { createSyncPushRateLimiter } from "../auth/rateLimit.js";
-import { mergeCharacterPatch } from "./merge.js";
+import { mergePatch } from "./merge.js";
 import type { EntitiesRepo, EntityEnvelope } from "./repo.js";
+
+/**
+ * Per-type strict schema the merged payload must validate against before it is
+ * stored. `character` is byte-identical to the previous inline
+ * `CharacterSchema.strict()`; the five Keeper-owned world entities dispatch to
+ * their own schemas so a monster op can never be silently accepted as (or
+ * validated against) a character.
+ */
+const ENTITY_SCHEMAS: Record<SyncEntityType, ZodTypeAny> = {
+  character: CharacterSchema.strict(),
+  mystery: MysterySchema.strict(),
+  monster: MonsterSchema.strict(),
+  minion: MinionSchema.strict(),
+  bystander: BystanderSchema.strict(),
+  location: LocationSchema.strict()
+};
 
 const NOT_FOUND = { errors: [{ path: "campaignId", message: "campaign not found" }] } as const;
 
@@ -27,14 +50,39 @@ function clampTs(ts: string, now: number): string {
   return new Date(ts).getTime() > now + MAX_TS_SKEW_MS ? new Date(now).toISOString() : ts;
 }
 
-function ownerOf(envelope: EntityEnvelope): string | undefined {
-  const owner = envelope.payload["ownerUserId"];
+function ownerOf(payload: Record<string, unknown>): string | undefined {
+  const owner = payload["ownerUserId"];
   return typeof owner === "string" ? owner : undefined;
 }
 
-/** exactOptionalPropertyTypes: omit ownerUserId entirely rather than pass undefined. */
-function accessCtx(campaignId: string, userId: string, ownerUserId: string | undefined): EntityAccessContext {
-  return ownerUserId === undefined ? { campaignId, userId } : { campaignId, userId, ownerUserId };
+/**
+ * A Character carries no `revealed` field, so it must resolve to `undefined`
+ * (absent), never `false`: `canView` treats the two differently, and coercing
+ * absent to `false` would let a later authz change silently hide characters.
+ */
+function revealedOf(payload: Record<string, unknown>): boolean | undefined {
+  const value = payload["revealed"];
+  return typeof value === "boolean" ? value : undefined;
+}
+
+/**
+ * exactOptionalPropertyTypes: omit ownerUserId / revealed entirely rather than
+ * pass undefined.
+ */
+function accessCtx(
+  campaignId: string,
+  userId: string,
+  ownerUserId: string | undefined,
+  revealed?: boolean
+): EntityAccessContext {
+  const ctx: EntityAccessContext = { campaignId, userId };
+  if (ownerUserId !== undefined) {
+    ctx.ownerUserId = ownerUserId;
+  }
+  if (revealed !== undefined) {
+    ctx.revealed = revealed;
+  }
+  return ctx;
 }
 
 function toWire(envelope: EntityEnvelope): SyncEnvelope {
@@ -89,7 +137,7 @@ export function createSyncRouter(repo: EntitiesRepo, authz: Authz): Router {
     const userId = req.user!.id;
     const rows = repo.listSince(campaignId, since);
     const visible = rows.filter((row) =>
-      authz.canView(accessCtx(campaignId, userId, ownerOf(row)))
+      authz.canView(accessCtx(campaignId, userId, ownerOf(row.payload), revealedOf(row.payload)))
     );
     // Advance lastServerSeq past every scanned row, including ones filtered out
     // for visibility, so they are never re-scanned (invariant 4 keeps them out
@@ -134,23 +182,23 @@ export function createSyncRouter(repo: EntitiesRepo, authz: Authz): Router {
         continue; // an id may never change entity type
       }
       // Authorize touching the existing row by its current owner.
-      if (current && !authz.canEdit(accessCtx(campaignId, userId, ownerOf(current)))) {
+      if (current && !authz.canEdit(accessCtx(campaignId, userId, ownerOf(current.payload)))) {
         continue;
       }
 
       const ts = clampTs(op.ts, Date.now());
       const { payload, conflict } = op.deleted
         ? { payload: current ? current.payload : op.patch, conflict: false }
-        : mergeCharacterPatch(current?.payload, op.patch, ts, current?.updatedAt);
+        : mergePatch(current?.payload, op.patch, ts, current?.updatedAt);
 
       const merged = { ...payload, id: op.entityId, campaignId };
-      const validated = CharacterSchema.strict().safeParse(merged);
+      const validated = ENTITY_SCHEMAS[op.type].safeParse(merged);
       if (!validated.success) {
-        continue; // a patch that does not yield a valid character is dropped
+        continue; // a patch that does not yield a valid entity of this type is dropped
       }
       // Authorize the resulting row too, so a hunter cannot reassign a
-      // character to (or away from) another user.
-      if (!authz.canEdit(accessCtx(campaignId, userId, validated.data.ownerUserId))) {
+      // character to (or away from) another user, or write a Keeper-only entity.
+      if (!authz.canEdit(accessCtx(campaignId, userId, ownerOf(validated.data as Record<string, unknown>)))) {
         continue;
       }
 
