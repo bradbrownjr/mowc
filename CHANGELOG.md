@@ -7,6 +7,14 @@ All notable changes to MOWC are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- Keeper tools: minion, bystander, and location builders (ROADMAP 0.5.3).
+  Single-screen forms for creating each entity type with appropriate fields
+  (minions have attacks and armor, bystanders have notes, locations have
+  description and map notes). Detail views show entity information and allow
+  Keeper-only editing. Minions render an interactive harm track (tap-to-mark,
+  same mechanic as character harm). All three types support pack-sourced
+  archetype pre-fills (type, motivation) where applicable. Listed in the
+  campaign Keeper-only panel alongside characters.
 - The offline sync layer now supports Keeper-owned entity types beyond
   characters. Mysteries, monsters, minions, bystanders, and locations flow
   through the same push/pull machinery, with per-type schema validation and
