@@ -30,6 +30,6 @@
     "svelte-eslint-parser": "^1.8.0",
     "typescript": "^5.5.4",
     "typescript-eslint": "^8.1.0",
-    "vitest": "^2.0.5"
+    "vitest": "^4.1.10"
   }
 }

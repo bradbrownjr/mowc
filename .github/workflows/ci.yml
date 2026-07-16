@@ -21,8 +21,8 @@ jobs:
       - run: npm run build
       - run: npm test
       - run: npm run check
-      # Soft-fail while the tree stabilizes (SECURITY.md section 9).
-      - run: npm audit --audit-level=high || true
+      # Hard-fail on high/critical (SECURITY.md section 9, Phase 10 gate).
+      - run: npm audit --audit-level=high
 
   e2e:
     runs-on: ubuntu-latest
