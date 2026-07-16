@@ -194,6 +194,34 @@ against D&D Beyond's builder flow described there.
 Version 0.5 — mystery/monster/world builders. Roll20 comparison notes in
 `docs/DESIGN.md`.
 
+> **Implementation staging (in progress).** Full orchestration plan,
+> file-level details, and rationale live in the "Phase 5 orchestration"
+> memory (project memory system) and were originally drafted in a Claude
+> Code plan-mode session; this block is the durable summary so the work
+> survives a context reset. Dependency order (each stage = its own
+> build-test-check-commit cycle per AGENTS.md, not a batch):
+>
+> | Stage | Scope | Model | Status | Depends on |
+> |---|---|---|---|---|
+> | 0 | Sync/authz generalization (not its own ROADMAP line — prerequisite infra: extend `SyncEntityTypeSchema` beyond `character`, make `server/src/entities/router.ts` validate/authorize per-type instead of hard-coded `CharacterSchema`, thread `revealed` into pull-side `accessCtx`, rename `mergeCharacterPatch`→`mergePatch`) | Opus | in progress | — |
+> | 1a | Monster builder (0.5.2) | Sonnet | pending | Stage 0 |
+> | 1b | Minion/Bystander/Location builders (0.5.3, Location folded in — not its own ROADMAP line, needed by 0.5.1's `locationIds`) | Haiku | pending | Stage 0 |
+> | 2 | Mystery builder (0.5.1) | Sonnet | pending | Stage 1a, 1b |
+> | 3 | Keeper campaign dashboard (0.5.4) | Sonnet | pending | Stage 2 |
+> | 4 | Share/reveal controls (0.5.5) | Sonnet | pending | Stage 3 |
+>
+> Key findings from research that shaped this order: the zod schemas for
+> Mystery/Monster/Minion/Bystander/Location already existed from Phase 2
+> (`shared/src/schemas/mystery.ts`, `shared/src/schemas/world.ts`, each
+> with a `revealed` field and no `ownerUserId`), and `server/src/authz/
+> index.ts`'s `canView`/`canEdit` were already shape-driven and needed no
+> changes — but `server/src/entities/router.ts` was still hard-coded to
+> Character only, so `docs/SYNC.md` invariant 4 ("a hunter's pull never
+> contains an unrevealed entity") was untested/unenforced for any other
+> type. Stage 0 closes that gap before any Phase 5 UI is built on top of
+> it. Update this table's Status column as each stage lands; do not check
+> off a 0.5.x box below until its stage's commit is green end to end.
+
 - [ ] Mystery builder: concept, hook, countdown (editable named steps),
       locations, cast - 0.5.1 [Sonnet]
 - [ ] Monster builder: type/motivation (from pack), powers, weaknesses,
