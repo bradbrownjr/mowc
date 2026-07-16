@@ -231,6 +231,7 @@
     {#if isKeeper}
       <section class="panel">
         <h2 class="section-title">Mysteries</h2>
+        <a class="submit-button" href={resolve("/campaigns/[id]/dashboard", { id: data.id })}>Open Keeper dashboard</a>
         <a class="submit-button" href={resolve("/campaigns/[id]/mysteries/new", { id: data.id })}>Create a mystery</a>
         {#if mysteries.length > 0}
           <ul class="invite-list">

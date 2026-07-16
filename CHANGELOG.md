@@ -37,6 +37,12 @@ All notable changes to MOWC are documented here. Format follows
   off countdown steps as they happen during play, and links out to each
   cast member's or location's own sheet. Keeper-only prep notes stay
   separate from the fields a revealed mystery would show hunters.
+- Keeper campaign dashboard (ROADMAP 0.5.4): a new two-pane screen (mystery
+  list left, prep detail right on desktop; one pane at a time on mobile)
+  reachable from the campaign page. Includes an arc notes field for
+  campaign-level story planning and a read-only session prep view per
+  mystery (concept, hook, countdown progress, cast, locations) with a link
+  to the full mystery sheet for editing.
 
 ### Performance
 - Large-campaign performance pass (ROADMAP 0.10.4):
