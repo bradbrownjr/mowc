@@ -6,6 +6,8 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+## [0.10.5] - 2026-07-16
+
 ### Added
 - Keeper tools: minion, bystander, and location builders (ROADMAP 0.5.3).
   Single-screen forms for creating each entity type with appropriate fields

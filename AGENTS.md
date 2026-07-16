@@ -173,6 +173,18 @@ Never mark a ROADMAP phase, milestone, or item "complete" without:
 Version format is `0.PHASE.BUILD` (e.g. `0.4.2` = Phase 4, build 2).
 Versions starting with `0.` are marked pre-release on GitHub.
 
+**As of 0.10.5**: phases are no longer necessarily built in numeric
+order (Phase 10 content shipped as 0.10.x before Phase 5 was even
+started; Phase 5 then shipped as 0.10.5 on top of it, by explicit user
+choice, rather than as 0.5.x). Treat the middle number as a plain
+build-line counter that only increments from the last real release,
+not a strict per-phase bucket — a `0.5.x` tag now would sort *before*
+the already-released `0.10.x` line and misrepresent release order on
+GitHub/Docker. When proposing a version for the next release, default
+to incrementing off the highest existing tag, and only suggest a
+phase-matched number if it would also sort correctly; ask the user
+when the two disagree.
+
 1. `CHANGELOG.md` must have a `## [X.Y.Z] - YYYY-MM-DD` section describing
    the release in user-facing terms. Write it BEFORE the release commit;
    the release workflow extracts it for the GitHub Release body.
