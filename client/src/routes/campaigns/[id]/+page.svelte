@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
-  import type { Campaign, Character, Minion, Bystander, Location } from "@mowc/shared";
+  import type { Campaign, Character, Minion, Bystander, Location, Monster } from "@mowc/shared";
   import { sessionState } from "$lib/session.svelte";
   import {
     CampaignApiError,
@@ -35,6 +35,7 @@
   let minions = $state<Minion[]>([]);
   let bystanders = $state<Bystander[]>([]);
   let locations = $state<Location[]>([]);
+  let monsters = $state<Monster[]>([]);
 
   const isKeeper = $derived(campaign !== null && sessionState.user !== null && campaign.keeperUserId === sessionState.user.id);
 
@@ -97,6 +98,21 @@
     locations = rows.map((row) => row.payload as unknown as Location).sort((a, b) => a.name.localeCompare(b.name));
   }
 
+  /**
+   * Reads this campaign's monsters from local IndexedDB, Keeper only. Pull
+   * already filters unrevealed rows out for non-Keepers server-side (see
+   * server/src/entities/router.ts), and only the Keeper section renders
+   * this list, so no extra client-side filtering is needed here.
+   */
+  async function loadMonsters(): Promise<void> {
+    const rows = await db.entities
+      .where("[campaignId+type]")
+      .equals([data.id, "monster"])
+      .and((row) => !row.deleted)
+      .toArray();
+    monsters = rows.map((row) => row.payload as unknown as Monster).sort((a, b) => a.name.localeCompare(b.name));
+  }
+
   $effect(() => {
     if (sessionState.status !== "ready") return;
     if (!sessionState.user) {
@@ -127,6 +143,7 @@
         void loadMinions();
         void loadBystanders();
         void loadLocations();
+        void loadMonsters();
       });
   });
 
@@ -201,6 +218,27 @@
     </section>
 
     {#if isKeeper}
+      <section class="panel">
+        <h2 class="section-title">Monsters</h2>
+        <a class="submit-button" href={resolve("/campaigns/[id]/monsters/new", { id: data.id })}>Create a monster</a>
+        {#if monsters.length > 0}
+          <ul class="invite-list">
+            {#each monsters as monster (monster.id)}
+              <li class="invite-row">
+                <a
+                  class="character-link"
+                  href={resolve("/campaigns/[id]/monsters/[monsterId]", { id: data.id, monsterId: monster.id })}
+                >
+                  {monster.name}
+                </a>
+              </li>
+            {/each}
+          </ul>
+        {:else}
+          <p class="campaign-meta">No monsters yet.</p>
+        {/if}
+      </section>
+
       <section class="panel">
         <h2 class="section-title">Content packs</h2>
         {#if packsError}
