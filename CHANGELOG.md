@@ -6,6 +6,15 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+### Changed
+- Home page (`/`) is now a real landing page with role-aware CTAs (Log in /
+  Register when signed out, My campaigns / Content packs when signed in)
+  instead of a bare server-status readout, and no longer duplicates the
+  Content packs link that already lives in the top nav.
+- Top nav now shows a "MOWC" brand link back to the home page and renders
+  the section links as file tabs (docs/DESIGN.md motif) with a visibly
+  highlighted active tab, instead of a row of same-looking links.
+
 ## [0.10.5] - 2026-07-16
 
 ### Added
