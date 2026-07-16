@@ -13,6 +13,14 @@ All notable changes to MOWC are documented here. Format follows
   `revealed`-gated visibility (a hunter never pulls an unrevealed entity).
   This is infrastructure groundwork for the upcoming Keeper tools; no new
   screens ship with it yet.
+- Monster builder (ROADMAP 0.5.2): the Keeper can now create a Monster from
+  a campaign screen through a numbered wizard (type/motivation sourced from
+  attached content packs, powers, weaknesses, attacks with harm and tags,
+  armor, harm capacity, custom moves, name, review). The monster sheet shows
+  every field plus a tap-to-mark Harm track (Keeper only can tap; the track
+  is read-only for anyone else who can see a revealed monster). Only the
+  Keeper sees the create/edit affordances; a hunter never has the option to
+  create or edit a Monster.
 
 ### Performance
 - Large-campaign performance pass (ROADMAP 0.10.4):
