@@ -189,12 +189,12 @@ against D&D Beyond's builder flow described there.
       move's 10+/7-9/miss outcome text from the pack; roll history in the
       session log - 0.4.7 [Sonnet]
 
-## Phase 5: Keeper Tools
+## Phase 5: Keeper Tools ✅
 
 Version 0.5 — mystery/monster/world builders. Roll20 comparison notes in
 `docs/DESIGN.md`.
 
-> **Implementation staging (in progress).** Full orchestration plan,
+> **Implementation staging (complete).** Full orchestration plan,
 > file-level details, and rationale live in the "Phase 5 orchestration"
 > memory (project memory system) and were originally drafted in a Claude
 > Code plan-mode session; this block is the durable summary so the work
@@ -210,9 +210,8 @@ Version 0.5 — mystery/monster/world builders. Roll20 comparison notes in
 > | 3 | Keeper campaign dashboard (0.5.4) | Sonnet | done (9ce22ca) | Stage 2 |
 > | 4 | Share/reveal controls (0.5.5) | Sonnet | done (a6cfba0) | Stage 3 |
 >
-> All Phase 5 stages complete as of this line. Not yet flipped: the
-> "## Phase 5: Keeper Tools" header's own ✅ marker, per AGENTS.md's Phase
-> Completion Guardrail (requires explicit user sign-off, not a silent flip).
+> All Phase 5 stages complete; the header above is marked ✅ per the
+> user's explicit sign-off (AGENTS.md's Phase Completion Guardrail).
 >
 > Key findings from research that shaped this order: the zod schemas for
 > Mystery/Monster/Minion/Bystander/Location already existed from Phase 2
