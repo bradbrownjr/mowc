@@ -73,7 +73,7 @@
   });
 
   const bystanderType = $derived(
-    bystander && bystander.typeId ? packs.flatMap((p) => p.bystanderTypes).find((t) => t.id === bystander.typeId) : null
+    bystander?.typeId ? packs.flatMap((p) => p.bystanderTypes).find((t) => t.id === bystander?.typeId) : null
   );
 </script>
 

@@ -76,7 +76,7 @@
   });
 
   const minionType = $derived(
-    minion && minion.typeId ? packs.flatMap((p) => p.minionTypes).find((t) => t.id === minion.typeId) : null
+    minion?.typeId ? packs.flatMap((p) => p.minionTypes).find((t) => t.id === minion?.typeId) : null
   );
 </script>
 
@@ -137,7 +137,7 @@
               title={trackLabel(boxNumber, minion.harmTaken, minion.harmCapacity)}
               onclick={() => tapHarm(boxNumber)}
               disabled={!isKeeper}
-            />
+            ></button>
           {/each}
         </div>
       </div>
