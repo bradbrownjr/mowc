@@ -128,10 +128,16 @@ export async function pull(campaignId: string): Promise<void> {
   }
   const data = (await res.json()) as SyncPullResponse;
   await db.transaction("rw", db.entities, db.oplog, db.syncState, async () => {
+    // Load the campaign's pending entity ids once, not once per pulled row: a
+    // large first sync would otherwise fire hundreds of indexed count queries
+    // inside this transaction. An entity id lives in a single campaign, so
+    // scoping the scan to this campaign covers every row we are about to upsert.
+    const pending = new Set(
+      (await db.oplog.where("campaignId").equals(campaignId).toArray()).map((entry) => entry.entityId)
+    );
     for (const row of data.rows) {
-      const pending = await db.oplog.where("entityId").equals(row.id).count();
-      if (pending > 0) {
-        continue;
+      if (pending.has(row.id)) {
+        continue; // local-wins until the pending op pushes
       }
       await db.entities.put({
         id: row.id,

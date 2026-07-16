@@ -51,7 +51,8 @@ docs/SECURITY.md section 4). For each op the server:
    dropped (not applied).
 5. Assigns the next per-campaign `seq`, bumps `rev = max(current.rev,
    op.baseRev) + 1`, stores `updated_by`, and records the `opId` in
-   `applied_ops` (pruned after 30 days) so a retried batch never double-applies.
+   `applied_ops` (pruned after 30 days, on server startup) so a retried
+   batch never double-applies.
 
 Response: `{applied: [opId], conflicts: [{opId, serverPayload}],
 newSeq: n}`. Client removes applied ops from the oplog.

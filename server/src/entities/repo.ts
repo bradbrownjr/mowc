@@ -58,6 +58,13 @@ export interface EntitiesRepo {
   /** Rows with seq > since, oldest first (docs/SYNC.md pull). */
   listSince(campaignId: string, since: number): EntityEnvelope[];
   isOpApplied(campaignId: string, opId: string): boolean;
+  /**
+   * Deletes applied-op idempotency rows older than `beforeIso`, bounding a
+   * table that would otherwise grow forever on a long-running campaign
+   * (docs/SYNC.md: applied_ops is pruned after 30 days). Returns the number
+   * of rows removed. Safe to run past the point a replayed batch could arrive.
+   */
+  pruneAppliedOps(beforeIso: string): number;
   /** Highest seq assigned in this campaign, or 0 when it has no rows. */
   maxSeq(campaignId: string): number;
   /**
@@ -86,6 +93,7 @@ export function createEntitiesRepo(db: Database.Database): EntitiesRepo {
   const recordOp = db.prepare(
     "INSERT INTO applied_ops (campaign_id, op_id, applied_at) VALUES (?, ?, ?)"
   );
+  const pruneOps = db.prepare("DELETE FROM applied_ops WHERE applied_at < ?");
 
   function nextSeq(campaignId: string): number {
     return (selectMaxSeq.get(campaignId) as { max: number }).max + 1;
@@ -121,6 +129,10 @@ export function createEntitiesRepo(db: Database.Database): EntitiesRepo {
 
     isOpApplied(campaignId, opId) {
       return selectOp.get(campaignId, opId) !== undefined;
+    },
+
+    pruneAppliedOps(beforeIso) {
+      return pruneOps.run(beforeIso).changes;
     },
 
     maxSeq(campaignId) {

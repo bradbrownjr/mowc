@@ -177,4 +177,41 @@ describe("pull", () => {
     // Cursor still advances so the row is not re-fetched forever.
     expect((await db.syncState.get(CAMPAIGN))?.lastServerSeq).toBe(4);
   });
+
+  it("upserts non-pending rows in a batch while skipping only the pending one", async () => {
+    const other = "00000000-0000-4000-8000-0000000000bb";
+    await writeEntity("character", CAMPAIGN, ENTITY, character({ name: "Local Edit" }));
+    mockFetch({
+      rows: [
+        {
+          id: ENTITY,
+          campaignId: CAMPAIGN,
+          type: "character",
+          payload: character({ name: "Stale Server" }),
+          rev: 1,
+          seq: 4,
+          updatedAt: "2026-07-14T09:00:00.000Z",
+          updatedBy: "user-1",
+          deleted: false
+        },
+        {
+          id: other,
+          campaignId: CAMPAIGN,
+          type: "character",
+          payload: character({ id: other, name: "From Server" }),
+          rev: 2,
+          seq: 5,
+          updatedAt: "2026-07-14T10:00:00.000Z",
+          updatedBy: "user-1",
+          deleted: false
+        }
+      ],
+      seq: 5
+    });
+
+    await pull(CAMPAIGN);
+
+    expect((await db.entities.get(ENTITY))?.payload.name).toBe("Local Edit");
+    expect((await db.entities.get(other))?.payload.name).toBe("From Server");
+  });
 });

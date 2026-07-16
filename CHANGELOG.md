@@ -6,6 +6,16 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+### Performance
+- Large-campaign performance pass (ROADMAP 0.10.4):
+  - Pulling sync updates no longer runs one IndexedDB query per incoming
+    row to check for pending local edits; it loads the campaign's pending
+    ids once, so a first sync of a campaign with hundreds of entities is
+    substantially faster.
+  - The server now prunes `applied_ops` idempotency rows older than 30
+    days on startup, so long-running campaigns no longer accumulate that
+    bookkeeping table without bound.
+
 ## [0.10.3] - 2026-07-16
 
 ### Security
