@@ -204,9 +204,9 @@ Version 0.5 — mystery/monster/world builders. Roll20 comparison notes in
 > | Stage | Scope | Model | Status | Depends on |
 > |---|---|---|---|---|
 > | 0 | Sync/authz generalization (not its own ROADMAP line — prerequisite infra: extend `SyncEntityTypeSchema` beyond `character`, make `server/src/entities/router.ts` validate/authorize per-type instead of hard-coded `CharacterSchema`, thread `revealed` into pull-side `accessCtx`, rename `mergeCharacterPatch`→`mergePatch`) | Opus | done (950c795) | — |
-> | 1a | Monster builder (0.5.2) | Sonnet | in progress | Stage 0 |
-> | 1b | Minion/Bystander/Location builders (0.5.3, Location folded in — not its own ROADMAP line, needed by 0.5.1's `locationIds`) | Haiku | in progress | Stage 0 |
-> | 2 | Mystery builder (0.5.1) | Sonnet | pending | Stage 1a, 1b |
+> | 1a | Monster builder (0.5.2) | Sonnet | done (2716380, merged 856ad2a) | Stage 0 |
+> | 1b | Minion/Bystander/Location builders (0.5.3, Location folded in — not its own ROADMAP line, needed by 0.5.1's `locationIds`) | Haiku | done (8685673, 4e73545) | Stage 0 |
+> | 2 | Mystery builder (0.5.1) | Sonnet | in progress | Stage 1a, 1b |
 > | 3 | Keeper campaign dashboard (0.5.4) | Sonnet | pending | Stage 2 |
 > | 4 | Share/reveal controls (0.5.5) | Sonnet | pending | Stage 3 |
 >
@@ -224,11 +224,13 @@ Version 0.5 — mystery/monster/world builders. Roll20 comparison notes in
 
 - [ ] Mystery builder: concept, hook, countdown (editable named steps),
       locations, cast - 0.5.1 [Sonnet]
-- [ ] Monster builder: type/motivation (from pack), powers, weaknesses,
+- [x] Monster builder: type/motivation (from pack), powers, weaknesses,
       attacks (harm/tags), armor, harm capacity, custom moves -
       0.5.2 [Sonnet]
-- [ ] Minion & bystander builders (same pattern, smaller forms) -
+- [x] Minion & bystander builders (same pattern, smaller forms) -
       0.5.3 [Haiku]
+      Location builder folded in too (not its own ROADMAP line, needed
+      by 0.5.1's `locationIds`).
 - [ ] Keeper campaign dashboard: arc notes, mystery list with status,
       session prep view - 0.5.4 [Sonnet]
 - [ ] Share controls: per-entity "revealed to players" toggle wired
