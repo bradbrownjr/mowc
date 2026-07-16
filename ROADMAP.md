@@ -207,8 +207,8 @@ Version 0.5 — mystery/monster/world builders. Roll20 comparison notes in
 > | 1a | Monster builder (0.5.2) | Sonnet | done (2716380, merged 856ad2a) | Stage 0 |
 > | 1b | Minion/Bystander/Location builders (0.5.3, Location folded in — not its own ROADMAP line, needed by 0.5.1's `locationIds`) | Haiku | done (8685673, 4e73545) | Stage 0 |
 > | 2 | Mystery builder (0.5.1) | Sonnet | done (cc93ddd) | Stage 1a, 1b |
-> | 3 | Keeper campaign dashboard (0.5.4) | Sonnet | in progress | Stage 2 |
-> | 4 | Share/reveal controls (0.5.5) | Sonnet | pending | Stage 3 |
+> | 3 | Keeper campaign dashboard (0.5.4) | Sonnet | done (9ce22ca) | Stage 2 |
+> | 4 | Share/reveal controls (0.5.5) | Sonnet | in progress | Stage 3 |
 >
 > Key findings from research that shaped this order: the zod schemas for
 > Mystery/Monster/Minion/Bystander/Location already existed from Phase 2
@@ -231,7 +231,7 @@ Version 0.5 — mystery/monster/world builders. Roll20 comparison notes in
       0.5.3 [Haiku]
       Location builder folded in too (not its own ROADMAP line, needed
       by 0.5.1's `locationIds`).
-- [ ] Keeper campaign dashboard: arc notes, mystery list with status,
+- [x] Keeper campaign dashboard: arc notes, mystery list with status,
       session prep view - 0.5.4 [Sonnet]
 - [ ] Share controls: per-entity "revealed to players" toggle wired
       through the Phase 3 visibility module - 0.5.5 [Sonnet]
