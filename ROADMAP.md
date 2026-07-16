@@ -206,8 +206,8 @@ Version 0.5 — mystery/monster/world builders. Roll20 comparison notes in
 > | 0 | Sync/authz generalization (not its own ROADMAP line — prerequisite infra: extend `SyncEntityTypeSchema` beyond `character`, make `server/src/entities/router.ts` validate/authorize per-type instead of hard-coded `CharacterSchema`, thread `revealed` into pull-side `accessCtx`, rename `mergeCharacterPatch`→`mergePatch`) | Opus | done (950c795) | — |
 > | 1a | Monster builder (0.5.2) | Sonnet | done (2716380, merged 856ad2a) | Stage 0 |
 > | 1b | Minion/Bystander/Location builders (0.5.3, Location folded in — not its own ROADMAP line, needed by 0.5.1's `locationIds`) | Haiku | done (8685673, 4e73545) | Stage 0 |
-> | 2 | Mystery builder (0.5.1) | Sonnet | in progress | Stage 1a, 1b |
-> | 3 | Keeper campaign dashboard (0.5.4) | Sonnet | pending | Stage 2 |
+> | 2 | Mystery builder (0.5.1) | Sonnet | done (cc93ddd) | Stage 1a, 1b |
+> | 3 | Keeper campaign dashboard (0.5.4) | Sonnet | in progress | Stage 2 |
 > | 4 | Share/reveal controls (0.5.5) | Sonnet | pending | Stage 3 |
 >
 > Key findings from research that shaped this order: the zod schemas for
@@ -222,7 +222,7 @@ Version 0.5 — mystery/monster/world builders. Roll20 comparison notes in
 > it. Update this table's Status column as each stage lands; do not check
 > off a 0.5.x box below until its stage's commit is green end to end.
 
-- [ ] Mystery builder: concept, hook, countdown (editable named steps),
+- [x] Mystery builder: concept, hook, countdown (editable named steps),
       locations, cast - 0.5.1 [Sonnet]
 - [x] Monster builder: type/motivation (from pack), powers, weaknesses,
       attacks (harm/tags), armor, harm capacity, custom moves -
