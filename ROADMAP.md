@@ -307,7 +307,7 @@ Version 0.10 → 1.0
 - [x] Playwright e2e suite covering: create campaign, build character,
       run session offline, sync - 0.10.1 [Opus]
 - [x] User guide + Keeper guide in `docs/` - 0.10.2 [Haiku]
-- [ ] Security review of auth, sync, and upload paths - 0.10.3 [Fable]
+- [x] Security review of auth, sync, and upload paths - 0.10.3 [Fable]
 - [ ] Performance pass on large campaigns (hundreds of entities) -
       0.10.4 [Opus]
 - [ ] 1.0.0 release - [Sonnet]

@@ -6,6 +6,8 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+## [0.10.3] - 2026-07-16
+
 ### Security
 - Full security review of the auth, sync, and upload paths (ROADMAP
   0.10.3); the report lives in `docs/reviews/0.10.3-security-review.md`.
