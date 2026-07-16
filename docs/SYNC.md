@@ -29,7 +29,9 @@ docs/SECURITY.md section 4). For each op the server:
 
 1. Skips the op if its `opId` is already in `applied_ops` (idempotent replay).
 2. Loads the current row. If none: the `patch` is the full payload and the
-   entity is inserted (rev = op.baseRev + 1).
+   entity is inserted (rev = op.baseRev + 1). An op whose `entityId` exists
+   in a different campaign, or with a different `type`, is dropped: an id
+   never crosses a campaign boundary or changes entity type.
 3. Merge: the op's `patch` is applied onto the current payload at the
    top-level-field level. Fields the op does not mention are always preserved,
    so a Harm tick on one phone and a note edit on another both survive
@@ -38,7 +40,10 @@ docs/SECURITY.md section 4). For each op the server:
    current row's `updated_at`; otherwise the current value is kept and the op
    is returned as a `conflict` entry (with the server payload) so the UI can
    toast "your edit to X was overridden". (Non-character types added later can
-   use whole-payload LWW by sending every field in the patch.)
+   use whole-payload LWW by sending every field in the patch.) A `ts` more
+   than 5 minutes ahead of the server clock is clamped to the server clock
+   before the merge and before storage, so a client with a poisoned clock
+   cannot post a far-future timestamp that wins every later merge forever.
 4. The merged payload is validated against the shared zod schema for its type
    (`CharacterSchema`, strict), and both the current owner and the resulting
    owner are checked through the authz module (`canEdit`) so a hunter can only

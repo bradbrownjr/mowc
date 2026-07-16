@@ -17,10 +17,13 @@ import { parseConversion } from "./parse.js";
  * admin reviews and saves each draft through the existing content-pack
  * pipeline.
  *
- * The route is mounted behind requireAuth and express.raw (see app.ts); here
- * it enforces admin-only access, the PDF magic-byte check, and single-flight
- * concurrency. The 25 MB body limit and 10/hour rate limit are applied by the
- * raw parser and the rate limiter respectively.
+ * The route is mounted behind requireAuth, requireAdmin, and express.raw, in
+ * that order (see app.ts), so a non-admin request is rejected before its body
+ * is ever buffered; the isAdmin check below is defense in depth against a
+ * future mount without that middleware. Here it also enforces the PDF
+ * magic-byte check and single-flight concurrency. The 25 MB body limit and
+ * 10/hour rate limit are applied by the raw parser and the rate limiter
+ * respectively.
  */
 
 // At most one conversion runs per server process at a time (ADR section 2):

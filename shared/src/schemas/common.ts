@@ -14,6 +14,6 @@ export type Ratings = z.infer<typeof RatingsSchema>;
 
 export const UuidSchema = z.string().uuid();
 
-export const DefIdSchema = z.string().min(1);
+export const DefIdSchema = z.string().min(1).max(100);
 
-export const UserIdSchema = z.string().min(1);
+export const UserIdSchema = z.string().min(1).max(100);

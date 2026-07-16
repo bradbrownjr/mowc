@@ -16,6 +16,11 @@ services:
       # SECURITY.md section 7). Register this account first, then set
       # this to match. Optional; omit to leave every pack private.
       # MOWC_ADMIN_EMAIL: keeper@example.com
+      # Behind a reverse proxy (nginx/caddy/traefik), set to the number of
+      # proxy hops (usually 1) so rate limiting sees real client IPs.
+      # Leave unset when exposing the port directly (docs/SECURITY.md
+      # section 8).
+      # MOWC_TRUST_PROXY: "1"
       # Owner of files written to the data volume. Set to your host user.
       PUID: "1000"
       PGID: "1000"

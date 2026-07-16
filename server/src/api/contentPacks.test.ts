@@ -139,6 +139,20 @@ describe("POST /api/content-packs", () => {
     expect(res.status).toBe(409);
   });
 
+  it("rejects a duplicate id uploaded by a DIFFERENT user with 409, not 500", async () => {
+    const app = createTestApp();
+    const first = await authedAgent(app);
+    const second = await registerAgent(app, "other@example.com", "Other");
+    const pack = loadExamplePack();
+
+    await first.post("/api/content-packs").send(pack);
+    // id is the table's primary key; without the any-owner duplicate check
+    // this was an unhandled constraint error (500).
+    const res = await second.post("/api/content-packs").send(pack);
+
+    expect(res.status).toBe(409);
+  });
+
   it("accepts a pack body larger than the global 1 MB limit but under the 5 MB pack limit", async () => {
     const app = createTestApp();
     const agent = await authedAgent(app);

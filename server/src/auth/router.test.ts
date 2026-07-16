@@ -178,6 +178,46 @@ describe("CSRF origin check", () => {
 
     expect(res.status).toBe(201);
   });
+
+  it("blocks a request whose Origin matches the hostname but not the port", async () => {
+    const app = createTestApp();
+
+    // Same host, different port: still a foreign origin (another service on
+    // the same self-hosted box must not be able to CSRF this one).
+    const res = await request(app)
+      .post("/api/auth/register")
+      .set("Host", "mowc.example")
+      .set("Origin", "http://mowc.example:8080")
+      .send(CREDENTIALS);
+
+    expect(res.status).toBe(403);
+  });
+
+  it("allows a request whose Origin matches host and port exactly", async () => {
+    const app = createTestApp();
+
+    const res = await request(app)
+      .post("/api/auth/register")
+      .set("Host", "mowc.example:7120")
+      .set("Origin", "http://mowc.example:7120")
+      .send(CREDENTIALS);
+
+    expect(res.status).toBe(201);
+  });
+});
+
+describe("session expiry", () => {
+  it("rejects an expired session and deletes its row (expiry sweep on read)", async () => {
+    const app = createTestApp();
+    const agent = request.agent(app);
+    await agent.post("/api/auth/register").send(CREDENTIALS);
+
+    db!.prepare("UPDATE sessions SET expires_at = ?").run(new Date(Date.now() - 1000).toISOString());
+
+    const res = await agent.get("/api/auth/me");
+    expect(res.status).toBe(401);
+    expect(db!.prepare("SELECT COUNT(*) AS n FROM sessions").get()).toEqual({ n: 0 });
+  });
 });
 
 describe("rate limiting", () => {

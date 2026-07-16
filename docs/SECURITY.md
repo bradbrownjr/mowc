@@ -58,8 +58,10 @@ The app must still be safe if exposed directly.
 - Session lifetime 30 days rolling; reauthentication required for
   password change and account deletion.
 - **CSRF**: state-changing routes verify the `Origin` header matches the
-  configured origin; requests with no Origin are allowed (CLI/tests
-  pattern from tangible). SameSite=Lax is the second layer.
+  request's own `Host`, including the port (on a self-hosted box running
+  several services on one hostname, another port is a foreign origin);
+  requests with no Origin are allowed (CLI/tests pattern from tangible).
+  SameSite=Lax is the second layer.
 - **SSE auth**: the events stream authenticates via the session cookie
   (same-origin), never via query-string tokens (ECTLogger's known
   WebSocket limitation, avoided by design).
@@ -91,8 +93,9 @@ The app must still be safe if exposed directly.
   checked (`%PDF-`, else 400), piped to a sandboxed `pdftotext`/`pdfinfo`
   subprocess with a fixed argv (no shell, no temp file), a 30 s wall-clock
   timeout, and a 4 MB captured-output cap (both kill the process; 422 on
-  any extraction failure). Admin-only (403 otherwise); stateless (nothing
-  written to disk or persisted server-side).
+  any extraction failure). Admin-only (403 otherwise, rejected before the
+  body is ever buffered); stateless (nothing written to disk or persisted
+  server-side).
 - SSE: max 5 concurrent streams per user; heartbeat every 30 s; dead
   connections reaped.
 - Log every 429 and failed login with IP (structured log line) so
@@ -142,9 +145,10 @@ Set globally (helmet or hand-rolled middleware, one module):
 
 - SQLite file lives in `$MOWC_DATA_DIR` (mounted volume), WAL mode,
   `foreign_keys=ON`.
-- Secrets (`MOWC_SESSION_SECRET`) come from env or are generated once and
-  persisted with `0600` permissions in the data dir; never committed,
-  never logged.
+- There is no session-signing secret to manage: session tokens are random
+  256-bit values stored only as SHA-256 hashes (section 2), so nothing
+  needs signing and there is nothing secret to persist or rotate beyond
+  the DB file itself.
 - Backups: document `sqlite3 .backup` + volume snapshot in the admin
   guide; the campaign export (Phase 9.1) is the user-level backup.
 - Account deletion removes the user, their seats, sessions, and orphaned
@@ -160,6 +164,11 @@ Packs are the only user-supplied file type. Treat them as hostile:
   reject unknown keys.
 - All pack strings are rendered as text only (no HTML/markdown), so a
   malicious pack cannot script other users' browsers.
+- A Keeper can only attach packs they can read themselves (their own
+  uploads or the shared library); attachment is what grants campaign
+  members read access, so it must never be able to justify itself
+  (otherwise any Keeper could attach a stranger's private pack by id and
+  read it).
 - Packs are private to their owner and the campaigns a Keeper explicitly
   attaches them to, with one exception: packs uploaded by the server-owner
   account (`MOWC_ADMIN_EMAIL`, `server/src/authz/admin.ts`) are `visibility:
@@ -188,8 +197,11 @@ Packs are the only user-supplied file type. Treat them as hostile:
   tangible gotcha).
 - Compose examples publish only port 7120 and mount only the data volume.
 - Reverse-proxy TLS example (nginx/caddy) documented in the admin guide;
-  `trust proxy` configured so rate limiting sees real client IPs when
-  `X-Forwarded-For` is present, and ignores it when not behind a proxy.
+  `trust proxy` is controlled by `MOWC_TRUST_PROXY` (unset/0/false =
+  ignore `X-Forwarded-For`, the safe default for direct exposure; a
+  positive integer = that many trusted proxy hops; `true` = 1 hop, never
+  "trust everything"). Set it to `1` behind a single reverse proxy so rate
+  limiting and the fail2ban log lines see real client IPs.
 
 ## 9. Dependencies & CI
 
@@ -212,7 +224,8 @@ Packs are the only user-supplied file type. Treat them as hostile:
 ## Production checklist (admin guide will embed this)
 
 - [ ] TLS in front (reverse proxy) or LAN-only exposure
-- [ ] `MOWC_SESSION_SECRET` set (or verified generated with 0600 perms)
+- [ ] `MOWC_TRUST_PROXY=1` set when behind a reverse proxy (and NOT set
+      when exposed directly)
 - [ ] Data volume mounted and verified (DB file appears under it)
 - [ ] Backups scheduled (volume snapshot or `.backup`)
 - [ ] Rate limiting left enabled (never disable in prod)

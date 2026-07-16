@@ -15,6 +15,11 @@ services:
       # SECURITY.md section 7). Register this account first, then set
       # this to match. Optional; omit to leave every pack private.
       # MOWC_ADMIN_EMAIL: keeper@example.com
+      # Behind a reverse proxy (e.g. SWAG/nginx proxy manager), set to the
+      # number of proxy hops (usually 1) so rate limiting sees real client
+      # IPs. Leave unset when exposing the port directly (docs/SECURITY.md
+      # section 8).
+      # MOWC_TRUST_PROXY: "1"
       PUID: "99"
       PGID: "100"
     volumes:

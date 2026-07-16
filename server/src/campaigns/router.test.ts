@@ -27,6 +27,17 @@ function createTestApp() {
   return createApp("0.1.0-test", db);
 }
 
+/** Minimal pack row for attach-permission tests (invented content only). */
+function insertPack(packId: string, ownerUserId: string, visibility: "private" | "shared" = "private"): void {
+  const now = new Date().toISOString();
+  db!
+    .prepare(
+      "INSERT INTO content_packs (id, owner_user_id, name, author, version, payload, visibility, created_at, updated_at) " +
+        "VALUES (?, ?, 'The Placeholder Pack', 'Test Author', '1.0.0', '{}', ?, ?, ?)"
+    )
+    .run(packId, ownerUserId, visibility, now, now);
+}
+
 async function registerAgent(app: ReturnType<typeof createApp>, email: string) {
   const agent = request.agent(app);
   const res = await agent
@@ -114,9 +125,10 @@ describe("GET /api/campaigns/:id", () => {
 describe("PATCH /api/campaigns/:id", () => {
   it("lets the Keeper update name, theme, settings, and packIds", async () => {
     const app = createTestApp();
-    const { agent: keeper } = await registerAgent(app, "keeper@example.com");
+    const { agent: keeper, userId: keeperId } = await registerAgent(app, "keeper@example.com");
     const created = await keeper.post("/api/campaigns").send({ name: "The Vermont Job" });
     const packId = "00000000-0000-4000-8000-000000000001";
+    insertPack(packId, keeperId);
 
     const res = await keeper
       .patch(`/api/campaigns/${created.body.id}`)
@@ -129,6 +141,64 @@ describe("PATCH /api/campaigns/:id", () => {
       packIds: [packId],
       settings: { arc: 1 }
     });
+  });
+
+  it("rejects attaching a pack id that does not exist", async () => {
+    const app = createTestApp();
+    const { agent: keeper } = await registerAgent(app, "keeper@example.com");
+    const created = await keeper.post("/api/campaigns").send({ name: "The Vermont Job" });
+
+    const res = await keeper
+      .patch(`/api/campaigns/${created.body.id}`)
+      .send({ packIds: ["00000000-0000-4000-8000-00000000dead"] });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errors[0].path).toBe("packIds");
+  });
+
+  it("rejects attaching another user's private pack (no read-by-attachment)", async () => {
+    const app = createTestApp();
+    const { agent: keeper } = await registerAgent(app, "keeper@example.com");
+    const { userId: strangerId } = await registerAgent(app, "stranger@example.com");
+    const created = await keeper.post("/api/campaigns").send({ name: "The Vermont Job" });
+    const packId = "00000000-0000-4000-8000-000000000002";
+    insertPack(packId, strangerId, "private");
+
+    const res = await keeper.patch(`/api/campaigns/${created.body.id}`).send({ packIds: [packId] });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errors[0].path).toBe("packIds");
+  });
+
+  it("lets the Keeper attach a shared pack they do not own", async () => {
+    const app = createTestApp();
+    const { agent: keeper } = await registerAgent(app, "keeper@example.com");
+    const { userId: adminId } = await registerAgent(app, "admin@example.com");
+    const created = await keeper.post("/api/campaigns").send({ name: "The Vermont Job" });
+    const packId = "00000000-0000-4000-8000-000000000003";
+    insertPack(packId, adminId, "shared");
+
+    const res = await keeper.patch(`/api/campaigns/${created.body.id}`).send({ packIds: [packId] });
+
+    expect(res.status).toBe(200);
+    expect(res.body.packIds).toEqual([packId]);
+  });
+
+  it("keeps an already-attached pack id patchable after the pack row is gone", async () => {
+    const app = createTestApp();
+    const { agent: keeper, userId: keeperId } = await registerAgent(app, "keeper@example.com");
+    const created = await keeper.post("/api/campaigns").send({ name: "The Vermont Job" });
+    const packId = "00000000-0000-4000-8000-000000000004";
+    insertPack(packId, keeperId);
+    await keeper.patch(`/api/campaigns/${created.body.id}`).send({ packIds: [packId] });
+    db!.prepare("DELETE FROM content_packs WHERE id = ?").run(packId);
+
+    const res = await keeper
+      .patch(`/api/campaigns/${created.body.id}`)
+      .send({ name: "Renamed", packIds: [packId] });
+
+    expect(res.status).toBe(200);
+    expect(res.body.packIds).toEqual([packId]);
   });
 
   it("returns 404 for a non-member", async () => {

@@ -6,6 +6,33 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+### Security
+- Full security review of the auth, sync, and upload paths (ROADMAP
+  0.10.3); the report lives in `docs/reviews/0.10.3-security-review.md`.
+  Fixes shipped with it:
+  - A Keeper can now only attach content packs they can read (their own
+    or the shared library) to a campaign; previously any pack id could be
+    attached, which granted the campaign read access to another user's
+    private pack.
+  - New `MOWC_TRUST_PROXY` setting: set to `1` behind a reverse proxy so
+    rate limiting and abuse logs see real client IPs instead of the
+    proxy's. Leave unset when exposing the port directly.
+  - The CSRF origin check now includes the port, so a page served from
+    another service on the same hostname no longer counts as same-origin.
+  - Sync timestamps more than 5 minutes ahead of the server clock are
+    clamped, so a device with a wrong clock can no longer post edits that
+    permanently win against everyone else's.
+  - Uploading a pack whose id already belongs to another user returns a
+    clean 409 instead of a server error.
+  - The admin PDF conversion endpoint rejects unauthenticated and
+    non-admin requests before reading the (up to 25 MB) upload body.
+  - Character name/look/notes now have explicit maximum lengths
+    (100/5000/5000 characters).
+  - Expired login sessions are deleted from the database when seen.
+  - Dependency audit is now a hard CI gate; the vitest toolchain was
+    upgraded to clear its high/critical advisories (production
+    dependencies were already clean).
+
 ### Added
 - End-to-end test suite (Playwright, ROADMAP 0.10.1). A headless browser
   drives the real production serving path (the built server serving the

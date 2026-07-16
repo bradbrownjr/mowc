@@ -15,6 +15,18 @@ import type { EntitiesRepo, EntityEnvelope } from "./repo.js";
 
 const NOT_FOUND = { errors: [{ path: "campaignId", message: "campaign not found" }] } as const;
 
+/**
+ * Tolerated client clock skew. `op.ts` is the last-write-wins key
+ * (docs/SYNC.md push step 3), so a far-future timestamp from one client
+ * would otherwise win every later merge forever; anything beyond this skew
+ * is clamped to the server clock.
+ */
+const MAX_TS_SKEW_MS = 5 * 60_000;
+
+function clampTs(ts: string, now: number): string {
+  return new Date(ts).getTime() > now + MAX_TS_SKEW_MS ? new Date(now).toISOString() : ts;
+}
+
 function ownerOf(envelope: EntityEnvelope): string | undefined {
   const owner = envelope.payload["ownerUserId"];
   return typeof owner === "string" ? owner : undefined;
@@ -118,14 +130,18 @@ export function createSyncRouter(repo: EntitiesRepo, authz: Authz): Router {
       if (current && current.campaignId !== campaignId) {
         continue; // an id may only live in one campaign; never cross the boundary
       }
+      if (current && current.type !== op.type) {
+        continue; // an id may never change entity type
+      }
       // Authorize touching the existing row by its current owner.
       if (current && !authz.canEdit(accessCtx(campaignId, userId, ownerOf(current)))) {
         continue;
       }
 
+      const ts = clampTs(op.ts, Date.now());
       const { payload, conflict } = op.deleted
         ? { payload: current ? current.payload : op.patch, conflict: false }
-        : mergeCharacterPatch(current?.payload, op.patch, op.ts, current?.updatedAt);
+        : mergeCharacterPatch(current?.payload, op.patch, ts, current?.updatedAt);
 
       const merged = { ...payload, id: op.entityId, campaignId };
       const validated = CharacterSchema.strict().safeParse(merged);
@@ -145,7 +161,7 @@ export function createSyncRouter(repo: EntitiesRepo, authz: Authz): Router {
         payload: validated.data,
         baseRev: op.baseRev,
         currentRev: current?.rev,
-        updatedAt: op.ts,
+        updatedAt: ts,
         updatedBy: userId,
         deleted: op.deleted,
         opId: op.opId

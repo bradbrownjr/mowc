@@ -69,7 +69,13 @@ export function createAuthRepo(db: Database.Database): AuthRepo {
     touchSession(token) {
       const tokenHash = hashToken(token);
       const row = selectSession.get(tokenHash) as { user_id: string; expires_at: string } | undefined;
-      if (!row || new Date(row.expires_at).getTime() < Date.now()) {
+      if (!row) {
+        return undefined;
+      }
+      if (new Date(row.expires_at).getTime() < Date.now()) {
+        // Expiry sweep on read (see 0003_users_sessions.sql): the row is
+        // dead, so remove it instead of letting expired sessions accumulate.
+        deleteSessionByHash.run(tokenHash);
         return undefined;
       }
       const userRow = selectUserById.get(row.user_id) as UserRow | undefined;

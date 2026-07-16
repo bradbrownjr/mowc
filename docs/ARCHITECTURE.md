@@ -68,7 +68,8 @@ Rules:
 |---|---|---|
 | `MOWC_PORT` | `7120` | HTTP listen port |
 | `MOWC_DATA_DIR` | `/data` | Directory for mowc.db and uploads |
-| `MOWC_SESSION_SECRET` | (generated + persisted in data dir if unset) | Cookie signing |
+| `MOWC_ADMIN_EMAIL` | (unset) | Server-owner account whose packs are shared with every user (docs/SECURITY.md section 7) |
+| `MOWC_TRUST_PROXY` | (unset = off) | Trusted proxy hops for `X-Forwarded-For`; set `1` behind a reverse proxy (docs/SECURITY.md section 8) |
 
 The Dockerfile, compose files, and server config reader must use these
 exact names (see the volume gotcha in AGENTS.md).

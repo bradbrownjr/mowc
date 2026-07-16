@@ -14,6 +14,9 @@ const db = openDb(config.dataDir);
 runMigrations(db);
 
 const app = createApp(pkg.version, db, config.adminEmail);
+if (config.trustProxy !== false) {
+  app.set("trust proxy", config.trustProxy);
+}
 
 app.listen(config.port, () => {
   console.log(`MOWC server listening on port ${config.port}`);

@@ -198,6 +198,33 @@ describe("per-field merge and LWW", () => {
     const pull = await keeper.get(`/api/sync/${campaignId}?since=0`);
     expect(pull.body.rows[0].payload.harm).toBe(5);
   });
+
+  it("clamps a far-future op ts to the server clock so it cannot win LWW forever", async () => {
+    const app = createTestApp();
+    const { agent: keeper, userId } = await registerAgent(app, "keeper@example.com");
+    const created = await keeper.post("/api/campaigns").send({ name: "The Vermont Job" });
+    const campaignId = created.body.id as string;
+    const char = character(campaignId, userId);
+
+    // A poisoned clock: year 9999 would otherwise beat every future edit.
+    const poisoned = await keeper.post(`/api/sync/${campaignId}`).send({
+      ops: [op(char.id, char, { ts: "9999-01-01T00:00:00.000Z" })]
+    });
+    expect(poisoned.body.applied).toHaveLength(1);
+
+    const pull = await keeper.get(`/api/sync/${campaignId}?since=0`);
+    expect(new Date(pull.body.rows[0].updatedAt).getTime()).toBeLessThan(Date.now() + 10 * 60_000);
+
+    // A normal, later edit must still win the merge.
+    const followUp = await keeper.post(`/api/sync/${campaignId}`).send({
+      ops: [op(char.id, { harm: 3 }, { baseRev: 1 })]
+    });
+    expect(followUp.body.applied).toHaveLength(1);
+    expect(followUp.body.conflicts).toHaveLength(0);
+
+    const pull2 = await keeper.get(`/api/sync/${campaignId}?since=0`);
+    expect(pull2.body.rows[0].payload.harm).toBe(3);
+  });
 });
 
 describe("visibility on pull", () => {

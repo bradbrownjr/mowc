@@ -7,7 +7,11 @@ import type { CampaignsRepo } from "./repo.js";
 
 const NOT_FOUND = { errors: [{ path: "id", message: "campaign not found" }] } as const;
 
-export function createCampaignsRouter(repo: CampaignsRepo, authz: Authz): Router {
+export function createCampaignsRouter(
+  repo: CampaignsRepo,
+  authz: Authz,
+  isPackReadable: (packId: string, userId: string) => boolean
+): Router {
   const router = Router();
 
   router.post("/", (req, res) => {
@@ -63,6 +67,27 @@ export function createCampaignsRouter(repo: CampaignsRepo, authz: Authz): Router
     if (!result.success) {
       res.status(400).json(zodErrorResponse(result.error));
       return;
+    }
+
+    // A Keeper may only attach packs they can read themselves (their own or
+    // the admin's shared library). Without this, attaching an arbitrary pack
+    // UUID would grant the whole campaign read access to a stranger's
+    // private pack via the campaign-attached fallback in
+    // GET /api/content-packs/:id (docs/SECURITY.md section 7). Ids already
+    // attached are grandfathered so removals and reorders keep working even
+    // if the pack's owner later deleted it.
+    if (result.data.packIds) {
+      const existing = repo.findById(idResult.data);
+      const alreadyAttached = new Set(existing?.packIds ?? []);
+      const denied = result.data.packIds.find(
+        (packId) => !alreadyAttached.has(packId) && !isPackReadable(packId, req.user!.id)
+      );
+      if (denied) {
+        res.status(400).json({
+          errors: [{ path: "packIds", message: `pack ${denied} does not exist or is not yours to attach` }]
+        });
+        return;
+      }
     }
 
     res.json(repo.update(idResult.data, result.data));

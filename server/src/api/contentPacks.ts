@@ -8,6 +8,21 @@ import type { CampaignsRepo } from "../campaigns/repo.js";
 
 type PackVisibility = "private" | "shared";
 
+/**
+ * True when the user may read this pack directly: they own it, or it is the
+ * admin's shared library. This is the check the campaign attach path
+ * (PATCH /api/campaigns/:id packIds) uses, and it deliberately excludes the
+ * campaign-attached fallback below: attachment is what GRANTS campaign
+ * members read access, so letting an attachment justify itself would let
+ * any Keeper attach a stranger's private pack by id and read it.
+ */
+export function createPackReadableCheck(db: Database.Database): (packId: string, userId: string) => boolean {
+  const stmt = db.prepare(
+    "SELECT 1 FROM content_packs WHERE id = ? AND (owner_user_id = ? OR visibility = 'shared')"
+  );
+  return (packId, userId) => stmt.get(packId, userId) !== undefined;
+}
+
 interface ContentPackRow {
   id: string;
   owner_user_id: string;
@@ -44,7 +59,6 @@ export function createContentPacksRouter(
     "INSERT INTO content_packs (id, owner_user_id, name, author, version, payload, visibility, created_at, updated_at) " +
       "VALUES (@id, @ownerUserId, @name, @author, @version, @payload, @visibility, @createdAt, @updatedAt)"
   );
-  const findById = db.prepare("SELECT * FROM content_packs WHERE id = ? AND owner_user_id = ?");
   const findByIdAny = db.prepare("SELECT * FROM content_packs WHERE id = ?");
   const listVisible = db.prepare(
     "SELECT * FROM content_packs WHERE owner_user_id = ? OR visibility = 'shared' ORDER BY updated_at DESC"
@@ -66,7 +80,10 @@ export function createContentPacksRouter(
     // requireAuth (mounted ahead of this router) guarantees req.user is set.
     const ownerUserId = req.user!.id;
     const pack = result.data;
-    if (findById.get(pack.id, ownerUserId)) {
+    // Check against ANY owner's packs, not just the requester's: id is the
+    // table's primary key, so a cross-owner collision would otherwise be an
+    // unhandled constraint error (500) instead of a clean 409.
+    if (findByIdAny.get(pack.id)) {
       res.status(409).json({ errors: [{ path: "id", message: "a pack with this id already exists" }] });
       return;
     }
