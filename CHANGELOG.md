@@ -6,6 +6,8 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+## [0.10.6] - 2026-07-16
+
 ### Changed
 - Home page (`/`) is now a real landing page with role-aware CTAs (Log in /
   Register when signed out, My campaigns / Content packs when signed in)
