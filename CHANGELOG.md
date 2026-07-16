@@ -7,6 +7,13 @@ All notable changes to MOWC are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- End-to-end test suite (Playwright, ROADMAP 0.10.1). A headless browser
+  drives the real production serving path (the built server serving the
+  client and API from one origin) through the core journeys: register,
+  create a campaign, build a character in the wizard, edit a character
+  with the network cut, and confirm the edit syncs to the server and a
+  fresh client on reconnect. Runs via `npm run test:e2e` and in CI; kept
+  separate from the unit suite (`npm test`).
 - Convert UI: the `/packs` page now shows an admin-only "Convert PDF"
   button (gated on a new `isAdmin` flag returned by the auth endpoints)
   that uploads a PDF to the 0.9.6 conversion endpoint and opens a review
@@ -52,6 +59,11 @@ All notable changes to MOWC are documented here. Format follows
 - Monster, minion, bystander, and (new) location archetypes now share
   one shape with a `motivation` field; bystander and minion types
   previously used a `description` field that the game text never used.
+
+### Fixed
+- Edits made while offline now sync automatically when the browser
+  reconnects. The reconnect flush was implemented but never wired up, so
+  offline changes previously sat queued until the next online edit.
 
 ## [0.4.13] - 2026-07-15
 

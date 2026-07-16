@@ -12,6 +12,7 @@
   import { resolve } from "$app/paths";
   import { initSession, logout, sessionState } from "$lib/session.svelte";
   import { initHealth } from "$lib/health.svelte";
+  import { startSync } from "$lib/sync.js";
 
   let { children } = $props();
 
@@ -20,6 +21,10 @@
       initPwa();
       void initSession();
       void initHealth();
+      // Flush queued offline ops when the browser regains connectivity
+      // (docs/SYNC.md); without this, edits made offline never push until
+      // the next online write.
+      startSync();
     }
   });
 
