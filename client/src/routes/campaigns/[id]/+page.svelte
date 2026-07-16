@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
-  import type { Campaign, Character } from "@mowc/shared";
+  import type { Campaign, Character, Minion, Bystander, Location } from "@mowc/shared";
   import { sessionState } from "$lib/session.svelte";
   import {
     CampaignApiError,
@@ -32,6 +32,9 @@
   let togglingPackId = $state<string | null>(null);
 
   let characters = $state<Character[]>([]);
+  let minions = $state<Minion[]>([]);
+  let bystanders = $state<Bystander[]>([]);
+  let locations = $state<Location[]>([]);
 
   const isKeeper = $derived(campaign !== null && sessionState.user !== null && campaign.keeperUserId === sessionState.user.id);
 
@@ -67,6 +70,33 @@
     characters = rows.map((row) => row.payload as unknown as Character).sort((a, b) => a.name.localeCompare(b.name));
   }
 
+  async function loadMinions(): Promise<void> {
+    const rows = await db.entities
+      .where("[campaignId+type]")
+      .equals([data.id, "minion"])
+      .and((row) => !row.deleted)
+      .toArray();
+    minions = rows.map((row) => row.payload as unknown as Minion).sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async function loadBystanders(): Promise<void> {
+    const rows = await db.entities
+      .where("[campaignId+type]")
+      .equals([data.id, "bystander"])
+      .and((row) => !row.deleted)
+      .toArray();
+    bystanders = rows.map((row) => row.payload as unknown as Bystander).sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async function loadLocations(): Promise<void> {
+    const rows = await db.entities
+      .where("[campaignId+type]")
+      .equals([data.id, "location"])
+      .and((row) => !row.deleted)
+      .toArray();
+    locations = rows.map((row) => row.payload as unknown as Location).sort((a, b) => a.name.localeCompare(b.name));
+  }
+
   $effect(() => {
     if (sessionState.status !== "ready") return;
     if (!sessionState.user) {
@@ -94,6 +124,9 @@
       .catch(() => {})
       .finally(() => {
         void loadCharacters();
+        void loadMinions();
+        void loadBystanders();
+        void loadLocations();
       });
   });
 
@@ -224,6 +257,69 @@
           </ul>
         {:else}
           <p class="campaign-meta">No invite codes yet.</p>
+        {/if}
+      </section>
+
+      <section class="panel">
+        <h2 class="section-title">Minions</h2>
+        <a class="submit-button" href={resolve("/campaigns/[id]/minions/new", { id: data.id })}>Create a minion</a>
+        {#if minions.length > 0}
+          <ul class="invite-list">
+            {#each minions as minion (minion.id)}
+              <li class="invite-row">
+                <a
+                  class="character-link"
+                  href={resolve("/campaigns/[id]/minions/[minionId]", { id: data.id, minionId: minion.id })}
+                >
+                  {minion.name}
+                </a>
+              </li>
+            {/each}
+          </ul>
+        {:else}
+          <p class="campaign-meta">No minions yet.</p>
+        {/if}
+      </section>
+
+      <section class="panel">
+        <h2 class="section-title">Bystanders</h2>
+        <a class="submit-button" href={resolve("/campaigns/[id]/bystanders/new", { id: data.id })}>Create a bystander</a>
+        {#if bystanders.length > 0}
+          <ul class="invite-list">
+            {#each bystanders as bystander (bystander.id)}
+              <li class="invite-row">
+                <a
+                  class="character-link"
+                  href={resolve("/campaigns/[id]/bystanders/[bystanderId]", { id: data.id, bystanderId: bystander.id })}
+                >
+                  {bystander.name}
+                </a>
+              </li>
+            {/each}
+          </ul>
+        {:else}
+          <p class="campaign-meta">No bystanders yet.</p>
+        {/if}
+      </section>
+
+      <section class="panel">
+        <h2 class="section-title">Locations</h2>
+        <a class="submit-button" href={resolve("/campaigns/[id]/locations/new", { id: data.id })}>Create a location</a>
+        {#if locations.length > 0}
+          <ul class="invite-list">
+            {#each locations as location (location.id)}
+              <li class="invite-row">
+                <a
+                  class="character-link"
+                  href={resolve("/campaigns/[id]/locations/[locationId]", { id: data.id, locationId: location.id })}
+                >
+                  {location.name}
+                </a>
+              </li>
+            {/each}
+          </ul>
+        {:else}
+          <p class="campaign-meta">No locations yet.</p>
         {/if}
       </section>
     {/if}
