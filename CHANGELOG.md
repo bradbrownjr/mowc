@@ -6,6 +6,17 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+## [0.10.7] - 2026-07-16
+
+### Fixed
+- Sync push now applies a batch's ops in chronological (`ts`) order instead
+  of client array order. The client's oplog is keyed by a random `opId`, so
+  a create and an immediate same-entity edit (e.g. creating a Location and
+  toggling "reveal" right after, both queued in the same 2s debounce window)
+  could arrive edit-first; the edit's partial patch then failed schema
+  validation against the not-yet-existing entity and was silently dropped
+  forever. This could affect any entity type, not just reveal toggles.
+
 ## [0.10.6] - 2026-07-16
 
 ### Changed

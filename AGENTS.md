@@ -301,6 +301,20 @@ iOS can evict IndexedDB for PWAs not used recently. Call
 reconstructable from the server for signed-in users. Never keep the only
 copy of campaign data client-side once the user has an account.
 
+### Sync push batches must be applied in `ts` order, never array order
+
+`client/src/lib/db.ts`'s `oplog` table is keyed by `opId` (a random uuid), so
+`toArray()` order is not chronological. A create immediately followed by a
+same-entity edit (both queued in the one 2s debounce window) can reach
+`server/src/entities/router.ts`'s push handler edit-first; back when the
+handler looped over `parsed.data.ops` as received, that meant `current` was
+still undefined for the edit, its partial patch alone failed the type's
+`.strict()` schema, and the edit was dropped silently and permanently (never
+added to `applied`, never retried). Fixed by sorting the batch by `ts`
+ascending before the loop (0.10.7). Any future change to push processing
+must keep that sort first in the handler; see the regression test "same-batch
+ops are applied in chronological order" in `server/src/entities/router.test.ts`.
+
 ---
 
 ## Feature Registry

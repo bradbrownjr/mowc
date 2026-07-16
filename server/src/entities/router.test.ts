@@ -460,3 +460,41 @@ describe("per-type schema dispatch", () => {
     expect(pull.body.rows[0].seq).toBe(1);
   });
 });
+
+describe("same-batch ops are applied in chronological order", () => {
+  it("still applies a same-entity edit whose op sorts before its create op in the batch array", async () => {
+    // Regresses a bug where the client's IndexedDB oplog (keyed by a random
+    // opId) can hand the server a create and a same-entity edit in either
+    // order. If the edit lands first in the array, `current` is still
+    // undefined; a partial patch alone fails the strict schema and the edit
+    // used to be dropped silently forever. Reproduces that exact array order
+    // with a Location's create (full payload) and a `revealed: true` edit
+    // (partial patch, later ts) queued in the same push.
+    const app = createTestApp();
+    const { agent: keeper } = await registerAgent(app, "keeper@example.com");
+    const created = await keeper.post("/api/campaigns").send({ name: "The Vermont Job" });
+    const campaignId = created.body.id as string;
+
+    const loc = worldPayloads["location"]!(campaignId);
+    const createOp = op(loc["id"] as string, loc, {
+      type: "location",
+      baseRev: 0,
+      ts: "2026-07-16T20:46:56.102Z"
+    });
+    const revealOp = op(loc["id"] as string, { revealed: true }, {
+      type: "location",
+      baseRev: 1,
+      ts: "2026-07-16T20:46:56.482Z"
+    });
+
+    // Edit ordered before its own create in the array, as Dexie's toArray()
+    // can hand back to the client.
+    const push = await keeper.post(`/api/sync/${campaignId}`).send({ ops: [revealOp, createOp] });
+    expect(push.body.applied).toEqual(expect.arrayContaining([createOp.opId, revealOp.opId]));
+    expect(push.body.applied).toHaveLength(2);
+
+    const pull = await keeper.get(`/api/sync/${campaignId}?since=0`);
+    expect(pull.body.rows).toHaveLength(1);
+    expect(pull.body.rows[0].payload.revealed).toBe(true);
+  });
+});

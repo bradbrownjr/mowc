@@ -168,7 +168,19 @@ export function createSyncRouter(repo: EntitiesRepo, authz: Authz): Router {
     const applied: string[] = [];
     const conflicts: SyncConflict[] = [];
 
-    for (const op of parsed.data.ops) {
+    // The client's oplog is a Dexie table keyed by opId (a random uuid), so
+    // toArray() order is arbitrary, not chronological. Without this sort, a
+    // create immediately followed by an edit (both queued in the same 2s
+    // debounce window, docs/SYNC.md "When sync runs") can arrive with the
+    // edit's partial patch ahead of the create: `current` is still undefined,
+    // the patch alone fails the type's strict schema (missing required
+    // fields), and the edit is dropped silently and permanently (it is never
+    // added to `applied`, but nothing re-queues a retry either). Sorting by
+    // `ts` ascending, the same field already used as the LWW key, guarantees
+    // every entity's ops are applied in the order they were actually written.
+    const orderedOps = [...parsed.data.ops].sort((a, b) => a.ts.localeCompare(b.ts));
+
+    for (const op of orderedOps) {
       if (repo.isOpApplied(campaignId, op.opId)) {
         applied.push(op.opId); // idempotent replay: already applied, drop it (step 5)
         continue;

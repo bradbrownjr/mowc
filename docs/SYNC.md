@@ -25,7 +25,13 @@ Every route below is mounted under the app's `/api` prefix (e.g.
 ## Push (client → server)
 
 `POST /api/sync/:campaignId` with the oplog batch (max 500 ops,
-docs/SECURITY.md section 4). For each op the server:
+docs/SECURITY.md section 4). The server first sorts the batch by `ts`
+ascending: the client's oplog is a Dexie table keyed by `opId` (a random
+uuid), so the array order it hands back is not chronological, and a create
+immediately followed by an edit of the same entity (both queued in the same
+2s debounce window) can otherwise arrive edit-first, whereupon step 2 below
+sees no current row for a patch that alone fails the type's strict schema
+and drops the edit permanently. For each op, in `ts` order, the server:
 
 1. Skips the op if its `opId` is already in `applied_ops` (idempotent replay).
 2. Loads the current row. If none: the `patch` is the full payload and the
