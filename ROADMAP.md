@@ -203,9 +203,9 @@ Version 0.5 — mystery/monster/world builders. Roll20 comparison notes in
 >
 > | Stage | Scope | Model | Status | Depends on |
 > |---|---|---|---|---|
-> | 0 | Sync/authz generalization (not its own ROADMAP line — prerequisite infra: extend `SyncEntityTypeSchema` beyond `character`, make `server/src/entities/router.ts` validate/authorize per-type instead of hard-coded `CharacterSchema`, thread `revealed` into pull-side `accessCtx`, rename `mergeCharacterPatch`→`mergePatch`) | Opus | in progress | — |
-> | 1a | Monster builder (0.5.2) | Sonnet | pending | Stage 0 |
-> | 1b | Minion/Bystander/Location builders (0.5.3, Location folded in — not its own ROADMAP line, needed by 0.5.1's `locationIds`) | Haiku | pending | Stage 0 |
+> | 0 | Sync/authz generalization (not its own ROADMAP line — prerequisite infra: extend `SyncEntityTypeSchema` beyond `character`, make `server/src/entities/router.ts` validate/authorize per-type instead of hard-coded `CharacterSchema`, thread `revealed` into pull-side `accessCtx`, rename `mergeCharacterPatch`→`mergePatch`) | Opus | done (950c795) | — |
+> | 1a | Monster builder (0.5.2) | Sonnet | in progress | Stage 0 |
+> | 1b | Minion/Bystander/Location builders (0.5.3, Location folded in — not its own ROADMAP line, needed by 0.5.1's `locationIds`) | Haiku | in progress | Stage 0 |
 > | 2 | Mystery builder (0.5.1) | Sonnet | pending | Stage 1a, 1b |
 > | 3 | Keeper campaign dashboard (0.5.4) | Sonnet | pending | Stage 2 |
 > | 4 | Share/reveal controls (0.5.5) | Sonnet | pending | Stage 3 |
