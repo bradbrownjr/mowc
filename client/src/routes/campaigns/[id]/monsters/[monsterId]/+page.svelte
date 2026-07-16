@@ -10,6 +10,7 @@
   import { flattenMonsterTypes } from "$lib/monster-builder.js";
   import { nextTrackValue } from "$lib/track-tap.js";
   import EvidenceTag from "$lib/EvidenceTag.svelte";
+  import RevealToggle from "$lib/RevealToggle.svelte";
   import type { PageProps } from "./$types.js";
 
   let { data }: PageProps = $props();
@@ -102,6 +103,9 @@
     <header class="sheet-header">
       <h1 class="title">{monster.name}</h1>
       <p class="meta">{resolvedType ? resolvedType.name : monster.typeId ? `Unknown type (${monster.typeId})` : "No type"}</p>
+      {#if isKeeper}
+        <RevealToggle revealed={monster.revealed} onToggle={() => applyUpdate({ revealed: !monster?.revealed })} />
+      {/if}
     </header>
 
     {#if monster.motivation}

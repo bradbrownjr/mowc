@@ -43,6 +43,18 @@ All notable changes to MOWC are documented here. Format follows
   campaign-level story planning and a read-only session prep view per
   mystery (concept, hook, countdown progress, cast, locations) with a link
   to the full mystery sheet for editing.
+- Share/reveal controls (ROADMAP 0.5.5): every Keeper-owned entity sheet
+  (monster, minion, bystander, location, mystery) now has a "Hidden from
+  hunters" / "Revealed to hunters" toggle, Keeper-only. This is the last
+  piece connecting the offline sync visibility groundwork to the UI: a
+  hunter's client never even receives an unrevealed entity, and toggling
+  reveal is a normal offline-first write like any other field edit.
+
+### Fixed
+- The Bystander sheet now correctly hides edit access from non-Keepers
+  (it was missing the same `isKeeper` gate every other Keeper-only sheet
+  has, so its notes field looked editable to a hunter even though the
+  write would have been rejected server-side).
 
 ### Performance
 - Large-campaign performance pass (ROADMAP 0.10.4):

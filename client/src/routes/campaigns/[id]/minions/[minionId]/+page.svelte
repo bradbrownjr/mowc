@@ -8,6 +8,7 @@
   import { db } from "$lib/db.js";
   import { pull, writeEntity } from "$lib/sync.js";
   import { nextTrackValue } from "$lib/track-tap.js";
+  import RevealToggle from "$lib/RevealToggle.svelte";
   import type { ContentPack } from "@mowc/shared";
   import type { PageProps } from "./$types.js";
 
@@ -92,6 +93,9 @@
       <h1 class="title">{minion.name}</h1>
       {#if minionType}
         <p class="meta">{minionType.name}</p>
+      {/if}
+      {#if isKeeper}
+        <RevealToggle revealed={minion.revealed} onToggle={() => applyUpdate({ revealed: !minion?.revealed })} />
       {/if}
     </header>
 

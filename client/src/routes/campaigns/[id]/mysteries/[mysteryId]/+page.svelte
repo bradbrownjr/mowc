@@ -15,6 +15,7 @@
   import { getCampaign } from "$lib/api/campaigns.js";
   import { db, type LocalEntity } from "$lib/db.js";
   import { pull, writeEntity } from "$lib/sync.js";
+  import RevealToggle from "$lib/RevealToggle.svelte";
   import type { PageProps } from "./$types.js";
 
   let { data }: PageProps = $props();
@@ -181,6 +182,9 @@
   {:else}
     <header class="sheet-header">
       <h1 class="title">{mystery.title}</h1>
+      {#if isKeeper}
+        <RevealToggle revealed={mystery.revealed} onToggle={() => applyUpdate({ revealed: !mystery?.revealed })} />
+      {/if}
       {#if isKeeper}
         <div class="option-list">
           {#each STATUS_OPTIONS as option (option)}

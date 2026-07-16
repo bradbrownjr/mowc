@@ -7,6 +7,7 @@
   import { getPack, type PackDetail } from "$lib/api/contentPacks.js";
   import { db } from "$lib/db.js";
   import { pull, writeEntity } from "$lib/sync.js";
+  import RevealToggle from "$lib/RevealToggle.svelte";
   import type { ContentPack } from "@mowc/shared";
   import type { PageProps } from "./$types.js";
 
@@ -14,6 +15,7 @@
 
   let bystander = $state<Bystander | null>(null);
   let notFound = $state(false);
+  let isKeeper = $state(false);
   let packs = $state<ContentPack[]>([]);
   let notesDraft = $state("");
 
@@ -66,6 +68,7 @@
 
     getCampaign(data.id)
       .then(async (result) => {
+        isKeeper = result.keeperUserId === sessionState.user?.id;
         const loaded = await Promise.all(result.packIds.map((id) => getPack(id).catch(() => null)));
         packs = loaded.filter((p): p is PackDetail => p !== null).map((p) => p.pack);
       })
@@ -90,6 +93,9 @@
       {#if bystanderType}
         <p class="meta">{bystanderType.name}</p>
       {/if}
+      {#if isKeeper}
+        <RevealToggle revealed={bystander.revealed} onToggle={() => applyUpdate({ revealed: !bystander?.revealed })} />
+      {/if}
     </header>
 
     {#if bystander.motivation}
@@ -101,7 +107,13 @@
 
     <section class="panel">
       <h2 class="section-title">Notes</h2>
-      <textarea class="form-textarea" bind:value={notesDraft} oninput={onNotesInput} placeholder="Add details about this bystander..."></textarea>
+      <textarea
+        class="form-textarea"
+        bind:value={notesDraft}
+        oninput={onNotesInput}
+        placeholder="Add details about this bystander..."
+        disabled={!isKeeper}
+      ></textarea>
     </section>
   {/if}
 </main>
@@ -191,5 +203,10 @@
     font-size: var(--text-base);
     min-height: 6rem;
     resize: vertical;
+  }
+
+  .form-textarea:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
   }
 </style>
