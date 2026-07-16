@@ -344,3 +344,120 @@ Version 0.10 → 1.0
 - [x] Performance pass on large campaigns (hundreds of entities) -
       0.10.4 [Opus]
 - [ ] 1.0.0 release - [Sonnet]
+
+## Phase 11: UI/UX Overhaul (NEXT)
+
+Version 0.11. Runs before Phases 6-9 by explicit user choice (2026-07-16),
+consistent with the 0.10.5 precedent: the version line increments off the
+highest existing tag, so this ships as 0.11.x. There are no users yet, so
+breaking visual changes are fine.
+
+Goal: the app currently renders every screen as one narrow, left-pinned
+column with no desktop layout, no mobile nav, and no onboarding. This
+phase makes it look deliberate on a phone (portrait and landscape), a
+tablet, and a laptop, and makes it usable by people who have never played
+Monster of the Week or run a campaign before. References: D&D Beyond's
+character builder (guided steps), Roll20 (table/detail split), Pathbuilder
+(mobile-first sheet density).
+
+> **Survey findings (2026-07-16, screenshots at 390x844, 844x390,
+> 1024x768, 1440x900 against v0.10.7).** Each milestone below cites the
+> findings it fixes.
+>
+> 1. Every route sets its own ad-hoc `max-width` (24-48rem) with no
+>    centering and no shared container; on desktop and tablet, two thirds
+>    of the screen is empty and everything hugs the left edge.
+> 2. None of the DESIGN.md layout structures exist: no bottom tab bar on
+>    mobile, no desktop context rail, no sticky ratings row on the sheet,
+>    no two-column use anywhere except the dashboard's two panes.
+> 3. The campaign screen stacks eight sections in arbitrary order
+>    (Characters, Mysteries, Monsters, Content Packs, Invites, Minions,
+>    Bystanders, Locations), mixing player content with Keeper admin. The
+>    pack attach list (one row per uploaded pack, three lines of Courier
+>    caps each) dominates the middle of the page and forces a very long
+>    scroll on every visit.
+> 4. The top nav wraps onto multiple lines on phones; the log-out label
+>    embeds the display name and overflows.
+> 5. There is no onboarding at all: the landing page is a title and two
+>    buttons; jargon (Keeper, hunter, playbook, ratings line, moves) is
+>    never explained; empty states are dead ends ("No mysteries yet.").
+> 6. Track boxes orphan-wrap (6+1) at 390px and are nearly invisible in
+>    the dark theme; several DESIGN.md motifs (film grain, stamps, torn
+>    slip) are missing or half-implemented; `packs/[id]` still has inline
+>    tag styles predating EvidenceTag.
+
+Rules for every milestone: strict order, one build-test-check-commit
+cycle each, Playwright e2e stays green (update selectors in the same
+commit that moves markup), Feature Registry rows for every touched file
+verified before commit, and before/after screenshots at the four survey
+viewports are part of the milestone's Definition of Done.
+
+- [ ] Design contract expansion - 0.11.1 [Fable]
+      Docs-only, everything below depends on it. Rewrite the DESIGN.md
+      "Layout" section into a real spec: breakpoints (<768, 768-1023,
+      >=1024), a shared centered page container with per-tier max widths
+      and gutters (fixes finding 1), the app shell (folder-tab top nav
+      plus campaign context rail on desktop, bottom tab bar on mobile,
+      compact account menu; findings 2, 4), the character sheet's
+      two-column desktop grid and sticky mobile ratings row, a
+      guidance-copy pattern (short "field note" helper text on forms), an
+      empty-state pattern (what this thing is, why you want one, a single
+      CTA), and a plain-language policy: every game term gets a
+      parenthetical gloss on first use per screen, e.g. "Keeper (the
+      person running the game)". All copy patterns use original wording,
+      never Evil Hat text (AGENTS.md rule 1).
+- [ ] App shell and layout scaffold - 0.11.2 [Opus]
+      Implement 0.11.1 across every route: shared container class in
+      `styles.css`, responsive nav shell in `+layout.svelte` (desktop
+      folder tabs + campaign context rail, mobile bottom tab bar, account
+      menu replacing the overflowing log-out label), and adopt the
+      container in all routes, deleting the per-route `max-width` rules.
+      Cross-cutting and mechanical-but-wide; fixes findings 1, 2, 4.
+- [ ] Campaign hub restructure - 0.11.3 [Sonnet]
+      Fixes finding 3. Role-aware campaign overview: a hunter lands on
+      their character (or the builder CTA) plus revealed world entities;
+      the Keeper lands on prep (mysteries, party, recent entities).
+      Entity types move into the 0.11.2 context rail instead of eight
+      stacked panels. Pack attach and invite codes move to a Keeper-only
+      campaign settings screen (online-only is fine, AGENTS.md rule 2).
+      Add a Keeper first-run checklist (attach packs, invite players,
+      create first mystery) that disappears once done.
+- [ ] Character sheet play layout - 0.11.4 [Sonnet]
+      Fixes findings 2 and 6 on the flagship screen. Two-column desktop
+      grid (identity/ratings/tracks left, moves/gear/notes right), sticky
+      ratings row under the header on mobile per DESIGN.md, track boxes
+      sized so a 7-box track never orphan-wraps at 390px, dark-theme
+      track/border contrast pass, move outcomes readable without hunting
+      (open the rolled move's outcomes by default). All existing sheet
+      behaviors in the Feature Registry must survive.
+- [ ] Builder guidance pass - 0.11.5 [Sonnet]
+      Fixes finding 5 inside the wizards. StepIndicator grows into the
+      DESIGN.md progress rail (labels, done/current/locked states).
+      Every step of the character, monster, and mystery wizards and the
+      minion/bystander/location forms gets one short field-note helper
+      line in plain language (original text). A disabled Next says why
+      ("Pick 2 more moves"). The review step renders a compact preview of
+      the sheet being created, not just a list.
+- [ ] Onboarding and plain language - 0.11.6 [Sonnet]
+      Fixes finding 5 everywhere else. Landing page becomes two role
+      paths: "I'm running the game" (create a campaign, what a Keeper
+      does, where content packs come from) and "I'm joining a game"
+      (redeem an invite code front and center, then build a hunter).
+      Apply the 0.11.1 glossary policy across all screens. Rewrite every
+      empty state to teach and point at one action. The word "Keeper"
+      never appears without a gloss reachable on the same screen.
+- [ ] Motif and theme polish - 0.11.7 [Sonnet]
+      Fixes finding 6. Film-grain page background, stamp styling for
+      status markers (REVEALED, UNSTABLE, SOLVED), folder-tab nav styled
+      per the motif, migrate `packs/[id]` inline tags to EvidenceTag,
+      pack list cards show a content summary (N playbooks, N moves)
+      instead of the Courier blurb wall, and a visible theme toggle
+      (Midnight Unit / Field Notes / follow system) since both themes
+      already ship in `styles.css`. Full Phase 8 user theming stays where
+      it is; this is only the toggle.
+- [ ] Responsive regression audit - 0.11.8 [Sonnet]
+      Scripted Playwright screenshot sweep of every key screen at the
+      four survey viewports in both themes, fix what it catches, verify
+      WCAG AA contrast in both themes (DESIGN.md accessibility section),
+      and confirm the e2e suite is green. This is the phase's exit gate;
+      do not mark the phase complete without it.
