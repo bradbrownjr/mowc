@@ -59,6 +59,11 @@
     outcomeText: string | null;
   } | null>(null);
 
+  // Last-rolled move's outcomes panel opens by default (docs/DESIGN.md
+  // Layout, 0.11.4 finding 6: readable without hunting), other moves stay
+  // collapsed until tapped.
+  let lastRolledMoveId = $state<string | null>(null);
+
   interface RollHistoryEntry {
     moveName: string;
     ratingLabel: string;
@@ -154,6 +159,7 @@
       outcomeText: move.outcomes ? move.outcomes[result.band] : null
     };
     rollHistory = [{ moveName: move.name, ratingLabel, result, ts: Date.now() }, ...rollHistory].slice(0, ROLL_HISTORY_MAX);
+    lastRolledMoveId = move.id;
     if (result.band === "miss") {
       void applyUpdate({ experience: Math.min(EXPERIENCE_MAX, character.experience + 1) });
     }
@@ -255,7 +261,7 @@
   />
 {/if}
 
-<main class="page">
+<main class="page page--wide">
   <a class="back-link" href={resolve("/campaigns/[id]", { id: data.id })}>Back to campaign</a>
 
   {#if notFound}
@@ -263,6 +269,8 @@
   {:else if !character}
     <p class="meta">Loading...</p>
   {:else}
+    <div class="sheet-grid">
+    <div class="sheet-left">
     <header class="sheet-header">
       <h1 class="title">{character.name}</h1>
       <p class="meta">{resolved ? resolved.playbook.name : `Unknown playbook (${character.playbookId})`}</p>
@@ -297,7 +305,7 @@
       </div>
     </section>
 
-    <section class="panel">
+    <section class="panel panel--track">
       <h2 class="section-title">Luck</h2>
       <p class="meta">{Math.max(luckMax - character.luckSpent, 0)} of {luckMax} remaining</p>
       <div class="track">
@@ -315,7 +323,7 @@
       </div>
     </section>
 
-    <section class="panel">
+    <section class="panel panel--track">
       <h2 class="section-title">Harm</h2>
       <p class="meta">{character.harm} of {harmTrack.max}</p>
       <div class="track">
@@ -335,7 +343,7 @@
       </div>
     </section>
 
-    <section class="panel">
+    <section class="panel panel--track">
       <h2 class="section-title">Experience</h2>
       <p class="meta">{character.experience} of {EXPERIENCE_MAX}</p>
       <div class="track">
@@ -402,7 +410,9 @@
         <button type="button" class="text-button" onclick={closeImprovementPicker}>Cancel</button>
       </section>
     {/if}
+    </div>
 
+    <div class="sheet-right">
     <section class="panel">
       <h2 class="section-title">Moves</h2>
       {#if resolved}
@@ -418,7 +428,7 @@
                 {/each}
                 <p class="move-trigger">{move.trigger}</p>
                 {#if move.outcomes}
-                  <details>
+                  <details open={move.id === lastRolledMoveId}>
                     <summary>Outcomes</summary>
                     <p class="outcome"><strong>10+:</strong> {move.outcomes.full}</p>
                     <p class="outcome"><strong>7-9:</strong> {move.outcomes.mixed}</p>
@@ -493,6 +503,8 @@
         oninput={onNotesInput}
       ></textarea>
     </section>
+    </div>
+    </div>
   {/if}
 </main>
 
@@ -504,6 +516,41 @@
     font-size: var(--text-sm);
     letter-spacing: 0.08em;
     text-transform: uppercase;
+  }
+
+  /* Two-column desktop grid (docs/DESIGN.md "Screen patterns"): identity,
+     ratings, and tracks in a sticky left rail while moves/gear/notes scroll
+     in the right column. Mobile/tablet: both stack in the same DOM order
+     (Ratings, Tracks, Moves, Gear, Notes), just a plain single column. */
+  .sheet-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  .sheet-left,
+  .sheet-right {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  @media (min-width: 1024px) {
+    .sheet-grid {
+      flex-direction: row;
+      align-items: flex-start;
+    }
+
+    .sheet-left {
+      flex: 0 0 var(--sheet-rail-w);
+      position: sticky;
+      top: var(--space-6);
+    }
+
+    .sheet-right {
+      flex: 1;
+      min-width: 0;
+    }
   }
 
   .sheet-header {
@@ -607,20 +654,56 @@
     color: var(--ink);
   }
 
+  /* Tracks never orphan-wrap (docs/DESIGN.md "Screen patterns"): a track of
+     up to 8 boxes fits on one row at a 390px viewport by shrinking box size
+     (40-52px) instead of wrapping. Track panels get a tighter horizontal
+     padding on mobile to make room; gaps tighten to match. */
+  .panel--track {
+    padding-inline: var(--space-3);
+  }
+
+  @media (min-width: 768px) {
+    .panel--track {
+      padding-inline: var(--space-4);
+    }
+  }
+
   .track {
     display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
+    flex-wrap: nowrap;
+    gap: var(--space-1);
+    width: 100%;
+  }
+
+  @media (min-width: 768px) {
+    .track {
+      gap: var(--space-2);
+    }
   }
 
   .track-box {
-    width: var(--tap-min);
-    height: var(--tap-min);
+    position: relative;
+    flex: 1 1 0;
+    min-width: 40px;
+    max-width: 52px;
+    aspect-ratio: 1;
     padding: 0;
     background: var(--surface-2);
-    border: 2px solid var(--border);
+    border: 2px solid var(--ink-muted);
     border-radius: var(--radius-sm);
     cursor: pointer;
+  }
+
+  /* Below --tap-min visual size, pad the actual tap target back out to
+     --tap-min via an invisible centered pseudo-element (docs/DESIGN.md
+     Accessibility: "not waived" even when the box itself renders smaller). */
+  .track-box::before {
+    content: "";
+    position: absolute;
+    inset: 50%;
+    width: max(var(--tap-min), 100%);
+    height: max(var(--tap-min), 100%);
+    transform: translate(-50%, -50%);
   }
 
   .track-box:focus-visible {

@@ -422,7 +422,7 @@ viewports are part of the milestone's Definition of Done.
       campaign settings screen (online-only is fine, AGENTS.md rule 2).
       Add a Keeper first-run checklist (attach packs, invite players,
       create first mystery) that disappears once done.
-- [ ] Character sheet play layout - 0.11.4 [Sonnet]
+- [x] Character sheet play layout - 0.11.4 [Sonnet]
       Fixes findings 2 and 6 on the flagship screen. Two-column desktop
       grid (identity/ratings/tracks left, moves/gear/notes right), sticky
       ratings row under the header on mobile per DESIGN.md, track boxes

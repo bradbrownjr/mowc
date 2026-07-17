@@ -44,6 +44,17 @@ All notable changes to MOWC are documented here. Format follows
   it's used.
 - Empty states across the new campaign screens now explain what the thing
   is and why you'd create one instead of a bare "No X yet."
+- Character sheet play layout (Phase 11 UI/UX, 0.11.4). On a laptop or
+  desktop, identity/ratings/tracks now sit in a rail on the left that stays
+  in view while moves, gear, and notes scroll on the right, instead of one
+  long single column. On a phone, the ratings row still stays pinned under
+  the top bar while you scroll during play. Harm tracks up to 8 boxes wide
+  no longer wrap onto a lonely second row on a phone screen; track boxes
+  shrink to fit instead, and the tap target never shrinks below the
+  accessible minimum even when the box itself does. Track borders are now
+  clearly visible in the dark theme (previously nearly invisible). Rolling
+  a move now opens its outcomes automatically so you're not hunting for a
+  disclosure triangle mid-scene.
 
 ### Fixed
 - The Characters, World, and Mysteries screens showed a duplicate "Create
