@@ -6,6 +6,21 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+### Changed
+- App shell overhaul (Phase 11 UI/UX, 0.11.2). Every screen now uses one
+  shared, centered page container with consistent gutters and per-tier max
+  widths, replacing the grab-bag of per-route widths so content no longer
+  hugs a screen edge or sprawls on wide displays.
+- The top bar's "Log out (name)" label, which could overflow the bar, is
+  replaced by a compact account menu: a button showing your display name
+  that opens a small panel with Log out.
+- On phones, the section links move from the top bar into a fixed bottom
+  tab bar (icon plus label); the tabs switch to campaign-specific
+  destinations while you are inside a campaign.
+- Campaign screens gain a left-hand context rail on tablet and desktop
+  (Overview, plus a Keeper Dashboard link) so navigation within a campaign
+  no longer relies solely on in-page links.
+
 ## [0.10.7] - 2026-07-16
 
 ### Fixed

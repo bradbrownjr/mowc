@@ -102,7 +102,7 @@
   }
 </script>
 
-<main>
+<main class="page page--wide">
   <div class="header">
     <h1 class="title">Content packs</h1>
     <div class="actions">
@@ -186,14 +186,6 @@
 </main>
 
 <style>
-  main {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-    padding: var(--space-6);
-    max-width: 48rem;
-  }
-
   .header {
     display: flex;
     align-items: center;

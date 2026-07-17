@@ -73,7 +73,7 @@
   }
 </script>
 
-<main>
+<main class="page">
   <h1 class="title">New content pack</h1>
 
   <label class="field">
@@ -130,14 +130,6 @@
 </main>
 
 <style>
-  main {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-    padding: var(--space-6);
-    max-width: 48rem;
-  }
-
   .title {
     margin: 0;
     font-family: var(--font-display);

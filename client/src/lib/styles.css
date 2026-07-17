@@ -34,6 +34,15 @@
   --tap-min: 44px;
   --tag-clip: 8px;
 
+  /* Layout scale (docs/DESIGN.md "Layout"): page-container max widths,
+     rail widths, and the mobile bottom tab bar height. */
+  --page-narrow: 28rem;
+  --page-content: 46rem;
+  --page-wide: 74rem;
+  --rail-w: 13rem;
+  --sheet-rail-w: 22rem;
+  --bottombar-h: 56px;
+
   /* Type families, self-hosted via @fontsource */
   --font-display: "Big Shoulders", sans-serif;
   --font-body: "Alegreya Sans", sans-serif;
@@ -96,4 +105,49 @@ body {
   font-family: var(--font-body);
   font-size: var(--text-base);
   line-height: 1.5;
+  /* Reserve room for the fixed mobile bottom tab bar (+layout.svelte) plus
+     the iOS safe-area inset, so page content and the footer never hide
+     behind it. The bar only exists below 768px. */
+  padding-bottom: calc(var(--bottombar-h) + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 768px) {
+  body {
+    padding-bottom: 0;
+  }
+}
+
+/*
+ * Shared page container (docs/DESIGN.md "Page container"). Every route's
+ * top-level element uses .page (optionally --narrow or --wide); routes
+ * never declare their own page-level max-width. Mobile-first: base is the
+ * mobile layout, tiers add on top.
+ *
+ * The mobile bottom padding reserves room for the fixed bottom tab bar
+ * (--bottombar-h) plus the iOS safe-area inset so content never hides
+ * behind it. The bar only exists below 768px, so tablet/desktop drop that
+ * reservation.
+ */
+.page {
+  width: 100%;
+  max-width: var(--page-content);
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-4);
+}
+
+.page--narrow {
+  max-width: var(--page-narrow);
+}
+
+.page--wide {
+  max-width: var(--page-wide);
+}
+
+@media (min-width: 768px) {
+  .page {
+    padding: var(--space-6);
+  }
 }

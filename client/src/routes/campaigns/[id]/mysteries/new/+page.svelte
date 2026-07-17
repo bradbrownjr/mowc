@@ -179,7 +179,7 @@
   }
 </script>
 
-<main>
+<main class="page">
   <a class="back-link" href={resolve("/campaigns/[id]", { id: data.id })}>Back to campaign</a>
 
   {#if loadError}
@@ -376,14 +376,6 @@
 </main>
 
 <style>
-  main {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-    padding: var(--space-6);
-    max-width: 40rem;
-  }
-
   .back-link {
     align-self: flex-start;
     color: var(--ink-muted);

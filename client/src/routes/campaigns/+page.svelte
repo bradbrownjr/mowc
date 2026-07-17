@@ -74,7 +74,7 @@
   }
 </script>
 
-<main>
+<main class="page">
   <h1 class="title">My campaigns</h1>
 
   {#if loadError}
@@ -128,14 +128,6 @@
 </main>
 
 <style>
-  main {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-6);
-    padding: var(--space-6);
-    max-width: 32rem;
-  }
-
   .title {
     margin: 0;
     font-family: var(--font-display);

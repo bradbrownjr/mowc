@@ -392,7 +392,7 @@ commit that moves markup), Feature Registry rows for every touched file
 verified before commit, and before/after screenshots at the four survey
 viewports are part of the milestone's Definition of Done.
 
-- [ ] Design contract expansion - 0.11.1 [Fable]
+- [x] Design contract expansion - 0.11.1 [Fable]
       Docs-only, everything below depends on it. Rewrite the DESIGN.md
       "Layout" section into a real spec: breakpoints (<768, 768-1023,
       >=1024), a shared centered page container with per-tier max widths

@@ -4,7 +4,7 @@
   import { sessionState } from "$lib/session.svelte";
 </script>
 
-<main>
+<main class="page">
   <h1 class="title">MOWC</h1>
   <p class="tagline">A field notebook for your Monster of the Week campaign.</p>
 
@@ -24,14 +24,6 @@
 </main>
 
 <style>
-  main {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-4);
-    padding: var(--space-6);
-  }
-
   .title {
     margin: 0;
     font-family: var(--font-display);

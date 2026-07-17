@@ -25,7 +25,7 @@
   }
 </script>
 
-<main>
+<main class="page page--narrow">
   <h1 class="title">Register</h1>
 
   <form onsubmit={onSubmit}>
@@ -55,15 +55,6 @@
 </main>
 
 <style>
-  main {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-4);
-    padding: var(--space-6);
-    max-width: 24rem;
-  }
-
   .title {
     margin: 0;
     font-family: var(--font-display);

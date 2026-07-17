@@ -197,7 +197,7 @@
   }
 </script>
 
-<main>
+<main class="page page--wide">
   <a class="back-link" href={resolve("/campaigns")}>Back to campaigns</a>
 
   {#if loadError}
@@ -401,14 +401,6 @@
 </main>
 
 <style>
-  main {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-    padding: var(--space-6);
-    max-width: 32rem;
-  }
-
   .back-link {
     align-self: flex-start;
     color: var(--ink-muted);

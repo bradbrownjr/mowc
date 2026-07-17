@@ -47,7 +47,7 @@
   }
 </script>
 
-<main>
+<main class="page">
   <a class="back-link" href={resolve("/packs")}>Back to packs</a>
 
   {#if loadError}
@@ -104,14 +104,6 @@
 </main>
 
 <style>
-  main {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-    padding: var(--space-6);
-    max-width: 48rem;
-  }
-
   .back-link {
     align-self: flex-start;
     color: var(--ink-muted);
