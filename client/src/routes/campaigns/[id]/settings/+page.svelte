@@ -13,6 +13,7 @@
     type InviteSummary
   } from "$lib/api/campaigns.js";
   import { listPacks, type PackSummary } from "$lib/api/contentPacks.js";
+  import FieldNote from "$lib/FieldNote.svelte";
   import type { PageProps } from "./$types.js";
 
   let { data }: PageProps = $props();
@@ -111,6 +112,10 @@
 <main class="page page--wide">
   <a class="back-link" href={resolve("/campaigns/[id]", { id: data.id })}>Back to overview</a>
   <h1 class="title">Campaign settings</h1>
+  <FieldNote>
+    Content packs give you the playbooks and monster types to build from; invite codes are how your hunters join this
+    campaign. Both are Keeper-only.
+  </FieldNote>
 
   {#if loadError}
     <p class="error">{loadError}</p>

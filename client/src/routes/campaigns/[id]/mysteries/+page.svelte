@@ -7,6 +7,7 @@
   import { db } from "$lib/db.js";
   import { pull } from "$lib/sync.js";
   import EmptyState from "$lib/EmptyState.svelte";
+  import FieldNote from "$lib/FieldNote.svelte";
   import type { PageProps } from "./$types.js";
 
   let { data }: PageProps = $props();
@@ -51,6 +52,7 @@
 <main class="page page--wide">
   <a class="back-link" href={resolve("/campaigns/[id]", { id: data.id })}>Back to overview</a>
   <h1 class="title">Mysteries</h1>
+  <FieldNote>Mysteries are Keeper-only to build; your hunters experience them through play, not this list.</FieldNote>
 
   {#if loadError}
     <p class="error">{loadError}</p>
@@ -58,9 +60,9 @@
     <p class="error">Only the Keeper (the person running the game) can see mysteries.</p>
   {:else}
     <a class="submit-button" href={resolve("/campaigns/[id]/dashboard", { id: data.id })}>Open Keeper dashboard</a>
-    <a class="submit-button" href={resolve("/campaigns/[id]/mysteries/new", { id: data.id })}>Create a mystery</a>
 
     {#if mysteries.length > 0}
+      <a class="submit-button" href={resolve("/campaigns/[id]/mysteries/new", { id: data.id })}>Create a mystery</a>
       <ul class="entity-list">
         {#each mysteries as mystery (mystery.id)}
           <li class="entity-row">

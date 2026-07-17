@@ -22,8 +22,17 @@
   //
   // Keyed on data.id via $effect (not onMount): SvelteKit keeps this layout
   // mounted when navigating straight from one campaign to another, so the
-  // fetch must re-run whenever the id changes or the rail goes stale.
+  // fetch must re-run whenever the id changes or the rail goes stale. The
+  // sessionState guard must be read synchronously (not inside the .then())
+  // so it's a tracked dependency too: on a cold direct-navigation to a
+  // nested campaign route, initSession() (root layout onMount) can still be
+  // resolving when this effect first fires. Without the guard, isKeeper
+  // gets computed once against a not-yet-populated sessionState.user and
+  // never corrects itself, since data.id doesn't change on its own — the
+  // Keeper-only rail rows (Mysteries/Dashboard/Settings) then silently stay
+  // hidden for the Keeper until they navigate to a different campaign.
   $effect(() => {
+    if (sessionState.status !== "ready" || !sessionState.user) return;
     const id = data.id;
     // Optimistic default so the rail/bottom bar have something to show
     // before the fetch resolves; corrected on success.

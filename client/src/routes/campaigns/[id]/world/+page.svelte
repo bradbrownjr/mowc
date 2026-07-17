@@ -8,6 +8,7 @@
   import { pull } from "$lib/sync.js";
   import EvidenceTag from "$lib/EvidenceTag.svelte";
   import EmptyState from "$lib/EmptyState.svelte";
+  import FieldNote from "$lib/FieldNote.svelte";
   import type { PageProps } from "./$types.js";
 
   let { data }: PageProps = $props();
@@ -89,16 +90,24 @@
 <main class="page page--wide">
   <a class="back-link" href={resolve("/campaigns/[id]", { id: data.id })}>Back to overview</a>
   <h1 class="title">World</h1>
+  <FieldNote>
+    {#if isKeeper}
+      Monsters, minions, bystanders, and locations are Keeper-only to create; toggle "Revealed" on each one when your
+      hunters should see it.
+    {:else}
+      This shows only what your Keeper has revealed so far.
+    {/if}
+  </FieldNote>
 
   {#if loadError}
     <p class="error">{loadError}</p>
   {:else}
     <section class="panel">
       <h2 class="section-title">Monsters</h2>
-      {#if isKeeper}
-        <a class="submit-button" href={resolve("/campaigns/[id]/monsters/new", { id: data.id })}>Create a monster</a>
-      {/if}
       {#if monsters.length > 0}
+        {#if isKeeper}
+          <a class="submit-button" href={resolve("/campaigns/[id]/monsters/new", { id: data.id })}>Create a monster</a>
+        {/if}
         <ul class="entity-list">
           {#each monsters as monster (monster.id)}
             <li class="entity-row">
@@ -123,10 +132,10 @@
 
     <section class="panel">
       <h2 class="section-title">Minions</h2>
-      {#if isKeeper}
-        <a class="submit-button" href={resolve("/campaigns/[id]/minions/new", { id: data.id })}>Create a minion</a>
-      {/if}
       {#if minions.length > 0}
+        {#if isKeeper}
+          <a class="submit-button" href={resolve("/campaigns/[id]/minions/new", { id: data.id })}>Create a minion</a>
+        {/if}
         <ul class="entity-list">
           {#each minions as minion (minion.id)}
             <li class="entity-row">
@@ -151,10 +160,10 @@
 
     <section class="panel">
       <h2 class="section-title">Bystanders</h2>
-      {#if isKeeper}
-        <a class="submit-button" href={resolve("/campaigns/[id]/bystanders/new", { id: data.id })}>Create a bystander</a>
-      {/if}
       {#if bystanders.length > 0}
+        {#if isKeeper}
+          <a class="submit-button" href={resolve("/campaigns/[id]/bystanders/new", { id: data.id })}>Create a bystander</a>
+        {/if}
         <ul class="entity-list">
           {#each bystanders as bystander (bystander.id)}
             <li class="entity-row">
@@ -179,10 +188,10 @@
 
     <section class="panel">
       <h2 class="section-title">Locations</h2>
-      {#if isKeeper}
-        <a class="submit-button" href={resolve("/campaigns/[id]/locations/new", { id: data.id })}>Create a location</a>
-      {/if}
       {#if locations.length > 0}
+        {#if isKeeper}
+          <a class="submit-button" href={resolve("/campaigns/[id]/locations/new", { id: data.id })}>Create a location</a>
+        {/if}
         <ul class="entity-list">
           {#each locations as location (location.id)}
             <li class="entity-row">

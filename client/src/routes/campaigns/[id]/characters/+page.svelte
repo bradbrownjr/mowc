@@ -7,6 +7,7 @@
   import { db } from "$lib/db.js";
   import { pull } from "$lib/sync.js";
   import EmptyState from "$lib/EmptyState.svelte";
+  import FieldNote from "$lib/FieldNote.svelte";
   import type { PageProps } from "./$types.js";
 
   let { data }: PageProps = $props();
@@ -56,13 +57,13 @@
 <main class="page page--wide">
   <a class="back-link" href={resolve("/campaigns/[id]", { id: data.id })}>Back to overview</a>
   <h1 class="title">Characters</h1>
+  <FieldNote>Everyone in the campaign can see this list. A hunter creates their own character here after joining.</FieldNote>
 
   {#if loadError}
     <p class="error">{loadError}</p>
   {:else}
-    <a class="submit-button" href={resolve("/campaigns/[id]/characters/new", { id: data.id })}>Create a character</a>
-
     {#if characters.length > 0}
+      <a class="submit-button" href={resolve("/campaigns/[id]/characters/new", { id: data.id })}>Create a character</a>
       <ul class="entity-list">
         {#each characters as character (character.id)}
           <li class="entity-row">

@@ -39,8 +39,23 @@ All notable changes to MOWC are documented here. Format follows
   "Keeper"/"Hunter" label: what a Keeper does and how hunters interact
   with them, or what a hunter does and how the Keeper reveals the world to
   them, to help new players and Keepers pick up the game's vocabulary.
+  The Characters, World, Mysteries, and Settings screens each get a
+  similar one- or two-sentence explainer of who the screen is for and how
+  it's used.
 - Empty states across the new campaign screens now explain what the thing
   is and why you'd create one instead of a bare "No X yet."
+
+### Fixed
+- The Characters, World, and Mysteries screens showed a duplicate "Create
+  a ..." action (a persistent button plus the same action again inside
+  the empty-state panel) whenever a list was empty. The persistent button
+  now only appears once there's something to act on.
+- On a cold direct-navigation into a campaign (e.g. a bookmark, shared
+  link, or page refresh while on a nested campaign screen), the context
+  rail and mobile bottom bar could permanently fail to show the
+  Keeper-only Mysteries/Dashboard/Settings destinations for the Keeper,
+  because the check ran before the signed-in session had finished
+  loading and never re-checked itself.
 
 ## [0.10.7] - 2026-07-16
 
