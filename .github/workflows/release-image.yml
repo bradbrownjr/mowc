@@ -4,6 +4,14 @@ on:
   push:
     tags:
       - "v*"
+  # Manual trigger so an updated image can be built/pushed on demand from
+  # the Actions tab (the "Run workflow" button) without cutting a tag.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Extra image tag to publish alongside latest (manual runs only)"
+        required: false
+        default: "manual"
 
 jobs:
   build-push:
@@ -29,6 +37,7 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=raw,value=latest
+            type=raw,value=${{ github.event.inputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' }}
       - name: Build and push multi-arch image
         uses: docker/build-push-action@v6
         with:
