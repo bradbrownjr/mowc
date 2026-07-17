@@ -455,7 +455,7 @@ viewports are part of the milestone's Definition of Done.
       (Midnight Unit / Field Notes / follow system) since both themes
       already ship in `styles.css`. Full Phase 8 user theming stays where
       it is; this is only the toggle.
-- [ ] Responsive regression audit - 0.11.8 [Sonnet]
+- [x] Responsive regression audit - 0.11.8 [Sonnet]
       Scripted Playwright screenshot sweep of every key screen at the
       four survey viewports in both themes, fix what it catches, verify
       WCAG AA contrast in both themes (DESIGN.md accessibility section),

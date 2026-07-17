@@ -82,10 +82,17 @@ Surfaces and ink (each theme overrides these, components never hardcode):
 --ink-muted     captions, meta
 --border        1-2px solid, visible; borders do structural work in this
                 design, shadows are minimal
---accent        one per theme (amber #E8A33D dark / red-pencil #C24B3A light)
+--accent        one per theme (amber #E8A33D dark / red-pencil #973A2D
+                light; light accent darkened from the original #C24B3A
+                in the 0.11.8 contrast audit, see Accessibility)
 --danger        harm, death, failed rolls
 --ok            success band
 ```
+
+All of the above are text or UI-boundary colors that must clear WCAG AA
+against every surface they render on (Accessibility section); exact hex
+values live only in `client/src/lib/styles.css`, never repeated here or
+hardcoded in components.
 
 ## User theming (Phase 8 contract)
 
@@ -256,7 +263,13 @@ never heard the word Keeper.
 - All track states (harm etc.) must be conveyed by fill + label, not color
   alone.
 - Both themes and all user themes pass WCAG AA contrast; validation is
-  code, not a checklist.
+  code, not a checklist: `client/src/lib/contrast.test.ts` parses the live
+  token hex values out of `styles.css` and asserts 4.5:1 (text tokens) or
+  3:1 (`--border`, a UI boundary) against every surface, so a future token
+  edit that regresses contrast fails `npm test` instead of only being
+  caught by eye. User-theme (Phase 8) overrides still need their own
+  runtime check when that feature lands, since those tokens aren't in
+  `styles.css`.
 
 ## Enforcement
 

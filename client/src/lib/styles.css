@@ -48,29 +48,35 @@
   --font-body: "Alegreya Sans", sans-serif;
   --font-meta: "Courier Prime", monospace;
 
-  /* Midnight Unit (dark) is the default theme. */
+  /* Midnight Unit (dark) is the default theme. --border/--danger/--ok
+     are lightened from their original hex (0.11.8 contrast audit) to
+     clear WCAG AA 4.5:1 for text / 3:1 for UI boundaries against
+     --surface-2, the hardest-case background each sits on; see
+     docs/DESIGN.md Accessibility. */
   --bg: #12161c;
   --surface: #1a212b;
   --surface-2: #232b38;
   --ink: #e8e6e0;
   --ink-muted: #9aa3af;
-  --border: #3a4351;
+  --border: #67778f;
   --accent: #e8a33d;
-  --danger: #c0392b;
-  --ok: #4f9d69;
+  --danger: #dd7469;
+  --ok: #52a46e;
 }
 
 :root[data-theme="light"] {
-  /* Field Notes (light) */
+  /* Field Notes (light). --border/--accent/--ink-muted/--ok are
+     darkened from their original hex (0.11.8 contrast audit) for the
+     same reason as the dark theme above. */
   --bg: #f2ead9;
   --surface: #e9dfc8;
   --surface-2: #ddd0af;
   --ink: #2b2620;
-  --ink-muted: #6b6255;
-  --border: #b8ab8c;
-  --accent: #c24b3a;
+  --ink-muted: #60584c;
+  --border: #80714f;
+  --accent: #973a2d;
   --danger: #a3312a;
-  --ok: #3f7d4a;
+  --ok: #31623a;
 }
 
 /* No-JS / pre-hydration fallback: honor the OS preference until the
@@ -81,11 +87,11 @@
     --surface: #e9dfc8;
     --surface-2: #ddd0af;
     --ink: #2b2620;
-    --ink-muted: #6b6255;
-    --border: #b8ab8c;
-    --accent: #c24b3a;
+    --ink-muted: #60584c;
+    --border: #80714f;
+    --accent: #973a2d;
     --danger: #a3312a;
-    --ok: #3f7d4a;
+    --ok: #31623a;
   }
 }
 

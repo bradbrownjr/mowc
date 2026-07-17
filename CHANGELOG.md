@@ -86,6 +86,14 @@ All notable changes to MOWC are documented here. Format follows
   between Midnight Unit (dark) and Field Notes (light), or follow your
   system setting, from the account menu; the choice is remembered on this
   device.
+- Responsive regression audit (Phase 11 UI/UX, 0.11.8). A handful of theme
+  colors (dark theme's danger red and success green, light theme's accent
+  red, muted caption gray, and both themes' borders) were too low-contrast
+  against panel backgrounds to reliably read as text or as a visible panel
+  edge; they're now readably distinct in both themes while keeping the same
+  overall palette. Screenshot-swept every key screen at four viewport sizes
+  (phone portrait/landscape, tablet, desktop) in both themes; no other
+  layout regressions found across Phase 11's changes.
 
 ### Fixed
 - The Characters, World, and Mysteries screens showed a duplicate "Create
