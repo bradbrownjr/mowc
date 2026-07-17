@@ -345,7 +345,7 @@ Version 0.10 → 1.0
       0.10.4 [Opus]
 - [ ] 1.0.0 release - [Sonnet]
 
-## Phase 11: UI/UX Overhaul (NEXT)
+## Phase 11: UI/UX Overhaul ✅
 
 Version 0.11. Runs before Phases 6-9 by explicit user choice (2026-07-16),
 consistent with the 0.10.5 precedent: the version line increments off the

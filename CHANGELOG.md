@@ -23,6 +23,8 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+## [0.11.8] - 2026-07-17
+
 ### Changed
 - Campaign hub restructure (Phase 11 UI/UX, 0.11.3). The single campaign
   page that stacked eight sections (Characters, Mysteries, Monsters,
