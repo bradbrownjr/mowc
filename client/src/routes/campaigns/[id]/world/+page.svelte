@@ -6,7 +6,7 @@
   import { getCampaign } from "$lib/api/campaigns.js";
   import { db } from "$lib/db.js";
   import { pull } from "$lib/sync.js";
-  import EvidenceTag from "$lib/EvidenceTag.svelte";
+  import Stamp from "$lib/Stamp.svelte";
   import EmptyState from "$lib/EmptyState.svelte";
   import FieldNote from "$lib/FieldNote.svelte";
   import { GLOSS } from "$lib/glossary.js";
@@ -115,7 +115,7 @@
               <a class="entity-link" href={resolve("/campaigns/[id]/monsters/[monsterId]", { id: data.id, monsterId: monster.id })}>
                 {monster.name}
               </a>
-              {#if isKeeper && monster.revealed}<EvidenceTag label="Revealed" />{/if}
+              {#if isKeeper && monster.revealed}<Stamp label="Revealed" />{/if}
             </li>
           {/each}
         </ul>
@@ -143,7 +143,7 @@
               <a class="entity-link" href={resolve("/campaigns/[id]/minions/[minionId]", { id: data.id, minionId: minion.id })}>
                 {minion.name}
               </a>
-              {#if isKeeper && minion.revealed}<EvidenceTag label="Revealed" />{/if}
+              {#if isKeeper && minion.revealed}<Stamp label="Revealed" />{/if}
             </li>
           {/each}
         </ul>
@@ -171,7 +171,7 @@
               <a class="entity-link" href={resolve("/campaigns/[id]/bystanders/[bystanderId]", { id: data.id, bystanderId: bystander.id })}>
                 {bystander.name}
               </a>
-              {#if isKeeper && bystander.revealed}<EvidenceTag label="Revealed" />{/if}
+              {#if isKeeper && bystander.revealed}<Stamp label="Revealed" />{/if}
             </li>
           {/each}
         </ul>
@@ -199,7 +199,7 @@
               <a class="entity-link" href={resolve("/campaigns/[id]/locations/[locationId]", { id: data.id, locationId: location.id })}>
                 {location.name}
               </a>
-              {#if isKeeper && location.revealed}<EvidenceTag label="Revealed" />{/if}
+              {#if isKeeper && location.revealed}<Stamp label="Revealed" />{/if}
             </li>
           {/each}
         </ul>

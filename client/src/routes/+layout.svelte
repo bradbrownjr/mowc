@@ -5,7 +5,21 @@
   import "@fontsource/alegreya-sans";
   import "@fontsource/courier-prime";
   import "$lib/styles.css";
-  import { House, Library, Package, CircleUser, LogOut, ChevronDown, LayoutList, BookOpen, Globe, ScrollText } from "@lucide/svelte";
+  import {
+    House,
+    Library,
+    Package,
+    CircleUser,
+    LogOut,
+    ChevronDown,
+    LayoutList,
+    BookOpen,
+    Globe,
+    ScrollText,
+    Sun,
+    Moon,
+    Monitor
+  } from "@lucide/svelte";
   import InstallButton from "$lib/InstallButton.svelte";
   import Footer from "$lib/Footer.svelte";
   import Icon from "$lib/Icon.svelte";
@@ -14,6 +28,7 @@
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
   import { initSession, logout, sessionState } from "$lib/session.svelte";
+  import { initTheme, setThemePreference, themeState, type ThemePreference } from "$lib/theme.svelte";
   import { initHealth } from "$lib/health.svelte";
   import { startSync } from "$lib/sync.js";
   import { campaignNav } from "$lib/campaign-nav.svelte";
@@ -26,11 +41,18 @@
     return page.url.pathname === path || page.url.pathname.startsWith(`${path}/`);
   }
 
+  const THEME_OPTIONS: { value: ThemePreference; label: string; icon: typeof Moon }[] = [
+    { value: "dark", label: "Midnight Unit", icon: Moon },
+    { value: "light", label: "Field Notes", icon: Sun },
+    { value: "system", label: "Follow system", icon: Monitor }
+  ];
+
   onMount(() => {
     if (browser) {
       initPwa();
       void initSession();
       void initHealth();
+      initTheme();
       // Flush queued offline ops when the browser regains connectivity
       // (docs/SYNC.md); without this, edits made offline never push until
       // the next online write.
@@ -71,6 +93,20 @@
       {#if accountOpen}
         <button type="button" class="account-backdrop" aria-label="Close menu" onclick={() => (accountOpen = false)}></button>
         <div class="account-menu" role="menu">
+          <p class="theme-label">Theme</p>
+          <div class="theme-group" role="group" aria-label="Theme">
+            {#each THEME_OPTIONS as option (option.value)}
+              <button
+                type="button"
+                class="theme-option"
+                class:selected={themeState.preference === option.value}
+                onclick={() => setThemePreference(option.value)}
+              >
+                <Icon icon={option.icon} size={16} />
+                <span>{option.label}</span>
+              </button>
+            {/each}
+          </div>
           <button type="button" class="account-item" role="menuitem" onclick={onLogout}>
             <Icon icon={LogOut} size={16} />
             <span>Log out</span>
@@ -205,19 +241,23 @@
     margin-bottom: var(--space-2);
   }
 
-  /* File-tab motif (docs/DESIGN.md): the active section reads as the open
-     folder, raised out of the border line; inactive tabs sit flush and
-     muted so they no longer blend into each other. */
+  /* File-tab motif (docs/DESIGN.md): folder-shaped tabs (angled sides, like
+     a manila folder), sitting behind the header's border line. The active
+     tab overlaps that line (negative margin-bottom, no border-bottom of its
+     own) so it reads as the open folder merging into the page below;
+     inactive tabs stay a shade back on --surface-2 and flush with the
+     line. */
   .tab {
     min-height: var(--tap-min);
     display: inline-flex;
     align-items: center;
-    padding: var(--space-2) var(--space-4);
+    margin-bottom: -1px;
+    padding: var(--space-2) var(--space-6);
+    background: var(--surface-2);
     color: var(--ink-muted);
-    background: none;
-    border: 1px solid transparent;
-    border-bottom: none;
-    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    border: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 100%, 0 100%);
     cursor: pointer;
     font-family: var(--font-meta);
     font-size: var(--text-sm);
@@ -227,9 +267,10 @@
   }
 
   .tab.active {
+    z-index: 1;
     color: var(--ink);
     background: var(--surface);
-    border-color: var(--border);
+    border-bottom-color: var(--surface);
   }
 
   .tab:hover {
@@ -286,7 +327,7 @@
     top: calc(100% + var(--space-1));
     right: 0;
     z-index: 11;
-    min-width: 10rem;
+    min-width: 12rem;
     padding: var(--space-1);
     background: var(--surface);
     border: 1px solid var(--border);
@@ -302,6 +343,57 @@
       right: var(--space-4);
       bottom: calc(var(--bottombar-h) + env(safe-area-inset-bottom) + var(--space-1));
     }
+  }
+
+  .theme-label {
+    margin: var(--space-1) var(--space-3) 0;
+    color: var(--ink-muted);
+    font-family: var(--font-meta);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .theme-group {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: var(--space-1);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .theme-option {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: 100%;
+    min-height: var(--tap-min);
+    padding: var(--space-2) var(--space-3);
+    color: var(--ink-muted);
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: var(--font-meta);
+    font-size: var(--text-sm);
+    text-align: left;
+  }
+
+  .theme-option.selected {
+    color: var(--accent);
+  }
+
+  .theme-option:hover {
+    background: var(--surface-2);
+    color: var(--ink);
+  }
+
+  .theme-option.selected:hover {
+    color: var(--accent);
+  }
+
+  .theme-option:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
   }
 
   .account-item {

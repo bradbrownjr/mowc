@@ -8,6 +8,7 @@
   import { pull } from "$lib/sync.js";
   import EmptyState from "$lib/EmptyState.svelte";
   import FieldNote from "$lib/FieldNote.svelte";
+  import Stamp from "$lib/Stamp.svelte";
   import { GLOSS } from "$lib/glossary.js";
   import type { PageProps } from "./$types.js";
 
@@ -70,7 +71,11 @@
             <a class="entity-link" href={resolve("/campaigns/[id]/mysteries/[mysteryId]", { id: data.id, mysteryId: mystery.id })}>
               {mystery.title}
             </a>
-            <span class="entity-meta">{mystery.status}</span>
+            {#if mystery.status === "resolved"}
+              <Stamp label="Solved" />
+            {:else}
+              <span class="entity-meta">{mystery.status}</span>
+            {/if}
           </li>
         {/each}
       </ul>

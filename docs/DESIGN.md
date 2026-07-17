@@ -89,6 +89,11 @@ Surfaces and ink (each theme overrides these, components never hardcode):
 
 ## User theming (Phase 8 contract)
 
+The 0.11.7 account-menu control only picks which of the two shipped base
+themes applies (or follows the OS), stored client-side (`localStorage`,
+`client/src/lib/theme.svelte.ts`); it does not touch per-user token
+overrides. Full user theming below is still Phase 8, not yet built.
+
 End users may override: `--accent`, surface hue tint, border radius set,
 border width (1px "fine" / 2px "marker"), and choose any shipped preset.
 Theme = a JSON object of token overrides stored per user, applied to
@@ -138,9 +143,9 @@ exists to fix).
 - Top bar (all tiers): brand link left. On tablet/desktop the
   folder-tab nav (File tabs motif) sits beside it. Right side is a
   compact account menu: a button showing the display name (ellipsis
-  past 12rem) that opens a small panel with Log out (and the theme
-  toggle when 0.11.7 ships). The bar is one line, always; nothing in
-  it may wrap.
+  past 12rem) that opens a small panel with a Theme group (Midnight
+  Unit / Field Notes / Follow system, landed 0.11.7) above Log out.
+  The bar is one line, always; nothing in it may wrap.
 - Mobile bottom tab bar: fixed to the viewport bottom, replaces the
   folder tabs on mobile (the top bar keeps only brand + account).
   Four destinations, each an icon plus a Courier label at `--text-xs`;
@@ -266,7 +271,8 @@ never heard the word Keeper.
 | FieldNote | `client/src/lib/FieldNote.svelte` | The guidance-copy pattern (the "Guidance copy" section): a short helper note placed directly under a heading or label, body font at `--text-base`, italic, `--ink-muted`. Copy is passed as children so callers can include a glossary term inline. Landed with 0.11.2 (shell scaffold); first content user is the campaign Overview's brief role explainer under the "Keeper"/"Hunter" label (0.11.3, original wording, not a game-text quote); the full builder guidance pass (0.11.5) and onboarding sweep (0.11.6) followed, the latter also making every screen's first "Keeper" mention import its gloss from `client/src/lib/glossary.ts` rather than retyping it. |
 | InstallButton | `client/src/lib/InstallButton.svelte` | Fixed bottom-right PWA install affordance; shown only when `beforeinstallprompt` fired. Tokens only (accent border, meta font). |
 | StepIndicator | `client/src/lib/StepIndicator.svelte` | Numbered wizard progress rail for Builders (the "Layout" section's Builders line). Props: `steps: string[]`, `current: number`. Purely presentational; current step gets an accent border, completed (`done`) steps a filled `--surface-2` background, upcoming (`locked`) steps get muted `--ink-muted` text plus a small `Lock` icon (0.11.5, wizards are linear so a locked step isn't reachable by tapping ahead). First user: the character builder wizard (`campaigns/[id]/characters/new`); also used by the monster and mystery builders. |
-| EvidenceTag | `client/src/lib/EvidenceTag.svelte` | The "evidence tag" motif: rectangular chip, one clipped corner (`--tag-clip`), Courier label. Props: `label: string`. First user: the character sheet's move/gear tags (`campaigns/[id]/characters/[characterId]`). `client/src/routes/packs/[id]/+page.svelte` has an earlier inline `.tag` style predating this component; not yet migrated (out of scope for the change that added this row). |
+| EvidenceTag | `client/src/lib/EvidenceTag.svelte` | The "evidence tag" motif: rectangular chip, one clipped corner (`--tag-clip`), Courier label. Props: `label: string`. First user: the character sheet's move/gear tags (`campaigns/[id]/characters/[characterId]`). The `packs/[id]` playbook move-rating tags migrated off their predating inline `.tag` style to this component in 0.11.7. |
+| Stamp | `client/src/lib/Stamp.svelte` | The "Stamps" motif (Motifs section): a bordered uppercase status marker, rotated -2deg, `--accent` or `--danger` color at 80% opacity. Props: `label: string`, `tone?: "accent" \| "danger"` (default `"accent"`). Distinct from EvidenceTag: a stamp marks a state (REVEALED, UNSTABLE, SOLVED), a tag labels metadata. Landed 0.11.7 for the character sheet's Unstable marker (`tone="danger"`), the World list's per-entity Revealed marker, and "Solved" wherever a mystery's `resolved` status renders (mysteries list, Keeper dashboard list/detail, the hunter-facing mystery sheet). The Dice banner's roll-band stamp (`DiceBanner.svelte`) and the character sheet's roll-history band stamp predate this component and keep their own local styling since they carry banner-specific motion (400ms slide + stamp thunk) this component does not implement; not migrated. |
 | DiceBanner | `client/src/lib/DiceBanner.svelte` | The "Dice banner" motif (Motifs section): a torn-slip card, fixed near the top of the viewport with a full-screen transparent tap-to-dismiss backdrop, showing the move name, a die/rating breakdown line, the total in oversized display type, the outcome band (10+/7-9/Miss) as a rotated stamp, then the matching outcome text. Props: `moveName: string`, `ratingLabel: string`, `result: RollResult`, `outcomeText: string \| null`, `onDismiss: () => void`. 400ms slide-in + stamp thunk (scale 1.1→1.0) per the Motion section; opacity-only fade under `prefers-reduced-motion`. Stamp/border color is `--accent` for a mixed result, `--ok` for full success, `--danger` for a miss. First user: the character sheet's move rollers (`campaigns/[id]/characters/[characterId]`). |
 | Footer | `client/src/lib/Footer.svelte` | Rendered once in the root layout, below `{@render children()}`, on every route. Two centered `--font-meta` lines at `--text-xs`, `--ink-muted`, uppercase, letterspaced 0.08em (the same "field caption" treatment as `.meta`/`.nav-link` elsewhere), separated from page content by a `--border` top rule. Line 1 is the LICENSING.md-required "unofficial fan project, not affiliated with Evil Hat" notice; line 2 is copyright, MIT license, and the running app version pulled from `healthState` (`client/src/lib/health.svelte.ts`). |
 | ConversionNote | `client/src/lib/pack-editor/ConversionNote.svelte` | Renders one `conversionNotes` string (`<fieldPath>: <message>`, optionally a blank line then a verbatim source excerpt; grammar is `formatConversionNote` in `shared/src/schemas/conversion.ts`) as the "Conversion flags" motif callout. Props: `note: string`. First user: the admin PDF-conversion review screen (`packs/convert`); also threaded optionally into `PlaybookEditor`/`MovesEditor` via a `notes` prop that defaults to none, so the plain `packs/new` flow is unaffected. |

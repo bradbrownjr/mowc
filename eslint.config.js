@@ -44,7 +44,8 @@ export default tseslint.config(
     languageOptions: {
       globals: {
         window: "readonly",
-        document: "readonly"
+        document: "readonly",
+        localStorage: "readonly"
       }
     }
   },

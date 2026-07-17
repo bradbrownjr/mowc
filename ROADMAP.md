@@ -446,7 +446,7 @@ viewports are part of the milestone's Definition of Done.
       Apply the 0.11.1 glossary policy across all screens. Rewrite every
       empty state to teach and point at one action. The word "Keeper"
       never appears without a gloss reachable on the same screen.
-- [ ] Motif and theme polish - 0.11.7 [Sonnet]
+- [x] Motif and theme polish - 0.11.7 [Sonnet]
       Fixes finding 6. Film-grain page background, stamp styling for
       status markers (REVEALED, UNSTABLE, SOLVED), folder-tab nav styled
       per the motif, migrate `packs/[id]` inline tags to EvidenceTag,

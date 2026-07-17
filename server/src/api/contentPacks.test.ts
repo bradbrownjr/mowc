@@ -82,6 +82,21 @@ describe("POST /api/content-packs", () => {
     expect(res.body.createdAt).toBeTruthy();
   });
 
+  it("includes playbook and move counts for the pack list's content summary (0.11.7)", async () => {
+    const app = createTestApp();
+    const agent = await authedAgent(app);
+    const pack = loadExamplePack();
+    const expectedMoveCount = pack.basicMoves.length + pack.playbooks.reduce((sum, p) => sum + p.moves.length, 0);
+
+    const createRes = await agent.post("/api/content-packs").send(pack);
+    expect(createRes.body).toMatchObject({ playbookCount: pack.playbooks.length, moveCount: expectedMoveCount });
+
+    const listRes = await agent.get("/api/content-packs");
+    expect(listRes.body).toEqual([
+      expect.objectContaining({ id: pack.id, playbookCount: pack.playbooks.length, moveCount: expectedMoveCount })
+    ]);
+  });
+
   it("rejects a pack missing a required field with path-precise errors", async () => {
     const app = createTestApp();
     const agent = await authedAgent(app);

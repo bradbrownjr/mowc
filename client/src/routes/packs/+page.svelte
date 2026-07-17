@@ -177,6 +177,11 @@
               {/if}
             </span>
             <span class="pack-meta">{pack.author} - v{pack.version}</span>
+            <span class="pack-meta">
+              {pack.playbookCount} playbook{pack.playbookCount === 1 ? "" : "s"} - {pack.moveCount} move{pack.moveCount === 1
+                ? ""
+                : "s"}
+            </span>
           </a>
           {#if pack.ownerUserId === sessionState.user?.id}
             <button type="button" class="icon-button" onclick={() => onDelete(pack.id)} aria-label={`Delete ${pack.name}`}>

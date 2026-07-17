@@ -7,6 +7,8 @@ export interface PackSummary {
   name: string;
   author: string;
   version: string;
+  playbookCount: number;
+  moveCount: number;
   createdAt: string;
   updatedAt: string;
 }

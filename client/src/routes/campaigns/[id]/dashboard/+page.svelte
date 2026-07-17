@@ -7,6 +7,7 @@
   import { db, type LocalEntity } from "$lib/db.js";
   import { pull } from "$lib/sync.js";
   import EvidenceTag from "$lib/EvidenceTag.svelte";
+  import Stamp from "$lib/Stamp.svelte";
   import FieldNote from "$lib/FieldNote.svelte";
   import { GLOSS } from "$lib/glossary.js";
   import type { PageProps } from "./$types.js";
@@ -163,7 +164,11 @@
                     onclick={() => selectMystery(mystery.id)}
                   >
                     <span class="mystery-title">{mystery.title}</span>
-                    <EvidenceTag label={mystery.status} />
+                    {#if mystery.status === "resolved"}
+                      <Stamp label="Solved" />
+                    {:else}
+                      <EvidenceTag label={mystery.status} />
+                    {/if}
                   </button>
                 </li>
               {/each}
@@ -178,7 +183,11 @@
             <button type="button" class="submit-button back-to-list" onclick={backToList}>Back to list</button>
             <header class="sheet-header">
               <h2 class="section-title">{selectedMystery.title}</h2>
-              <EvidenceTag label={selectedMystery.status} />
+              {#if selectedMystery.status === "resolved"}
+                <Stamp label="Solved" />
+              {:else}
+                <EvidenceTag label={selectedMystery.status} />
+              {/if}
             </header>
 
             {#if selectedMystery.concept}

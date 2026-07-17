@@ -74,6 +74,18 @@ All notable changes to MOWC are documented here. Format follows
   module keeps the wording consistent app-wide), and the remaining plain
   "No X yet." empty states (My Campaigns, Content Packs) now explain what
   the thing is and point at the action to take.
+- Motif and theme polish (Phase 11 UI/UX, 0.11.7). The page background now
+  has a faint film-grain texture in both themes, matching the "field
+  notebook" look. Status markers (Unstable, Revealed, Solved) render as a
+  rotated stamp instead of a plain chip. The folder-tab navigation on
+  tablet/desktop now actually looks like folder tabs (angled sides,
+  overlapping the header line when active). The content pack list shows
+  how many playbooks and moves each pack holds instead of just the
+  author/version line, and the pack detail screen's move-rating tags now
+  match the rest of the app's evidence-tag styling. You can now switch
+  between Midnight Unit (dark) and Field Notes (light), or follow your
+  system setting, from the account menu; the choice is remembered on this
+  device.
 
 ### Fixed
 - The Characters, World, and Mysteries screens showed a duplicate "Create

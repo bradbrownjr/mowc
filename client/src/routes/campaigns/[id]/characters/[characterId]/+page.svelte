@@ -23,6 +23,7 @@
   } from "$lib/level-up.js";
   import { rollMove, type RollResult } from "$lib/dice.js";
   import EvidenceTag from "$lib/EvidenceTag.svelte";
+  import Stamp from "$lib/Stamp.svelte";
   import DiceBanner from "$lib/DiceBanner.svelte";
   import type { PageProps } from "./$types.js";
 
@@ -276,7 +277,7 @@
       <p class="meta">{resolved ? resolved.playbook.name : `Unknown playbook (${character.playbookId})`}</p>
       {#if character.unstable}
         <div class="unstable-row">
-          <span class="stamp">Unstable</span>
+          <Stamp label="Unstable" tone="danger" />
           <button type="button" class="text-button" onclick={clearUnstable}>Clear unstable</button>
         </div>
       {/if}

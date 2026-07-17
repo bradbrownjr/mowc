@@ -91,7 +91,7 @@
           {#each playbook.moves as move (move.id)}
             <li class="move">
               <span class="move-name">{move.name}</span>
-              {#if move.rating}<span class="tag">{move.rating}</span>{/if}
+              {#if move.rating}<EvidenceTag label={move.rating} />{/if}
               <p class="move-trigger">{move.trigger}</p>
             </li>
           {/each}
@@ -225,20 +225,6 @@
 
   .move-trigger {
     margin: var(--space-1) 0 0;
-    color: var(--ink-muted);
-  }
-
-  .tag {
-    display: inline-block;
-    margin-left: var(--space-2);
-    padding: 0 var(--space-2);
-    clip-path: polygon(0 0, 100% 0, 100% 100%, var(--tag-clip) 100%, 0 calc(100% - var(--tag-clip)));
-    background: var(--surface);
-    border: 1px solid var(--border);
-    font-family: var(--font-meta);
-    font-size: var(--text-xs);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
     color: var(--ink-muted);
   }
 </style>

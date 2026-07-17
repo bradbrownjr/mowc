@@ -17,6 +17,7 @@
   import { pull, writeEntity } from "$lib/sync.js";
   import RevealToggle from "$lib/RevealToggle.svelte";
   import FieldNote from "$lib/FieldNote.svelte";
+  import Stamp from "$lib/Stamp.svelte";
   import { GLOSS } from "$lib/glossary.js";
   import type { PageProps } from "./$types.js";
 
@@ -200,6 +201,8 @@
             </button>
           {/each}
         </div>
+      {:else if mystery.status === "resolved"}
+        <Stamp label="Solved" />
       {:else}
         <p class="meta">{mystery.status}</p>
       {/if}

@@ -36,6 +36,14 @@ interface ContentPackRow {
 }
 
 function toSummary(row: ContentPackRow) {
+  // Counts drive the pack list's content summary (docs/DESIGN.md Motifs,
+  // 0.11.7) instead of the previous Courier blurb wall; parsed from the
+  // stored payload rather than a denormalized column, matching the
+  // read-mostly access pattern here.
+  const pack = JSON.parse(row.payload) as { playbooks: { moves: unknown[] }[]; basicMoves: unknown[] };
+  const playbookCount = pack.playbooks.length;
+  const moveCount = pack.basicMoves.length + pack.playbooks.reduce((sum, p) => sum + p.moves.length, 0);
+
   return {
     id: row.id,
     ownerUserId: row.owner_user_id,
@@ -43,6 +51,8 @@ function toSummary(row: ContentPackRow) {
     name: row.name,
     author: row.author,
     version: row.version,
+    playbookCount,
+    moveCount,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
@@ -113,6 +123,8 @@ export function createContentPacksRouter(
       name: pack.name,
       author: pack.author,
       version: pack.version,
+      playbookCount: pack.playbooks.length,
+      moveCount: pack.basicMoves.length + pack.playbooks.reduce((sum, p) => sum + p.moves.length, 0),
       createdAt: now,
       updatedAt: now
     });
