@@ -15,6 +15,13 @@ export interface CampaignNavContext {
   id: string;
   name: string;
   isKeeper: boolean;
+  /**
+   * A hunter's own character id in this campaign, for the mobile bottom
+   * bar's "Sheet" tab (docs/DESIGN.md "App shell"): null while unknown or
+   * once confirmed the hunter has no character yet (the tab then falls
+   * back to the character builder). Always null for a Keeper.
+   */
+  ownCharacterId: string | null;
 }
 
 export const campaignNav = $state<{ current: CampaignNavContext | null }>({

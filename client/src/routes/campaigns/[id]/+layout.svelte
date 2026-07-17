@@ -2,21 +2,23 @@
   import { onDestroy } from "svelte";
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
-  import { LayoutList, ClipboardList } from "@lucide/svelte";
+  import { LayoutList, ClipboardList, Users, Globe, BookOpen, Settings } from "@lucide/svelte";
   import Icon from "$lib/Icon.svelte";
   import { sessionState } from "$lib/session.svelte";
   import { getCampaign } from "$lib/api/campaigns.js";
   import { campaignNav, setCampaignNav, clearCampaignNav } from "$lib/campaign-nav.svelte";
+  import { db } from "$lib/db.js";
+  import { pull } from "$lib/sync.js";
+  import type { Character } from "@mowc/shared";
   import type { LayoutProps } from "./$types.js";
 
   let { data, children }: LayoutProps = $props();
 
   // Publish campaign context to the shared module (docs/DESIGN.md app shell):
   // the root layout's bottom tab bar and this rail both read it, so it is the
-  // single source of truth (no duplicate local state). Overview is always
-  // shown; the Keeper Dashboard row appears only for the Keeper. Entity-type
-  // rows (Characters, World, Mysteries, Settings) land in 0.11.3 when they get
-  // real destinations, so we do not render dead links here.
+  // single source of truth (no duplicate local state). Overview and
+  // Characters/World are shown to everyone; Mysteries, Dashboard, and
+  // Settings are Keeper-only (docs/DESIGN.md "Campaign context rail").
   //
   // Keyed on data.id via $effect (not onMount): SvelteKit keeps this layout
   // mounted when navigating straight from one campaign to another, so the
@@ -25,15 +27,29 @@
     const id = data.id;
     // Optimistic default so the rail/bottom bar have something to show
     // before the fetch resolves; corrected on success.
-    setCampaignNav({ id, name: "Campaign", isKeeper: false });
+    setCampaignNav({ id, name: "Campaign", isKeeper: false, ownCharacterId: null });
     void getCampaign(id)
-      .then((campaign) => {
+      .then(async (campaign) => {
         if (data.id !== id) return; // navigated away mid-flight
-        setCampaignNav({
-          id,
-          name: campaign.name,
-          isKeeper: sessionState.user !== null && campaign.keeperUserId === sessionState.user.id
-        });
+        const isKeeper = sessionState.user !== null && campaign.keeperUserId === sessionState.user.id;
+        let ownCharacterId: string | null = null;
+        if (!isKeeper && sessionState.user) {
+          // Best-effort: the local mirror may not be populated yet if this
+          // is the first page visited in the campaign, in which case the
+          // bottom bar's "Sheet" tab falls back to the builder CTA until a
+          // page pulls (docs/SYNC.md); a fresh pull here closes that gap on
+          // the common case of entering straight from a campaign link.
+          await pull(id).catch(() => {});
+          const rows = await db.entities
+            .where("[campaignId+type]")
+            .equals([id, "character"])
+            .and((row) => !row.deleted)
+            .toArray();
+          const mine = rows.find((row) => (row.payload as unknown as Character).ownerUserId === sessionState.user?.id);
+          ownCharacterId = mine?.id ?? null;
+        }
+        if (data.id !== id) return; // navigated away mid-flight (post-await)
+        setCampaignNav({ id, name: campaign.name, isKeeper, ownCharacterId });
       })
       .catch(() => {
         // Offline or unauthorized: keep the optimistic default (Overview
@@ -51,7 +67,11 @@
 
   const isKeeper = $derived(campaignNav.current?.isKeeper ?? false);
   const overviewHref = $derived(resolve("/campaigns/[id]", { id: data.id }));
+  const charactersHref = $derived(resolve("/campaigns/[id]/characters", { id: data.id }));
+  const mysteriesHref = $derived(resolve("/campaigns/[id]/mysteries", { id: data.id }));
+  const worldHref = $derived(resolve("/campaigns/[id]/world", { id: data.id }));
   const dashboardHref = $derived(resolve("/campaigns/[id]/dashboard", { id: data.id }));
+  const settingsHref = $derived(resolve("/campaigns/[id]/settings", { id: data.id }));
   const current = $derived(normalize(page.url.pathname));
 </script>
 
@@ -61,10 +81,28 @@
       <Icon icon={LayoutList} size={18} />
       <span>Overview</span>
     </a>
+    <a class="rail-row" class:active={current === normalize(charactersHref)} href={resolve("/campaigns/[id]/characters", { id: data.id })}>
+      <Icon icon={Users} size={18} />
+      <span>Characters</span>
+    </a>
+    {#if isKeeper}
+      <a class="rail-row" class:active={current === normalize(mysteriesHref)} href={resolve("/campaigns/[id]/mysteries", { id: data.id })}>
+        <Icon icon={BookOpen} size={18} />
+        <span>Mysteries</span>
+      </a>
+    {/if}
+    <a class="rail-row" class:active={current === normalize(worldHref)} href={resolve("/campaigns/[id]/world", { id: data.id })}>
+      <Icon icon={Globe} size={18} />
+      <span>World</span>
+    </a>
     {#if isKeeper}
       <a class="rail-row" class:active={current === normalize(dashboardHref)} href={resolve("/campaigns/[id]/dashboard", { id: data.id })}>
         <Icon icon={ClipboardList} size={18} />
         <span>Dashboard</span>
+      </a>
+      <a class="rail-row" class:active={current === normalize(settingsHref)} href={resolve("/campaigns/[id]/settings", { id: data.id })}>
+        <Icon icon={Settings} size={18} />
+        <span>Settings</span>
       </a>
     {/if}
   </nav>

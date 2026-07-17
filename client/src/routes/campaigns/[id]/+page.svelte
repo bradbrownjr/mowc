@@ -1,20 +1,13 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
-  import type { Campaign, Character, Minion, Bystander, Location, Monster, Mystery } from "@mowc/shared";
+  import type { Campaign, Character, Mystery } from "@mowc/shared";
+  import type { ResolvedPathname } from "$app/types";
   import { sessionState } from "$lib/session.svelte";
-  import {
-    CampaignApiError,
-    createInvite,
-    getCampaign,
-    listInvites,
-    revokeInvite,
-    updateCampaign,
-    type InviteSummary
-  } from "$lib/api/campaigns.js";
-  import { listPacks, type PackSummary } from "$lib/api/contentPacks.js";
-  import { db } from "$lib/db.js";
+  import { getCampaign, listInvites } from "$lib/api/campaigns.js";
+  import { db, type LocalEntity } from "$lib/db.js";
   import { pull } from "$lib/sync.js";
+  import EmptyState from "$lib/EmptyState.svelte";
   import type { PageProps } from "./$types.js";
 
   let { data }: PageProps = $props();
@@ -22,47 +15,38 @@
   let campaign = $state<Campaign | null>(null);
   let loadError = $state<string | null>(null);
 
-  let invites = $state<InviteSummary[]>([]);
-  let newInviteCode = $state<string | null>(null);
-  let inviteError = $state<string | null>(null);
-  let creatingInvite = $state(false);
-
-  let packs = $state<PackSummary[]>([]);
-  let packsError = $state<string | null>(null);
-  let togglingPackId = $state<string | null>(null);
-
   let characters = $state<Character[]>([]);
-  let minions = $state<Minion[]>([]);
-  let bystanders = $state<Bystander[]>([]);
-  let locations = $state<Location[]>([]);
-  let monsters = $state<Monster[]>([]);
   let mysteries = $state<Mystery[]>([]);
+  let recentWorld = $state<LocalEntity[]>([]);
+  let inviteCount = $state<number | null>(null);
 
   const isKeeper = $derived(campaign !== null && sessionState.user !== null && campaign.keeperUserId === sessionState.user.id);
+  const ownCharacter = $derived(characters.find((c) => c.ownerUserId === sessionState.user?.id) ?? null);
+  const checklistDone = $derived(
+    campaign !== null && campaign.packIds.length > 0 && (inviteCount ?? 0) > 0 && mysteries.length > 0
+  );
 
-  async function refreshInvites(): Promise<void> {
-    try {
-      invites = await listInvites(data.id);
-    } catch {
-      inviteError = "Could not load invites.";
+  const WORLD_TYPES = ["monster", "minion", "bystander", "location"] as const;
+  const WORLD_LABELS: Record<(typeof WORLD_TYPES)[number], string> = {
+    monster: "Monster",
+    minion: "Minion",
+    bystander: "Bystander",
+    location: "Location"
+  };
+
+  function worldHref(type: (typeof WORLD_TYPES)[number], id: string): ResolvedPathname {
+    switch (type) {
+      case "monster":
+        return resolve("/campaigns/[id]/monsters/[monsterId]", { id: data.id, monsterId: id });
+      case "minion":
+        return resolve("/campaigns/[id]/minions/[minionId]", { id: data.id, minionId: id });
+      case "bystander":
+        return resolve("/campaigns/[id]/bystanders/[bystanderId]", { id: data.id, bystanderId: id });
+      case "location":
+        return resolve("/campaigns/[id]/locations/[locationId]", { id: data.id, locationId: id });
     }
   }
 
-  async function refreshPacks(): Promise<void> {
-    try {
-      packs = await listPacks();
-    } catch {
-      packsError = "Could not load content packs.";
-    }
-  }
-
-  /**
-   * Reads this campaign's characters from local IndexedDB. Pull already
-   * filters visibility server-side (hunters only ever receive their own
-   * character rows, Keepers receive everyone's, see
-   * server/src/entities/router.ts), so no extra client-side ownership
-   * filtering is needed here.
-   */
   async function loadCharacters(): Promise<void> {
     const rows = await db.entities
       .where("[campaignId+type]")
@@ -72,48 +56,6 @@
     characters = rows.map((row) => row.payload as unknown as Character).sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  async function loadMinions(): Promise<void> {
-    const rows = await db.entities
-      .where("[campaignId+type]")
-      .equals([data.id, "minion"])
-      .and((row) => !row.deleted)
-      .toArray();
-    minions = rows.map((row) => row.payload as unknown as Minion).sort((a, b) => a.name.localeCompare(b.name));
-  }
-
-  async function loadBystanders(): Promise<void> {
-    const rows = await db.entities
-      .where("[campaignId+type]")
-      .equals([data.id, "bystander"])
-      .and((row) => !row.deleted)
-      .toArray();
-    bystanders = rows.map((row) => row.payload as unknown as Bystander).sort((a, b) => a.name.localeCompare(b.name));
-  }
-
-  async function loadLocations(): Promise<void> {
-    const rows = await db.entities
-      .where("[campaignId+type]")
-      .equals([data.id, "location"])
-      .and((row) => !row.deleted)
-      .toArray();
-    locations = rows.map((row) => row.payload as unknown as Location).sort((a, b) => a.name.localeCompare(b.name));
-  }
-
-  /**
-   * Reads this campaign's monsters from local IndexedDB, Keeper only. Pull
-   * already filters unrevealed rows out for non-Keepers server-side (see
-   * server/src/entities/router.ts), and only the Keeper section renders
-   * this list, so no extra client-side filtering is needed here.
-   */
-  async function loadMonsters(): Promise<void> {
-    const rows = await db.entities
-      .where("[campaignId+type]")
-      .equals([data.id, "monster"])
-      .and((row) => !row.deleted)
-      .toArray();
-    monsters = rows.map((row) => row.payload as unknown as Monster).sort((a, b) => a.name.localeCompare(b.name));
-  }
-
   async function loadMysteries(): Promise<void> {
     const rows = await db.entities
       .where("[campaignId+type]")
@@ -121,6 +63,28 @@
       .and((row) => !row.deleted)
       .toArray();
     mysteries = rows.map((row) => row.payload as unknown as Mystery).sort((a, b) => a.title.localeCompare(b.title));
+  }
+
+  /**
+   * Loads world entities (monster/minion/bystander/location) as raw local
+   * rows (not just payload) so `updatedAt` is available for the Keeper's
+   * "recent" summary; a hunter's local rows are already revealed-gated
+   * server-side on pull, so this only ever reflects what they can see.
+   */
+  async function loadWorld(): Promise<void> {
+    const rows = await Promise.all(
+      WORLD_TYPES.map((type) =>
+        db.entities
+          .where("[campaignId+type]")
+          .equals([data.id, type])
+          .and((row) => !row.deleted)
+          .toArray()
+      )
+    );
+    recentWorld = rows
+      .flat()
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      .slice(0, 5);
   }
 
   $effect(() => {
@@ -135,8 +99,9 @@
         campaign = result;
         loadError = null;
         if (result.keeperUserId === sessionState.user?.id) {
-          void refreshInvites();
-          void refreshPacks();
+          listInvites(data.id)
+            .then((invites) => (inviteCount = invites.length))
+            .catch(() => (inviteCount = 0));
         }
       })
       .catch(() => {
@@ -150,51 +115,10 @@
       .catch(() => {})
       .finally(() => {
         void loadCharacters();
-        void loadMinions();
-        void loadBystanders();
-        void loadLocations();
-        void loadMonsters();
         void loadMysteries();
+        void loadWorld();
       });
   });
-
-  async function onTogglePack(packId: string): Promise<void> {
-    if (!campaign) return;
-    const attached = campaign.packIds.includes(packId);
-    const packIds = attached ? campaign.packIds.filter((id) => id !== packId) : [...campaign.packIds, packId];
-    togglingPackId = packId;
-    packsError = null;
-    try {
-      campaign = await updateCampaign(data.id, { packIds });
-    } catch (err) {
-      packsError = err instanceof CampaignApiError ? err.message : "Could not update content packs.";
-    } finally {
-      togglingPackId = null;
-    }
-  }
-
-  async function onCreateInvite(): Promise<void> {
-    creatingInvite = true;
-    inviteError = null;
-    try {
-      const invite = await createInvite(data.id);
-      newInviteCode = invite.code;
-      await refreshInvites();
-    } catch (err) {
-      inviteError = err instanceof CampaignApiError ? err.message : "Could not create an invite.";
-    } finally {
-      creatingInvite = false;
-    }
-  }
-
-  async function onRevoke(inviteId: string): Promise<void> {
-    try {
-      await revokeInvite(data.id, inviteId);
-      await refreshInvites();
-    } catch (err) {
-      inviteError = err instanceof CampaignApiError ? err.message : "Could not revoke that invite.";
-    }
-  }
 </script>
 
 <main class="page page--wide">
@@ -206,192 +130,139 @@
     <h1 class="title">{campaign.name}</h1>
     <p class="meta">{isKeeper ? "Keeper" : "Hunter"}</p>
 
-    <a class="submit-button" href={resolve("/campaigns/[id]/characters/new", { id: data.id })}>Create a character</a>
-
-    <section class="panel">
-      <h2 class="section-title">Characters</h2>
-      {#if characters.length > 0}
-        <ul class="invite-list">
-          {#each characters as character (character.id)}
-            <li class="invite-row">
-              <a
-                class="character-link"
-                href={resolve("/campaigns/[id]/characters/[characterId]", { id: data.id, characterId: character.id })}
-              >
-                {character.name}
-              </a>
-            </li>
-          {/each}
-        </ul>
-      {:else}
-        <p class="campaign-meta">No characters yet.</p>
-      {/if}
-    </section>
-
     {#if isKeeper}
+      {#if !checklistDone}
+        <section class="panel checklist">
+          <h2 class="section-title">Get set up</h2>
+          <ul class="checklist-list">
+            <li class="checklist-item" class:done={campaign.packIds.length > 0}>
+              <a href={resolve("/campaigns/[id]/settings", { id: data.id })}>Attach a content pack</a>
+            </li>
+            <li class="checklist-item" class:done={(inviteCount ?? 0) > 0}>
+              <a href={resolve("/campaigns/[id]/settings", { id: data.id })}>Invite your players</a>
+            </li>
+            <li class="checklist-item" class:done={mysteries.length > 0}>
+              <a href={resolve("/campaigns/[id]/mysteries/new", { id: data.id })}>Create your first mystery</a>
+            </li>
+          </ul>
+        </section>
+      {/if}
+
       <section class="panel">
         <h2 class="section-title">Mysteries</h2>
         <a class="submit-button" href={resolve("/campaigns/[id]/dashboard", { id: data.id })}>Open Keeper dashboard</a>
-        <a class="submit-button" href={resolve("/campaigns/[id]/mysteries/new", { id: data.id })}>Create a mystery</a>
         {#if mysteries.length > 0}
-          <ul class="invite-list">
-            {#each mysteries as mystery (mystery.id)}
-              <li class="invite-row">
-                <a
-                  class="character-link"
-                  href={resolve("/campaigns/[id]/mysteries/[mysteryId]", { id: data.id, mysteryId: mystery.id })}
-                >
+          <ul class="entity-list">
+            {#each mysteries.slice(0, 5) as mystery (mystery.id)}
+              <li class="entity-row">
+                <a class="entity-link" href={resolve("/campaigns/[id]/mysteries/[mysteryId]", { id: data.id, mysteryId: mystery.id })}>
                   {mystery.title}
                 </a>
-                <span class="campaign-meta">{mystery.status}</span>
+                <span class="entity-meta">{mystery.status}</span>
               </li>
             {/each}
           </ul>
+          {#if mysteries.length > 5}
+            <a class="see-all" href={resolve("/campaigns/[id]/mysteries", { id: data.id })}>See all mysteries</a>
+          {/if}
         {:else}
-          <p class="campaign-meta">No mysteries yet.</p>
+          <EmptyState
+            what="A mystery (one session's case) is the hook, countdown, cast, and locations your hunters investigate."
+            why="Create one to give the party something to solve."
+            ctaLabel="Create a mystery"
+            ctaHref={resolve("/campaigns/[id]/mysteries/new", { id: data.id })}
+          />
         {/if}
       </section>
 
       <section class="panel">
-        <h2 class="section-title">Monsters</h2>
-        <a class="submit-button" href={resolve("/campaigns/[id]/monsters/new", { id: data.id })}>Create a monster</a>
-        {#if monsters.length > 0}
-          <ul class="invite-list">
-            {#each monsters as monster (monster.id)}
-              <li class="invite-row">
+        <h2 class="section-title">Party</h2>
+        <a class="submit-button" href={resolve("/campaigns/[id]/characters/new", { id: data.id })}>Create a character</a>
+        {#if characters.length > 0}
+          <ul class="entity-list">
+            {#each characters as character (character.id)}
+              <li class="entity-row">
                 <a
-                  class="character-link"
-                  href={resolve("/campaigns/[id]/monsters/[monsterId]", { id: data.id, monsterId: monster.id })}
+                  class="entity-link"
+                  href={resolve("/campaigns/[id]/characters/[characterId]", { id: data.id, characterId: character.id })}
                 >
-                  {monster.name}
+                  {character.name}
                 </a>
               </li>
             {/each}
           </ul>
         {:else}
-          <p class="campaign-meta">No monsters yet.</p>
+          <EmptyState
+            what="A character (a hunter's playbook sheet) is who a player plays as when they take on the monsters."
+            why="Your players create characters after joining with an invite code."
+            ctaLabel="Create a character"
+            ctaHref={resolve("/campaigns/[id]/characters/new", { id: data.id })}
+          />
         {/if}
       </section>
 
       <section class="panel">
-        <h2 class="section-title">Content packs</h2>
-        {#if packsError}
-          <p class="error">{packsError}</p>
-        {/if}
-        {#if packs.length > 0}
-          <ul class="invite-list">
-            {#each packs as pack (pack.id)}
-              {@const attached = campaign.packIds.includes(pack.id)}
-              <li class="invite-row">
-                <span class="campaign-meta">{pack.name} - {pack.author}</span>
-                <button
-                  type="button"
-                  class="toggle-button"
-                  class:attached
-                  onclick={() => onTogglePack(pack.id)}
-                  disabled={togglingPackId === pack.id}
-                >
-                  {attached ? "Detach" : "Attach"}
-                </button>
-              </li>
-            {/each}
-          </ul>
-        {:else}
-          <p class="campaign-meta">No content packs uploaded yet. <a href={resolve("/packs/new")}>Upload one</a>.</p>
-        {/if}
-      </section>
-
-      <section class="panel">
-        <h2 class="section-title">Invite codes</h2>
-        <button type="button" class="submit-button" onclick={onCreateInvite} disabled={creatingInvite}>
-          {creatingInvite ? "Generating..." : "Generate invite code"}
-        </button>
-
-        {#if newInviteCode}
-          <p class="invite-code">Code: <strong>{newInviteCode}</strong> (shown once, share it with your hunter)</p>
-        {/if}
-        {#if inviteError}
-          <p class="error">{inviteError}</p>
-        {/if}
-
-        {#if invites.length > 0}
-          <ul class="invite-list">
-            {#each invites as invite (invite.id)}
-              <li class="invite-row">
-                <span class="campaign-meta">
-                  {invite.revoked ? "Revoked" : `Expires ${new Date(invite.expiresAt).toLocaleString()}`}
-                </span>
-                {#if !invite.revoked}
-                  <button type="button" class="icon-button" onclick={() => onRevoke(invite.id)}>Revoke</button>
-                {/if}
-              </li>
-            {/each}
-          </ul>
-        {:else}
-          <p class="campaign-meta">No invite codes yet.</p>
-        {/if}
-      </section>
-
-      <section class="panel">
-        <h2 class="section-title">Minions</h2>
-        <a class="submit-button" href={resolve("/campaigns/[id]/minions/new", { id: data.id })}>Create a minion</a>
-        {#if minions.length > 0}
-          <ul class="invite-list">
-            {#each minions as minion (minion.id)}
-              <li class="invite-row">
-                <a
-                  class="character-link"
-                  href={resolve("/campaigns/[id]/minions/[minionId]", { id: data.id, minionId: minion.id })}
-                >
-                  {minion.name}
+        <h2 class="section-title">Recent world entities</h2>
+        <a class="submit-button" href={resolve("/campaigns/[id]/world", { id: data.id })}>Open World</a>
+        {#if recentWorld.length > 0}
+          <ul class="entity-list">
+            {#each recentWorld as row (row.id)}
+              <li class="entity-row">
+                <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- worldHref() always returns a resolve()d path, dispatched by row.type -->
+                <a class="entity-link" href={worldHref(row.type as (typeof WORLD_TYPES)[number], row.id)}>
+                  {(row.payload as { name: string }).name}
                 </a>
+                <span class="entity-meta">{WORLD_LABELS[row.type as (typeof WORLD_TYPES)[number]]}</span>
               </li>
             {/each}
           </ul>
         {:else}
-          <p class="campaign-meta">No minions yet.</p>
+          <EmptyState
+            what="Monsters, minions, bystanders, and locations are the cast and scenery of your case."
+            why="Create them from the World page as you build out the mystery."
+            ctaLabel="Open World"
+            ctaHref={resolve("/campaigns/[id]/world", { id: data.id })}
+          />
+        {/if}
+      </section>
+    {:else}
+      <section class="panel">
+        <h2 class="section-title">Your character</h2>
+        {#if ownCharacter}
+          <a class="entity-link" href={resolve("/campaigns/[id]/characters/[characterId]", { id: data.id, characterId: ownCharacter.id })}>
+            {ownCharacter.name}
+          </a>
+        {:else}
+          <EmptyState
+            what="A character (your playbook sheet) is who you play as when you take on the monsters."
+            why="Create one to join the case."
+            ctaLabel="Create a character"
+            ctaHref={resolve("/campaigns/[id]/characters/new", { id: data.id })}
+          />
         {/if}
       </section>
 
       <section class="panel">
-        <h2 class="section-title">Bystanders</h2>
-        <a class="submit-button" href={resolve("/campaigns/[id]/bystanders/new", { id: data.id })}>Create a bystander</a>
-        {#if bystanders.length > 0}
-          <ul class="invite-list">
-            {#each bystanders as bystander (bystander.id)}
-              <li class="invite-row">
-                <a
-                  class="character-link"
-                  href={resolve("/campaigns/[id]/bystanders/[bystanderId]", { id: data.id, bystanderId: bystander.id })}
-                >
-                  {bystander.name}
+        <h2 class="section-title">World</h2>
+        {#if recentWorld.length > 0}
+          <ul class="entity-list">
+            {#each recentWorld as row (row.id)}
+              <li class="entity-row">
+                <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- worldHref() always returns a resolve()d path, dispatched by row.type -->
+                <a class="entity-link" href={worldHref(row.type as (typeof WORLD_TYPES)[number], row.id)}>
+                  {(row.payload as { name: string }).name}
                 </a>
+                <span class="entity-meta">{WORLD_LABELS[row.type as (typeof WORLD_TYPES)[number]]}</span>
               </li>
             {/each}
           </ul>
+          <a class="see-all" href={resolve("/campaigns/[id]/world", { id: data.id })}>See everything revealed</a>
         {:else}
-          <p class="campaign-meta">No bystanders yet.</p>
-        {/if}
-      </section>
-
-      <section class="panel">
-        <h2 class="section-title">Locations</h2>
-        <a class="submit-button" href={resolve("/campaigns/[id]/locations/new", { id: data.id })}>Create a location</a>
-        {#if locations.length > 0}
-          <ul class="invite-list">
-            {#each locations as location (location.id)}
-              <li class="invite-row">
-                <a
-                  class="character-link"
-                  href={resolve("/campaigns/[id]/locations/[locationId]", { id: data.id, locationId: location.id })}
-                >
-                  {location.name}
-                </a>
-              </li>
-            {/each}
-          </ul>
-        {:else}
-          <p class="campaign-meta">No locations yet.</p>
+          <EmptyState
+            what="Monsters, minions, bystanders, and locations are the cast and scenery of your case."
+            why=""
+            >Your Keeper reveals these here as you discover them.</EmptyState
+          >
         {/if}
       </section>
     {/if}
@@ -474,24 +345,7 @@
     text-decoration: none;
   }
 
-  .submit-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .submit-button:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-
-  .invite-code {
-    margin: 0;
-    color: var(--ink);
-    font-family: var(--font-body);
-    font-size: var(--text-sm);
-  }
-
-  .invite-list {
+  .entity-list {
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
@@ -501,7 +355,7 @@
     width: 100%;
   }
 
-  .invite-row {
+  .entity-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -512,7 +366,7 @@
     border-radius: var(--radius-md);
   }
 
-  .campaign-meta {
+  .entity-meta {
     font-family: var(--font-meta);
     font-size: var(--text-xs);
     letter-spacing: 0.08em;
@@ -520,7 +374,7 @@
     color: var(--ink-muted);
   }
 
-  .character-link {
+  .entity-link {
     min-height: var(--tap-min);
     display: flex;
     align-items: center;
@@ -530,55 +384,42 @@
     text-decoration: none;
   }
 
-  .character-link:focus-visible {
+  .entity-link:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
 
-  .icon-button {
-    min-height: var(--tap-min);
-    padding: var(--space-1) var(--space-3);
-    background: var(--surface);
-    color: var(--danger);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    cursor: pointer;
+  .see-all {
+    align-self: flex-start;
+    color: var(--ink-muted);
     font-family: var(--font-meta);
     font-size: var(--text-xs);
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
 
-  .icon-button:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+  .checklist {
+    border-style: dashed;
   }
 
-  .toggle-button {
-    min-height: var(--tap-min);
-    padding: var(--space-1) var(--space-3);
-    background: var(--surface);
+  .checklist-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+  }
+
+  .checklist-item a {
     color: var(--ink);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    font-family: var(--font-meta);
-    font-size: var(--text-xs);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-family: var(--font-body);
+    font-size: var(--text-base);
   }
 
-  .toggle-button.attached {
-    color: var(--danger);
-  }
-
-  .toggle-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .toggle-button:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+  .checklist-item.done a {
+    color: var(--ink-muted);
+    text-decoration: line-through;
   }
 </style>

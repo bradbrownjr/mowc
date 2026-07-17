@@ -5,7 +5,7 @@
   import "@fontsource/alegreya-sans";
   import "@fontsource/courier-prime";
   import "$lib/styles.css";
-  import { House, Library, Package, CircleUser, LogOut, ChevronDown, LayoutList, ClipboardList } from "@lucide/svelte";
+  import { House, Library, Package, CircleUser, LogOut, ChevronDown, LayoutList, BookOpen, Globe, ScrollText } from "@lucide/svelte";
   import InstallButton from "$lib/InstallButton.svelte";
   import Footer from "$lib/Footer.svelte";
   import Icon from "$lib/Icon.svelte";
@@ -88,10 +88,12 @@
 
 {#if sessionState.user}
   <!-- Mobile bottom tab bar (docs/DESIGN.md "App shell"): destinations
-       switch when inside a campaign. Sheet/World/Mysteries-list rows arrive
-       with 0.11.3 once those routes exist; until then the campaign set uses
-       only real destinations (Overview, Keeper Prep, back to Campaigns).
-       hrefs inline resolve() per the repo's navigation convention. -->
+       switch when inside a campaign (Overview, Sheet-or-Mysteries, World,
+       Campaigns) vs outside (Home, Campaigns, Packs, Account). The Account
+       tab is dropped inside a campaign to hold the line to four
+       destinations; the top bar's account button stays reachable on mobile
+       either way (never hidden below 768px). hrefs inline resolve() per the
+       repo's navigation convention. -->
   <nav class="bottom-bar" aria-label="Primary">
     {#if campaignNav.current}
       <a class="bottom-tab" class:active={isActive(resolve("/campaigns/[id]", { id: campaignNav.current.id }))} href={resolve("/campaigns/[id]", { id: campaignNav.current.id })}>
@@ -99,16 +101,25 @@
         <span class="bottom-label">Overview</span>
       </a>
       {#if campaignNav.current.isKeeper}
-        <a class="bottom-tab" class:active={isActive(resolve("/campaigns/[id]/dashboard", { id: campaignNav.current.id }))} href={resolve("/campaigns/[id]/dashboard", { id: campaignNav.current.id })}>
-          <Icon icon={ClipboardList} size={20} />
-          <span class="bottom-label">Prep</span>
+        <a class="bottom-tab" class:active={isActive(resolve("/campaigns/[id]/mysteries", { id: campaignNav.current.id }))} href={resolve("/campaigns/[id]/mysteries", { id: campaignNav.current.id })}>
+          <Icon icon={BookOpen} size={20} />
+          <span class="bottom-label">Mysteries</span>
+        </a>
+      {:else if campaignNav.current.ownCharacterId}
+        <a class="bottom-tab" class:active={isActive(resolve("/campaigns/[id]/characters/[characterId]", { id: campaignNav.current.id, characterId: campaignNav.current.ownCharacterId }))} href={resolve("/campaigns/[id]/characters/[characterId]", { id: campaignNav.current.id, characterId: campaignNav.current.ownCharacterId })}>
+          <Icon icon={ScrollText} size={20} />
+          <span class="bottom-label">Sheet</span>
         </a>
       {:else}
-        <a class="bottom-tab" class:active={isActive(resolve("/packs"))} href={resolve("/packs")}>
-          <Icon icon={Package} size={20} />
-          <span class="bottom-label">Packs</span>
+        <a class="bottom-tab" class:active={isActive(resolve("/campaigns/[id]/characters/new", { id: campaignNav.current.id }))} href={resolve("/campaigns/[id]/characters/new", { id: campaignNav.current.id })}>
+          <Icon icon={ScrollText} size={20} />
+          <span class="bottom-label">Sheet</span>
         </a>
       {/if}
+      <a class="bottom-tab" class:active={isActive(resolve("/campaigns/[id]/world", { id: campaignNav.current.id }))} href={resolve("/campaigns/[id]/world", { id: campaignNav.current.id })}>
+        <Icon icon={Globe} size={20} />
+        <span class="bottom-label">World</span>
+      </a>
       <a class="bottom-tab" class:active={isActive(resolve("/campaigns"))} href={resolve("/campaigns")}>
         <Icon icon={Library} size={20} />
         <span class="bottom-label">Campaigns</span>
@@ -126,18 +137,18 @@
         <Icon icon={Package} size={20} />
         <span class="bottom-label">Packs</span>
       </a>
+      <button
+        type="button"
+        class="bottom-tab"
+        class:active={accountOpen}
+        aria-haspopup="menu"
+        aria-expanded={accountOpen}
+        onclick={() => (accountOpen = !accountOpen)}
+      >
+        <Icon icon={CircleUser} size={20} />
+        <span class="bottom-label">Account</span>
+      </button>
     {/if}
-    <button
-      type="button"
-      class="bottom-tab"
-      class:active={accountOpen}
-      aria-haspopup="menu"
-      aria-expanded={accountOpen}
-      onclick={() => (accountOpen = !accountOpen)}
-    >
-      <Icon icon={CircleUser} size={20} />
-      <span class="bottom-label">Account</span>
-    </button>
   </nav>
 {/if}
 

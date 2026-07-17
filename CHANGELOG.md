@@ -23,6 +23,21 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+### Changed
+- Campaign hub restructure (Phase 11 UI/UX, 0.11.3). The single campaign
+  page that stacked eight sections (Characters, Mysteries, Monsters,
+  Content Packs, Invites, Minions, Bystanders, Locations) is replaced by a
+  role-aware Overview plus dedicated Characters, World, Mysteries, and
+  Settings screens reachable from the context rail and mobile bottom bar.
+  A hunter's Overview leads with their own character (or a "Create a
+  character" prompt) and what's been revealed of the world; a Keeper's
+  Overview leads with mysteries, party, and recently touched world
+  entities, plus a first-run checklist (attach a pack, invite players,
+  create a mystery) that disappears once done. Content pack attach/detach
+  and invite codes move to a new Keeper-only Settings screen.
+- Empty states across the new campaign screens now explain what the thing
+  is and why you'd create one instead of a bare "No X yet."
+
 ## [0.10.7] - 2026-07-16
 
 ### Fixed
