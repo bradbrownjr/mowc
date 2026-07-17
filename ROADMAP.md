@@ -406,7 +406,7 @@ viewports are part of the milestone's Definition of Done.
       parenthetical gloss on first use per screen, e.g. "Keeper (the
       person running the game)". All copy patterns use original wording,
       never Evil Hat text (AGENTS.md rule 1).
-- [ ] App shell and layout scaffold - 0.11.2 [Opus]
+- [x] App shell and layout scaffold - 0.11.2 [Opus]
       Implement 0.11.1 across every route: shared container class in
       `styles.css`, responsive nav shell in `+layout.svelte` (desktop
       folder tabs + campaign context rail, mobile bottom tab bar, account
