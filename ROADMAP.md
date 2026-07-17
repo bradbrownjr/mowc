@@ -413,7 +413,7 @@ viewports are part of the milestone's Definition of Done.
       menu replacing the overflowing log-out label), and adopt the
       container in all routes, deleting the per-route `max-width` rules.
       Cross-cutting and mechanical-but-wide; fixes findings 1, 2, 4.
-- [ ] Campaign hub restructure - 0.11.3 [Sonnet]
+- [x] Campaign hub restructure - 0.11.3 [Sonnet]
       Fixes finding 3. Role-aware campaign overview: a hunter lands on
       their character (or the builder CTA) plus revealed world entities;
       the Keeper lands on prep (mysteries, party, recent entities).
