@@ -10,6 +10,7 @@
   import StepIndicator from "$lib/StepIndicator.svelte";
   import FieldNote from "$lib/FieldNote.svelte";
   import EvidenceTag from "$lib/EvidenceTag.svelte";
+  import { GLOSS } from "$lib/glossary.js";
   import {
     buildCharacterPayload,
     emptyWizardState,
@@ -166,7 +167,7 @@
     <p class="meta">Loading...</p>
   {:else if availablePlaybooks.length === 0}
     <h1 class="title">New character</h1>
-    <p class="meta">Ask your Keeper to attach a content pack with playbooks.</p>
+    <p class="meta">Ask your {GLOSS.keeper} to attach a content pack with playbooks.</p>
   {:else}
     <h1 class="title">New character</h1>
     <StepIndicator steps={STEP_LABELS} current={currentStep} />

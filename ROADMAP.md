@@ -438,7 +438,7 @@ viewports are part of the milestone's Definition of Done.
       line in plain language (original text). A disabled Next says why
       ("Pick 2 more moves"). The review step renders a compact preview of
       the sheet being created, not just a list.
-- [ ] Onboarding and plain language - 0.11.6 [Sonnet]
+- [x] Onboarding and plain language - 0.11.6 [Sonnet]
       Fixes finding 5 everywhere else. Landing page becomes two role
       paths: "I'm running the game" (create a campaign, what a Keeper
       does, where content packs come from) and "I'm joining a game"

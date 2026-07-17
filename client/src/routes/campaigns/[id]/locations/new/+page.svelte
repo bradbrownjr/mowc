@@ -8,6 +8,7 @@
   import { writeEntity } from "$lib/sync.js";
   import { buildLocationPayload, locationFormReason } from "$lib/world-entity-builder.js";
   import FieldNote from "$lib/FieldNote.svelte";
+  import { GLOSS } from "$lib/glossary.js";
   import type { PageProps } from "./$types.js";
 
   let { data }: PageProps = $props();
@@ -37,7 +38,7 @@
         isKeeper = result.keeperUserId === sessionState.user?.id;
         loadError = null;
         if (!isKeeper) {
-          loadError = "Only the Keeper can create locations.";
+          loadError = `Only the ${GLOSS.keeper} can create locations.`;
         }
       })
       .catch((err) => {
@@ -91,7 +92,7 @@
   {:else if !campaign}
     <p class="meta">Loading...</p>
   {:else if !isKeeper}
-    <p class="error">Only the Keeper can create locations.</p>
+    <p class="error">Only the {GLOSS.keeper} can create locations.</p>
   {:else}
     <h1 class="title">New location</h1>
 

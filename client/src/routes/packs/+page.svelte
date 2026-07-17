@@ -8,6 +8,7 @@
   import { sessionState } from "$lib/session.svelte";
   import Icon from "$lib/Icon.svelte";
   import EvidenceTag from "$lib/EvidenceTag.svelte";
+  import EmptyState from "$lib/EmptyState.svelte";
   import { FileText, Plus, Trash2, Upload } from "@lucide/svelte";
 
   interface ImportResultRow {
@@ -160,7 +161,10 @@
   {#if loadError}
     <p class="error">{loadError}</p>
   {:else if packs.length === 0}
-    <p class="meta">No content packs yet.</p>
+    <EmptyState
+      what="A content pack holds the playbooks, moves, and monster types you build campaigns from."
+      why="Upload one above, or import a file someone shared with you."
+    />
   {:else}
     <ul class="pack-list">
       {#each packs as pack (pack.id)}

@@ -10,6 +10,7 @@
   import StepIndicator from "$lib/StepIndicator.svelte";
   import FieldNote from "$lib/FieldNote.svelte";
   import EvidenceTag from "$lib/EvidenceTag.svelte";
+  import { GLOSS } from "$lib/glossary.js";
   import {
     armorHarmStepReason,
     attacksStepReason,
@@ -196,7 +197,7 @@
   {#if loadError}
     <p class="error">{loadError}</p>
   {:else if notKeeper}
-    <p class="error">Only the Keeper can create a monster.</p>
+    <p class="error">Only the {GLOSS.keeper} can create a monster.</p>
   {:else if created}
     <h1 class="title">Monster created</h1>
     <p class="meta">{created.name} lurks in the shadows.</p>

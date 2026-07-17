@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
+  import { page } from "$app/state";
   import { login } from "$lib/session.svelte";
   import { AuthApiError } from "$lib/api/auth.js";
 
@@ -9,13 +10,16 @@
   let error = $state<string | null>(null);
   let submitting = $state(false);
 
+  const intent = $derived(page.url.searchParams.get("intent"));
+
   async function onSubmit(e: SubmitEvent): Promise<void> {
     e.preventDefault();
     submitting = true;
     error = null;
     try {
       await login({ email, password });
-      await goto(resolve("/campaigns"));
+      // eslint-disable-next-line svelte/no-navigation-without-resolve -- href is resolve("/campaigns") with a static query string appended, same pattern as EmptyState.svelte's ctaHref
+      await goto(intent ? `${resolve("/campaigns")}?intent=${intent}` : resolve("/campaigns"));
     } catch (err) {
       error = err instanceof AuthApiError ? err.message : "Could not log in.";
     } finally {
@@ -46,7 +50,8 @@
     </button>
   </form>
 
-  <a class="nav-link" href={resolve("/register")}>Need an account? Register</a>
+  <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- href is resolve("/register") with a static query string appended, same pattern as EmptyState.svelte's ctaHref -->
+  <a class="nav-link" href={intent ? `${resolve("/register")}?intent=${intent}` : resolve("/register")}>Need an account? Register</a>
 </main>
 
 <style>

@@ -7,6 +7,8 @@
   import { db, type LocalEntity } from "$lib/db.js";
   import { pull } from "$lib/sync.js";
   import EvidenceTag from "$lib/EvidenceTag.svelte";
+  import FieldNote from "$lib/FieldNote.svelte";
+  import { GLOSS } from "$lib/glossary.js";
   import type { PageProps } from "./$types.js";
 
   let { data }: PageProps = $props();
@@ -126,11 +128,12 @@
   {#if loadError}
     <p class="error">{loadError}</p>
   {:else if notKeeper}
-    <p class="error">Only the Keeper has a dashboard.</p>
+    <p class="error">Only the {GLOSS.keeper} has a dashboard.</p>
   {:else if !campaign}
     <p class="meta">Loading...</p>
   {:else}
     <h1 class="title">{campaign.name} - Keeper dashboard</h1>
+    <FieldNote>This is your prep space as the {GLOSS.keeper}: mysteries, arc notes, and session prep in one place.</FieldNote>
 
     <section class="panel">
       <h2 class="section-title">Arc notes</h2>

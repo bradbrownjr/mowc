@@ -65,6 +65,15 @@ All notable changes to MOWC are documented here. Format follows
   review step at the end of each wizard is now a compact preview of the
   thing you're about to create instead of a plain list of labels and
   values.
+- Onboarding and plain language (Phase 11 UI/UX, 0.11.6). The home page for
+  a signed-out visitor is now two role paths, "I'm running the game" and
+  "I'm joining a game", each explaining the role and leading straight into
+  Register; joining a game carries through to a My Campaigns page with the
+  "Join with invite code" panel shown first. Every screen that mentions
+  "Keeper" now explains what one is on that same screen (a shared glossary
+  module keeps the wording consistent app-wide), and the remaining plain
+  "No X yet." empty states (My Campaigns, Content Packs) now explain what
+  the thing is and point at the action to take.
 
 ### Fixed
 - The Characters, World, and Mysteries screens showed a duplicate "Create

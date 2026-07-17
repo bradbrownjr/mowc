@@ -14,6 +14,7 @@
   } from "$lib/api/campaigns.js";
   import { listPacks, type PackSummary } from "$lib/api/contentPacks.js";
   import FieldNote from "$lib/FieldNote.svelte";
+  import { GLOSS } from "$lib/glossary.js";
   import type { PageProps } from "./$types.js";
 
   let { data }: PageProps = $props();
@@ -114,13 +115,13 @@
   <h1 class="title">Campaign settings</h1>
   <FieldNote>
     Content packs give you the playbooks and monster types to build from; invite codes are how your hunters join this
-    campaign. Both are Keeper-only.
+    campaign. Both are for the {GLOSS.keeper} only.
   </FieldNote>
 
   {#if loadError}
     <p class="error">{loadError}</p>
   {:else if notKeeper}
-    <p class="error">Only the Keeper (the person running the game) can change campaign settings.</p>
+    <p class="error">Only the {GLOSS.keeper} can change campaign settings.</p>
   {:else if campaign}
     <section class="panel">
       <h2 class="section-title">Content packs</h2>

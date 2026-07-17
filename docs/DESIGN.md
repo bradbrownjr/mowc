@@ -229,8 +229,8 @@ never heard the word Keeper.
   action your character can roll dice for)", "mystery (one session's
   case)". Descriptions are our own wording, never quoted game text.
 - Gloss strings live in one module, `client/src/lib/glossary.ts`
-  (lands with 0.11.6); screens import them, never retype them, so the
-  wording stays consistent app-wide.
+  (landed 0.11.6, exports `GLOSS`); screens import them, never retype
+  them, so the wording stays consistent app-wide.
 
 ## Motion
 
@@ -263,7 +263,7 @@ never heard the word Keeper.
 
 | Component | File | Notes |
 |---|---|---|
-| FieldNote | `client/src/lib/FieldNote.svelte` | The guidance-copy pattern (the "Guidance copy" section): a short helper note placed directly under a heading or label, body font at `--text-base`, italic, `--ink-muted`. Copy is passed as children so callers can include a glossary term inline. Landed with 0.11.2 (shell scaffold); first content user is the campaign Overview's brief role explainer under the "Keeper"/"Hunter" label (0.11.3, original wording, not a game-text quote); the full builder guidance pass (0.11.5) and onboarding sweep (0.11.6) follow. |
+| FieldNote | `client/src/lib/FieldNote.svelte` | The guidance-copy pattern (the "Guidance copy" section): a short helper note placed directly under a heading or label, body font at `--text-base`, italic, `--ink-muted`. Copy is passed as children so callers can include a glossary term inline. Landed with 0.11.2 (shell scaffold); first content user is the campaign Overview's brief role explainer under the "Keeper"/"Hunter" label (0.11.3, original wording, not a game-text quote); the full builder guidance pass (0.11.5) and onboarding sweep (0.11.6) followed, the latter also making every screen's first "Keeper" mention import its gloss from `client/src/lib/glossary.ts` rather than retyping it. |
 | InstallButton | `client/src/lib/InstallButton.svelte` | Fixed bottom-right PWA install affordance; shown only when `beforeinstallprompt` fired. Tokens only (accent border, meta font). |
 | StepIndicator | `client/src/lib/StepIndicator.svelte` | Numbered wizard progress rail for Builders (the "Layout" section's Builders line). Props: `steps: string[]`, `current: number`. Purely presentational; current step gets an accent border, completed (`done`) steps a filled `--surface-2` background, upcoming (`locked`) steps get muted `--ink-muted` text plus a small `Lock` icon (0.11.5, wizards are linear so a locked step isn't reachable by tapping ahead). First user: the character builder wizard (`campaigns/[id]/characters/new`); also used by the monster and mystery builders. |
 | EvidenceTag | `client/src/lib/EvidenceTag.svelte` | The "evidence tag" motif: rectangular chip, one clipped corner (`--tag-clip`), Courier label. Props: `label: string`. First user: the character sheet's move/gear tags (`campaigns/[id]/characters/[characterId]`). `client/src/routes/packs/[id]/+page.svelte` has an earlier inline `.tag` style predating this component; not yet migrated (out of scope for the change that added this row). |

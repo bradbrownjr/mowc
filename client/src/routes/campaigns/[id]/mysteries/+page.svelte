@@ -8,6 +8,7 @@
   import { pull } from "$lib/sync.js";
   import EmptyState from "$lib/EmptyState.svelte";
   import FieldNote from "$lib/FieldNote.svelte";
+  import { GLOSS } from "$lib/glossary.js";
   import type { PageProps } from "./$types.js";
 
   let { data }: PageProps = $props();
@@ -52,12 +53,12 @@
 <main class="page page--wide">
   <a class="back-link" href={resolve("/campaigns/[id]", { id: data.id })}>Back to overview</a>
   <h1 class="title">Mysteries</h1>
-  <FieldNote>Mysteries are Keeper-only to build; your hunters experience them through play, not this list.</FieldNote>
+  <FieldNote>Mysteries are built by the {GLOSS.keeper} only; your hunters experience them through play, not this list.</FieldNote>
 
   {#if loadError}
     <p class="error">{loadError}</p>
   {:else if notKeeper}
-    <p class="error">Only the Keeper (the person running the game) can see mysteries.</p>
+    <p class="error">Only the {GLOSS.keeper} can see mysteries.</p>
   {:else}
     <a class="submit-button" href={resolve("/campaigns/[id]/dashboard", { id: data.id })}>Open Keeper dashboard</a>
 
@@ -75,7 +76,7 @@
       </ul>
     {:else}
       <EmptyState
-        what="A mystery (one session's case) is the hook, countdown, cast, and locations your hunters investigate."
+        what={`A ${GLOSS.mystery} is the hook, countdown, cast, and locations your hunters investigate.`}
         why="Create one to give the party something to solve."
         ctaLabel="Create a mystery"
         ctaHref={resolve("/campaigns/[id]/mysteries/new", { id: data.id })}

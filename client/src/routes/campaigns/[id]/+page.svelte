@@ -9,6 +9,7 @@
   import { pull } from "$lib/sync.js";
   import EmptyState from "$lib/EmptyState.svelte";
   import FieldNote from "$lib/FieldNote.svelte";
+  import { GLOSS } from "$lib/glossary.js";
   import type { PageProps } from "./$types.js";
 
   let { data }: PageProps = $props();
@@ -132,11 +133,11 @@
     <p class="meta">{isKeeper ? "Keeper" : "Hunter"}</p>
     <FieldNote>
       {#if isKeeper}
-        You are the Keeper (the person running the game). You build the mystery, the monsters, and the world, then reveal
-        pieces of it to your hunters as they investigate.
+        You are the {GLOSS.keeper}. You build the mystery, the monsters, and the world, then reveal pieces of it to your
+        hunters as they investigate.
       {:else}
-        You are a hunter (a player investigating the case). Your Keeper builds the mystery and reveals the world as you
-        explore it; focus on your character, the clues, and the people you meet.
+        You are a {GLOSS.hunter}. Your {GLOSS.keeper} builds the mystery and reveals the world as you explore it; focus
+        on your character, the clues, and the people you meet.
       {/if}
     </FieldNote>
 
@@ -177,7 +178,7 @@
           {/if}
         {:else}
           <EmptyState
-            what="A mystery (one session's case) is the hook, countdown, cast, and locations your hunters investigate."
+            what={`A ${GLOSS.mystery} is the hook, countdown, cast, and locations your hunters investigate.`}
             why="Create one to give the party something to solve."
             ctaLabel="Create a mystery"
             ctaHref={resolve("/campaigns/[id]/mysteries/new", { id: data.id })}

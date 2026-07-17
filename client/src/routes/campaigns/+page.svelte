@@ -1,9 +1,13 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
+  import { page } from "$app/state";
   import type { Campaign } from "@mowc/shared";
   import { sessionState } from "$lib/session.svelte";
   import { CampaignApiError, createCampaign, listCampaigns, redeemInvite } from "$lib/api/campaigns.js";
+  import { GLOSS } from "$lib/glossary.js";
+  import FieldNote from "$lib/FieldNote.svelte";
+  import EmptyState from "$lib/EmptyState.svelte";
 
   let campaigns = $state<Campaign[]>([]);
   let loaded = $state(false);
@@ -16,6 +20,8 @@
   let inviteCode = $state("");
   let joining = $state(false);
   let joinError = $state<string | null>(null);
+
+  const joinFirst = $derived(page.url.searchParams.get("intent") === "join");
 
   async function refresh(): Promise<void> {
     try {
@@ -80,8 +86,15 @@
   {#if loadError}
     <p class="error">{loadError}</p>
   {:else if loaded && campaigns.length === 0}
-    <p class="meta">No campaigns yet. Create one below, or join with an invite code.</p>
+    <EmptyState
+      what="A campaign is your ongoing Monster of the Week game: its mysteries, its world, and everyone playing in it."
+      why="Create one below if you're running the game, or join one with an invite code if someone else is."
+    />
   {:else if campaigns.length > 0}
+    <FieldNote>
+      {GLOSS.keeper} builds and runs a campaign; {GLOSS.hunter} plays through it. Each row below shows which one you are
+      there.
+    </FieldNote>
     <ul class="campaign-list">
       {#each campaigns as campaign (campaign.id)}
         <li class="campaign-row">
@@ -94,37 +107,40 @@
     </ul>
   {/if}
 
-  <section class="panel">
-    <h2 class="section-title">Create a campaign</h2>
-    <form onsubmit={onCreate}>
-      <label class="field">
-        <span class="field-label">Campaign name</span>
-        <input type="text" bind:value={newCampaignName} required maxlength="100" />
-      </label>
-      {#if createError}
-        <p class="error">{createError}</p>
-      {/if}
-      <button type="submit" class="submit-button" disabled={creating}>
-        {creating ? "Creating..." : "Create campaign"}
-      </button>
-    </form>
-  </section>
+  <div class="action-panels" style:flex-direction={joinFirst ? "column-reverse" : "column"}>
+    <section class="panel">
+      <h2 class="section-title">Create a campaign</h2>
+      <form onsubmit={onCreate}>
+        <label class="field">
+          <span class="field-label">Campaign name</span>
+          <input type="text" bind:value={newCampaignName} required maxlength="100" />
+        </label>
+        {#if createError}
+          <p class="error">{createError}</p>
+        {/if}
+        <button type="submit" class="submit-button" disabled={creating}>
+          {creating ? "Creating..." : "Create campaign"}
+        </button>
+      </form>
+    </section>
 
-  <section class="panel">
-    <h2 class="section-title">Join with invite code</h2>
-    <form onsubmit={onJoin}>
-      <label class="field">
-        <span class="field-label">Invite code</span>
-        <input type="text" bind:value={inviteCode} required maxlength="32" autocomplete="off" />
-      </label>
-      {#if joinError}
-        <p class="error">{joinError}</p>
-      {/if}
-      <button type="submit" class="submit-button" disabled={joining}>
-        {joining ? "Joining..." : "Join campaign"}
-      </button>
-    </form>
-  </section>
+    <section class="panel">
+      <h2 class="section-title">Join with invite code</h2>
+      <FieldNote>Ask your {GLOSS.keeper} for the invite code they sent you.</FieldNote>
+      <form onsubmit={onJoin}>
+        <label class="field">
+          <span class="field-label">Invite code</span>
+          <input type="text" bind:value={inviteCode} required maxlength="32" autocomplete="off" />
+        </label>
+        {#if joinError}
+          <p class="error">{joinError}</p>
+        {/if}
+        <button type="submit" class="submit-button" disabled={joining}>
+          {joining ? "Joining..." : "Join campaign"}
+        </button>
+      </form>
+    </section>
+  </div>
 </main>
 
 <style>
@@ -135,14 +151,6 @@
     letter-spacing: 0.02em;
     text-transform: uppercase;
     color: var(--ink);
-  }
-
-  .meta {
-    font-family: var(--font-meta);
-    font-size: var(--text-sm);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--ink-muted);
   }
 
   .error {
@@ -189,6 +197,11 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--ink-muted);
+  }
+
+  .action-panels {
+    display: flex;
+    gap: var(--space-4);
   }
 
   .panel {

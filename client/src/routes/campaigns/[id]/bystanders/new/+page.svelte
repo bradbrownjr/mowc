@@ -9,6 +9,7 @@
   import { writeEntity } from "$lib/sync.js";
   import { buildBystanderPayload, bystanderFormReason, flattenBystanderTypes } from "$lib/world-entity-builder.js";
   import FieldNote from "$lib/FieldNote.svelte";
+  import { GLOSS } from "$lib/glossary.js";
   import type { ArchetypeDef } from "@mowc/shared";
   import type { PageProps } from "./$types.js";
 
@@ -41,7 +42,7 @@
         isKeeper = result.keeperUserId === sessionState.user?.id;
         loadError = null;
         if (!isKeeper) {
-          loadError = "Only the Keeper can create bystanders.";
+          loadError = `Only the ${GLOSS.keeper} can create bystanders.`;
           return;
         }
         const packs = await Promise.all(result.packIds.map((id) => getPack(id).catch(() => null)));
@@ -108,7 +109,7 @@
   {:else if !campaign}
     <p class="meta">Loading...</p>
   {:else if !isKeeper}
-    <p class="error">Only the Keeper can create bystanders.</p>
+    <p class="error">Only the {GLOSS.keeper} can create bystanders.</p>
   {:else}
     <h1 class="title">New bystander</h1>
 

@@ -16,6 +16,8 @@
   import { db, type LocalEntity } from "$lib/db.js";
   import { pull, writeEntity } from "$lib/sync.js";
   import RevealToggle from "$lib/RevealToggle.svelte";
+  import FieldNote from "$lib/FieldNote.svelte";
+  import { GLOSS } from "$lib/glossary.js";
   import type { PageProps } from "./$types.js";
 
   let { data }: PageProps = $props();
@@ -297,6 +299,7 @@
     {#if isKeeper}
       <section class="panel">
         <h2 class="section-title">Keeper notes</h2>
+        <FieldNote>Only the {GLOSS.keeper} sees these; use them for prep that shouldn't be revealed yet.</FieldNote>
         <textarea class="form-textarea" bind:value={keeperNotesDraft} oninput={onKeeperNotesInput} placeholder="Prep notes only the Keeper sees."></textarea>
       </section>
     {/if}

@@ -9,6 +9,7 @@
   import EvidenceTag from "$lib/EvidenceTag.svelte";
   import EmptyState from "$lib/EmptyState.svelte";
   import FieldNote from "$lib/FieldNote.svelte";
+  import { GLOSS } from "$lib/glossary.js";
   import type { PageProps } from "./$types.js";
 
   let { data }: PageProps = $props();
@@ -92,10 +93,10 @@
   <h1 class="title">World</h1>
   <FieldNote>
     {#if isKeeper}
-      Monsters, minions, bystanders, and locations are Keeper-only to create; toggle "Revealed" on each one when your
-      hunters should see it.
+      Monsters, minions, bystanders, and locations are only created by the {GLOSS.keeper}; toggle "Revealed" on each one
+      when your hunters should see it.
     {:else}
-      This shows only what your Keeper has revealed so far.
+      This shows only what your {GLOSS.keeper} has revealed so far.
     {/if}
   </FieldNote>
 

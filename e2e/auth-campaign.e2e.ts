@@ -6,7 +6,7 @@ test("register, then create and open a campaign", async ({ page }) => {
   await registerViaUi(page, user);
 
   // Empty state for a brand-new account.
-  await expect(page.getByText("No campaigns yet.")).toBeVisible();
+  await expect(page.getByText("A campaign is your ongoing Monster of the Week game", { exact: false })).toBeVisible();
 
   const name = "The Sleepy Hollow Case";
   const campaignId = await createCampaignViaUi(page, name);

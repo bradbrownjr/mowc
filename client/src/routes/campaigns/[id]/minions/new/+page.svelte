@@ -9,6 +9,7 @@
   import { writeEntity } from "$lib/sync.js";
   import { buildMinionPayload, flattenMinionTypes, minionFormReason } from "$lib/world-entity-builder.js";
   import FieldNote from "$lib/FieldNote.svelte";
+  import { GLOSS } from "$lib/glossary.js";
   import type { ArchetypeDef, MonsterAttack } from "@mowc/shared";
   import type { PageProps } from "./$types.js";
 
@@ -45,7 +46,7 @@
         isKeeper = result.keeperUserId === sessionState.user?.id;
         loadError = null;
         if (!isKeeper) {
-          loadError = "Only the Keeper can create minions.";
+          loadError = `Only the ${GLOSS.keeper} can create minions.`;
           return;
         }
         const packs = await Promise.all(result.packIds.map((id) => getPack(id).catch(() => null)));
@@ -129,7 +130,7 @@
   {:else if !campaign}
     <p class="meta">Loading...</p>
   {:else if !isKeeper}
-    <p class="error">Only the Keeper can create minions.</p>
+    <p class="error">Only the {GLOSS.keeper} can create minions.</p>
   {:else}
     <h1 class="title">New minion</h1>
 
