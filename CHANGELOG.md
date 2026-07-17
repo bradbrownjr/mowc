@@ -4,7 +4,7 @@ All notable changes to MOWC are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow the
 `0.PHASE.BUILD` scheme described in ROADMAP.md.
 
-## [Unreleased]
+## [0.11.2] - 2026-07-17
 
 ### Changed
 - App shell overhaul (Phase 11 UI/UX, 0.11.2). Every screen now uses one
@@ -20,6 +20,8 @@ All notable changes to MOWC are documented here. Format follows
 - Campaign screens gain a left-hand context rail on tablet and desktop
   (Overview, plus a Keeper Dashboard link) so navigation within a campaign
   no longer relies solely on in-page links.
+
+## [Unreleased]
 
 ## [0.10.7] - 2026-07-16
 
