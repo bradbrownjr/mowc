@@ -17,9 +17,12 @@
   import { pull, writeEntity } from "$lib/sync.js";
   import { generateUuid } from "$lib/uuid.js";
   import StepIndicator from "$lib/StepIndicator.svelte";
+  import FieldNote from "$lib/FieldNote.svelte";
+  import EvidenceTag from "$lib/EvidenceTag.svelte";
   import {
     addCountdownStep,
     buildMysteryPayload,
+    countdownStepReason,
     emptyMysteryWizardState,
     isCastStepComplete,
     isConceptHookStepComplete,
@@ -29,6 +32,7 @@
     isTitleStepComplete,
     moveCountdownStep,
     removeCountdownStep,
+    titleStepReason,
     toggleCastId,
     type MysteryWizardState
   } from "$lib/mystery-builder.js";
@@ -112,6 +116,16 @@
     isLocationsStepComplete(wizard),
     isStatusStepComplete(wizard),
     true
+  ]);
+
+  const stepReasons = $derived([
+    titleStepReason(wizard),
+    null,
+    countdownStepReason(wizard),
+    null,
+    null,
+    null,
+    null
   ]);
 
   function next(): void {
@@ -201,6 +215,7 @@
     {#if currentStep === 0}
       <section class="panel">
         <h2 class="section-title">Title</h2>
+        <FieldNote>A mystery is one session's case: the monster, the trouble it's causing, and the trail your hunters follow. The title is just what you and your players call this case.</FieldNote>
         <label class="field">
           <span class="field-label">Mystery title</span>
           <input type="text" bind:value={wizard.title} required />
@@ -209,6 +224,7 @@
     {:else if currentStep === 1}
       <section class="panel">
         <h2 class="section-title">Concept</h2>
+        <FieldNote>The concept is what's really going on behind the scenes, for your eyes only. The hook is how the hunters get pulled into it. Both are optional and can be filled in later.</FieldNote>
         <textarea class="form-textarea" bind:value={wizard.concept} placeholder="What's really going on?"></textarea>
         <h2 class="section-title">Hook</h2>
         <textarea class="form-textarea" bind:value={wizard.hook} placeholder="How do the hunters get pulled in?"></textarea>
@@ -216,6 +232,7 @@
     {:else if currentStep === 2}
       <section class="panel">
         <h2 class="section-title">Countdown</h2>
+        <FieldNote>The countdown is the mystery's clock: a short ordered list of things that happen if the hunters don't intervene. Optional, and you can keep adjusting it as you run the session.</FieldNote>
         {#if wizard.countdownSteps.length > 0}
           <ul class="row-list">
             {#each wizard.countdownSteps as step, index (index)}
@@ -244,6 +261,7 @@
       </section>
     {:else if currentStep === 3}
       <section class="panel">
+        <FieldNote>The cast is which monsters, minions, and bystanders (already-created world entities) appear in this mystery. Optional, and only affects this mystery's own record; it doesn't reveal anything to your players.</FieldNote>
         <h2 class="section-title">Monsters</h2>
         {#if monsters.length === 0}
           <p class="meta">No monsters created yet.</p>
@@ -301,6 +319,7 @@
     {:else if currentStep === 4}
       <section class="panel">
         <h2 class="section-title">Locations</h2>
+        <FieldNote>Places (already-created world entities) tied to this mystery. Optional, same as cast: it's for your own planning and doesn't reveal anything to players.</FieldNote>
         {#if locations.length === 0}
           <p class="meta">No locations created yet.</p>
         {:else}
@@ -321,6 +340,7 @@
     {:else if currentStep === 5}
       <section class="panel">
         <h2 class="section-title">Status</h2>
+        <FieldNote>Draft is still in planning, active is being played right now, resolved is done. You can change this anytime from the mystery's own page.</FieldNote>
         <div class="option-list">
           {#each STATUS_OPTIONS as option (option)}
             <button
@@ -337,24 +357,40 @@
     {:else if currentStep === 6}
       <section class="panel">
         <h2 class="section-title">Review</h2>
-        <p class="meta">Title</p>
-        <p>{wizard.title}</p>
-        <p class="meta">Concept</p>
-        <p>{wizard.concept || "None"}</p>
-        <p class="meta">Hook</p>
-        <p>{wizard.hook || "None"}</p>
-        <p class="meta">Countdown steps</p>
-        <p>{wizard.countdownSteps.map((s) => s.label).join(", ") || "None"}</p>
-        <p class="meta">Monsters</p>
-        <p>{monsters.filter((m) => wizard.monsterIds.includes(m.id)).map((m) => m.name).join(", ") || "None"}</p>
-        <p class="meta">Minions</p>
-        <p>{minions.filter((m) => wizard.minionIds.includes(m.id)).map((m) => m.name).join(", ") || "None"}</p>
-        <p class="meta">Bystanders</p>
-        <p>{bystanders.filter((b) => wizard.bystanderIds.includes(b.id)).map((b) => b.name).join(", ") || "None"}</p>
-        <p class="meta">Locations</p>
-        <p>{locations.filter((l) => wizard.locationIds.includes(l.id)).map((l) => l.name).join(", ") || "None"}</p>
-        <p class="meta">Status</p>
-        <p>{wizard.status}</p>
+        <FieldNote>Check everything below, then create this mystery. Concept, hook, and countdown all stay editable from the mystery's own page.</FieldNote>
+        <div class="preview-card">
+          <p class="preview-name">{wizard.title}</p>
+          <p class="meta">{wizard.status}</p>
+          {#if wizard.hook}<p class="preview-look">{wizard.hook}</p>{/if}
+          {#if wizard.countdownSteps.length > 0}
+            <div class="preview-section">
+              <p class="meta">Countdown</p>
+              <ol class="row-list">
+                {#each wizard.countdownSteps as step (step.label)}
+                  <li class="row"><span class="row-text">{step.label}</span></li>
+                {/each}
+              </ol>
+            </div>
+          {/if}
+          {#if wizard.monsterIds.length + wizard.minionIds.length + wizard.bystanderIds.length > 0}
+            <div class="preview-section">
+              <p class="meta">Cast</p>
+              <div class="option-list">
+                {#each monsters.filter((m) => wizard.monsterIds.includes(m.id)) as monster (monster.id)}<EvidenceTag label={monster.name} />{/each}
+                {#each minions.filter((m) => wizard.minionIds.includes(m.id)) as minion (minion.id)}<EvidenceTag label={minion.name} />{/each}
+                {#each bystanders.filter((b) => wizard.bystanderIds.includes(b.id)) as bystander (bystander.id)}<EvidenceTag label={bystander.name} />{/each}
+              </div>
+            </div>
+          {/if}
+          {#if wizard.locationIds.length > 0}
+            <div class="preview-section">
+              <p class="meta">Locations</p>
+              <div class="option-list">
+                {#each locations.filter((l) => wizard.locationIds.includes(l.id)) as location (location.id)}<EvidenceTag label={location.name} />{/each}
+              </div>
+            </div>
+          {/if}
+        </div>
 
         {#if submitError}
           <p class="error">{submitError}</p>
@@ -364,6 +400,10 @@
           {submitting ? "Creating..." : "Create mystery"}
         </button>
       </section>
+    {/if}
+
+    {#if stepReasons[currentStep]}
+      <FieldNote>{stepReasons[currentStep]}</FieldNote>
     {/if}
 
     <div class="nav-row">
@@ -557,6 +597,42 @@
   .icon-button:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
+  }
+
+  /* Review step's compact preview (docs/DESIGN.md Builders: "a compact
+     preview of the thing being created", not a flat label/value list). */
+  .preview-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+
+  .preview-name {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+
+  .preview-look {
+    margin: 0;
+    color: var(--ink-muted);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+  }
+
+  .preview-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--border);
   }
 
   .nav-row {

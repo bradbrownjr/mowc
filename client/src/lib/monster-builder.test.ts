@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 import type { ArchetypeDef, ContentPack } from "@mowc/shared";
 import {
+  armorHarmStepReason,
+  attacksStepReason,
   buildMonsterPayload,
   emptyMonsterWizardState,
   flattenMonsterTypes,
   isArmorHarmStepComplete,
   isAttacksStepComplete,
   isReviewStepComplete,
+  nameStepReason,
   selectMonsterType,
   type MonsterWizardState
 } from "./monster-builder.js";
@@ -104,6 +107,24 @@ describe("isReviewStepComplete", () => {
     expect(isReviewStepComplete(emptyMonsterWizardState())).toBe(false);
     expect(isReviewStepComplete({ ...completeState(), name: "" })).toBe(false);
     expect(isReviewStepComplete(completeState())).toBe(true);
+  });
+});
+
+describe("step-incomplete reasons", () => {
+  it("attacksStepReason flags malformed rows only", () => {
+    expect(attacksStepReason({ ...completeState(), attacks: [{ name: "", harm: 1, tags: [] }] })).toMatch(/attack/i);
+    expect(attacksStepReason(completeState())).toBeNull();
+  });
+
+  it("armorHarmStepReason explains what's missing or invalid", () => {
+    expect(armorHarmStepReason({ ...completeState(), harmCapacity: null })).toMatch(/harm capacity/i);
+    expect(armorHarmStepReason({ ...completeState(), armor: -1 })).toMatch(/armor/i);
+    expect(armorHarmStepReason(completeState())).toBeNull();
+  });
+
+  it("nameStepReason is null once named", () => {
+    expect(nameStepReason({ ...completeState(), name: "" })).toMatch(/name/i);
+    expect(nameStepReason(completeState())).toBeNull();
   });
 });
 

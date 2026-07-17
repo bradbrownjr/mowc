@@ -6,7 +6,8 @@
   import { CampaignApiError, getCampaign } from "$lib/api/campaigns.js";
   import { generateUuid } from "$lib/uuid.js";
   import { writeEntity } from "$lib/sync.js";
-  import { buildLocationPayload } from "$lib/world-entity-builder.js";
+  import { buildLocationPayload, locationFormReason } from "$lib/world-entity-builder.js";
+  import FieldNote from "$lib/FieldNote.svelte";
   import type { PageProps } from "./$types.js";
 
   let { data }: PageProps = $props();
@@ -44,15 +45,12 @@
       });
   });
 
+  const formReason = $derived(locationFormReason(name));
+
   async function onSubmit(): Promise<void> {
     if (!sessionState.user || !campaign) return;
 
     submitError = null;
-
-    if (!name.trim()) {
-      submitError = "Name is required.";
-      return;
-    }
 
     const id = generateUuid();
     const payload = buildLocationPayload({
@@ -99,16 +97,19 @@
 
     <section class="panel">
       <label class="form-label" for="location-name">Name *</label>
+      <FieldNote>A location is a place your hunters can visit: a house, a street, a building. It shows up on the World list once created.</FieldNote>
       <input id="location-name" type="text" class="form-input" placeholder="Old Town Hall" bind:value={name} />
     </section>
 
     <section class="panel">
       <label class="form-label" for="location-description">Description</label>
+      <FieldNote>What this place looks and feels like. Optional.</FieldNote>
       <textarea id="location-description" class="form-textarea" placeholder="What does this place look like?" bind:value={description}></textarea>
     </section>
 
     <section class="panel">
       <label class="form-label" for="location-mapnotes">Map notes</label>
+      <FieldNote>Where this sits relative to other places, for your own reference. Optional.</FieldNote>
       <textarea id="location-mapnotes" class="form-textarea" placeholder="How does this fit on the map?" bind:value={mapNotes}></textarea>
     </section>
 
@@ -116,7 +117,11 @@
       <p class="error">{submitError}</p>
     {/if}
 
-    <button type="button" class="submit-button" onclick={onSubmit} disabled={submitting}>
+    {#if formReason}
+      <FieldNote>{formReason}</FieldNote>
+    {/if}
+
+    <button type="button" class="submit-button" onclick={onSubmit} disabled={submitting || formReason !== null}>
       {submitting ? "Creating..." : "Create location"}
     </button>
   {/if}

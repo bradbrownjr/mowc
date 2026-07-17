@@ -1,7 +1,12 @@
 <script lang="ts">
+  import { Lock } from "@lucide/svelte";
+  import Icon from "$lib/Icon.svelte";
+
   /**
    * Numbered wizard progress rail (docs/DESIGN.md "Builders" line). Purely
-   * presentational: the parent route owns step state and navigation.
+   * presentational: the parent route owns step state and navigation. A step
+   * is done (index < current), current, or locked (index > current, not
+   * yet reachable since wizards are linear and don't allow skipping ahead).
    */
   interface Props {
     steps: string[];
@@ -13,9 +18,17 @@
 
 <ol class="rail">
   {#each steps as step, index (step)}
-    <li class="step" class:current={index === current} class:done={index < current}>
+    <li
+      class="step"
+      class:current={index === current}
+      class:done={index < current}
+      class:locked={index > current}
+    >
       <span class="step-number">{index + 1}</span>
       <span class="step-label">{step}</span>
+      {#if index > current}
+        <Icon icon={Lock} size={12} />
+      {/if}
     </li>
   {/each}
 </ol>
@@ -52,6 +65,10 @@
 
   .step.done {
     background: var(--surface-2);
+  }
+
+  .step.locked {
+    color: var(--ink-muted);
   }
 
   .step-number {

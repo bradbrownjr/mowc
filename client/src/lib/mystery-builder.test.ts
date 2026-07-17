@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   addCountdownStep,
   buildMysteryPayload,
+  countdownStepReason,
   emptyMysteryWizardState,
   isCountdownStepComplete,
   isReviewStepComplete,
   isTitleStepComplete,
   moveCountdownStep,
   removeCountdownStep,
+  titleStepReason,
   toggleCastId,
   type MysteryWizardState
 } from "./mystery-builder.js";
@@ -68,6 +70,19 @@ describe("addCountdownStep / removeCountdownStep / moveCountdownStep", () => {
     const state = { ...emptyMysteryWizardState(), countdownSteps: [{ label: "A", text: "", done: false }] };
     expect(moveCountdownStep(state, 0, -1)).toBe(state);
     expect(moveCountdownStep(state, 0, 1)).toBe(state);
+  });
+});
+
+describe("step-incomplete reasons", () => {
+  it("titleStepReason is null once titled", () => {
+    expect(titleStepReason(emptyMysteryWizardState())).toMatch(/title/i);
+    expect(titleStepReason(completeState())).toBeNull();
+  });
+
+  it("countdownStepReason flags a missing label", () => {
+    const state = { ...emptyMysteryWizardState(), countdownSteps: [{ label: "", text: "x", done: false }] };
+    expect(countdownStepReason(state)).toMatch(/label/i);
+    expect(countdownStepReason(completeState())).toBeNull();
   });
 });
 

@@ -7,7 +7,8 @@
   import { getPack, type PackDetail } from "$lib/api/contentPacks.js";
   import { generateUuid } from "$lib/uuid.js";
   import { writeEntity } from "$lib/sync.js";
-  import { buildMinionPayload, flattenMinionTypes } from "$lib/world-entity-builder.js";
+  import { buildMinionPayload, flattenMinionTypes, minionFormReason } from "$lib/world-entity-builder.js";
+  import FieldNote from "$lib/FieldNote.svelte";
   import type { ArchetypeDef, MonsterAttack } from "@mowc/shared";
   import type { PageProps } from "./$types.js";
 
@@ -56,6 +57,8 @@
       });
   });
 
+  const formReason = $derived(minionFormReason(name, harmCapacity));
+
   function onTypeSelect(typeId: string): void {
     selectedTypeId = typeId;
     const type = minionTypes.find((t) => t.id === typeId);
@@ -83,16 +86,6 @@
 
     const armorNum = typeof armor === "number" ? armor : parseInt(armor) || 0;
     const harmCapNum = typeof harmCapacity === "number" ? harmCapacity : parseInt(harmCapacity) || 0;
-
-    if (!name.trim()) {
-      submitError = "Name is required.";
-      return;
-    }
-
-    if (harmCapNum <= 0) {
-      submitError = "Harm capacity must be greater than 0.";
-      return;
-    }
 
     const id = generateUuid();
     const payload = buildMinionPayload({
@@ -142,12 +135,14 @@
 
     <section class="panel">
       <label class="form-label" for="minion-name">Name *</label>
+      <FieldNote>A minion is one of the monster's mooks: weaker than the monster itself, but still a threat in a fight.</FieldNote>
       <input id="minion-name" type="text" class="form-input" placeholder="Ghoul" bind:value={name} />
     </section>
 
     {#if minionTypes.length > 0}
       <section class="panel">
         <h3 class="form-label">Type</h3>
+        <FieldNote>Type (an archetype from a content pack) is optional; it just prefills a motivation you can still edit.</FieldNote>
         <div class="option-list">
           {#each minionTypes as type (type.id)}
             <button
@@ -166,11 +161,13 @@
 
     <section class="panel">
       <label class="form-label" for="minion-motivation">Motivation</label>
+      <FieldNote>What this minion wants, or why it's following the monster. Optional.</FieldNote>
       <textarea id="minion-motivation" class="form-textarea" placeholder="What does it want?" bind:value={motivation}></textarea>
     </section>
 
     <section class="panel">
       <h3 class="form-label">Attacks</h3>
+      <FieldNote>Attacks this minion can make in a fight, each with a harm value for how much damage it deals. Optional.</FieldNote>
       {#if attacks.length > 0}
         <ul class="attack-list">
           {#each attacks as attack, index (index)}
@@ -199,11 +196,13 @@
 
     <section class="panel">
       <label class="form-label" for="minion-armor">Armor</label>
+      <FieldNote>Armor reduces harm this minion takes.</FieldNote>
       <input id="minion-armor" type="number" class="form-input" bind:value={armor} min="0" />
     </section>
 
     <section class="panel">
       <label class="form-label" for="minion-harm">Harm capacity *</label>
+      <FieldNote>How much harm this minion can take before it's taken out. Required.</FieldNote>
       <input id="minion-harm" type="number" class="form-input" placeholder="3" bind:value={harmCapacity} min="1" />
     </section>
 
@@ -211,7 +210,11 @@
       <p class="error">{submitError}</p>
     {/if}
 
-    <button type="button" class="submit-button" onclick={onSubmit} disabled={submitting}>
+    {#if formReason}
+      <FieldNote>{formReason}</FieldNote>
+    {/if}
+
+    <button type="button" class="submit-button" onclick={onSubmit} disabled={submitting || formReason !== null}>
       {submitting ? "Creating..." : "Create minion"}
     </button>
   {/if}

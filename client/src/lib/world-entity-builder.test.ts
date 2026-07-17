@@ -4,8 +4,11 @@ import {
   buildBystanderPayload,
   buildLocationPayload,
   buildMinionPayload,
+  bystanderFormReason,
   flattenBystanderTypes,
-  flattenMinionTypes
+  flattenMinionTypes,
+  locationFormReason,
+  minionFormReason
 } from "./world-entity-builder.js";
 
 const MINION_TYPE = { id: "minion-type-1", name: "Test Minion Type", motivation: "to harm" };
@@ -156,6 +159,35 @@ describe("buildBystanderPayload", () => {
     expect(payload.typeId).toBeNull();
     expect(payload.motivation).toBe("");
     expect(payload.notes).toBe("");
+  });
+});
+
+describe("minionFormReason", () => {
+  it("requires a name", () => {
+    expect(minionFormReason("", 5)).toMatch(/name/i);
+  });
+
+  it("requires harm capacity greater than 0", () => {
+    expect(minionFormReason("Ghoul", 0)).toMatch(/harm capacity/i);
+    expect(minionFormReason("Ghoul", "")).toMatch(/harm capacity/i);
+  });
+
+  it("is null once both are set", () => {
+    expect(minionFormReason("Ghoul", 5)).toBeNull();
+  });
+});
+
+describe("bystanderFormReason", () => {
+  it("requires a name, null once set", () => {
+    expect(bystanderFormReason("")).toMatch(/name/i);
+    expect(bystanderFormReason("Sister Mary")).toBeNull();
+  });
+});
+
+describe("locationFormReason", () => {
+  it("requires a name, null once set", () => {
+    expect(locationFormReason("")).toMatch(/name/i);
+    expect(locationFormReason("Old Town Hall")).toBeNull();
   });
 });
 

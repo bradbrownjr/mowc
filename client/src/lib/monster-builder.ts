@@ -89,6 +89,29 @@ export function isNameStepComplete(state: MonsterWizardState): boolean {
   return state.name.trim().length > 0;
 }
 
+/**
+ * One-line reasons a disabled Next button can't advance yet (docs/DESIGN.md
+ * "Screen patterns"). Null once the step is complete. Type, Powers &
+ * Weaknesses, and Custom Moves are always complete (optional steps), so
+ * they have no reason function.
+ */
+export function attacksStepReason(state: MonsterWizardState): string | null {
+  return isAttacksStepComplete(state) ? null : "Every attack needs a name and a harm of 0 or more.";
+}
+
+export function armorHarmStepReason(state: MonsterWizardState): string | null {
+  if (state.harmCapacity === null) return "Set a harm capacity to continue.";
+  if (!Number.isInteger(state.harmCapacity) || state.harmCapacity < 0) {
+    return "Harm capacity must be a whole number, 0 or higher.";
+  }
+  if (!Number.isInteger(state.armor) || state.armor < 0) return "Armor must be a whole number, 0 or higher.";
+  return null;
+}
+
+export function nameStepReason(state: MonsterWizardState): string | null {
+  return state.name.trim() ? null : "Give this monster a name to continue.";
+}
+
 export function isReviewStepComplete(state: MonsterWizardState): boolean {
   return (
     isTypeStepComplete(state) &&

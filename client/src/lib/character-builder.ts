@@ -70,6 +70,47 @@ export function isNameStepComplete(state: WizardState): boolean {
   return state.name.trim().length > 0;
 }
 
+/**
+ * One-line reasons a disabled Next button can't advance yet (docs/DESIGN.md
+ * "Screen patterns": "a disabled Next is always accompanied by a field note
+ * saying what is missing"). Null once the step is complete.
+ */
+export function playbookStepReason(state: WizardState): string | null {
+  return state.playbook ? null : "Pick a playbook to continue.";
+}
+
+export function ratingsStepReason(state: WizardState): string | null {
+  return state.ratings ? null : "Pick a ratings line to continue.";
+}
+
+export function looksStepReason(state: WizardState): string | null {
+  if (!state.playbook) return null;
+  const missing = state.playbook.looks.filter((_, index) => !(state.lookChoices[index] ?? "").trim()).length;
+  if (missing === 0) return null;
+  return `Fill in ${missing} more look ${missing === 1 ? "choice" : "choices"}.`;
+}
+
+export function movesStepReason(state: WizardState): string | null {
+  if (!state.playbook) return null;
+  const remaining = state.playbook.movesToPick - state.moveIds.length;
+  if (remaining <= 0) return null;
+  return `Pick ${remaining} more move${remaining === 1 ? "" : "s"}.`;
+}
+
+export function gearStepReason(state: WizardState): string | null {
+  if (!state.playbook) return null;
+  const remaining = state.playbook.gearChoices.reduce(
+    (sum, choice) => sum + Math.max(choice.pick - (state.gearSelections[choice.id] ?? []).length, 0),
+    0
+  );
+  if (remaining <= 0) return null;
+  return `Pick ${remaining} more gear ${remaining === 1 ? "item" : "items"}.`;
+}
+
+export function nameStepReason(state: WizardState): string | null {
+  return state.name.trim() ? null : "Give your character a name to continue.";
+}
+
 export function isReviewStepComplete(state: WizardState): boolean {
   return (
     isPlaybookStepComplete(state) &&

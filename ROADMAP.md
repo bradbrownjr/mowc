@@ -430,7 +430,7 @@ viewports are part of the milestone's Definition of Done.
       track/border contrast pass, move outcomes readable without hunting
       (open the rolled move's outcomes by default). All existing sheet
       behaviors in the Feature Registry must survive.
-- [ ] Builder guidance pass - 0.11.5 [Sonnet]
+- [x] Builder guidance pass - 0.11.5 [Sonnet]
       Fixes finding 5 inside the wizards. StepIndicator grows into the
       DESIGN.md progress rail (labels, done/current/locked states).
       Every step of the character, monster, and mystery wizards and the

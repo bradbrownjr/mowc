@@ -15,6 +15,28 @@ export function flattenBystanderTypes(packs: ContentPack[]): ArchetypeDef[] {
   return packs.flatMap((pack) => pack.bystanderTypes);
 }
 
+/**
+ * One-line reasons a disabled Create button can't submit yet (docs/DESIGN.md
+ * "Screen patterns": "a disabled Next is always accompanied by a field note
+ * saying what is missing"), so these single-screen forms get the same
+ * proactive guidance as the multi-step wizards. Null once the form is
+ * complete.
+ */
+export function minionFormReason(name: string, harmCapacity: number | ""): string | null {
+  if (!name.trim()) return "Give this minion a name to continue.";
+  const cap = typeof harmCapacity === "number" ? harmCapacity : parseInt(harmCapacity, 10) || 0;
+  if (cap <= 0) return "Harm capacity must be greater than 0.";
+  return null;
+}
+
+export function bystanderFormReason(name: string): string | null {
+  return name.trim() ? null : "Give this bystander a name to continue.";
+}
+
+export function locationFormReason(name: string): string | null {
+  return name.trim() ? null : "Give this location a name to continue.";
+}
+
 /** Assembles the full Minion payload from form state. */
 export function buildMinionPayload(params: {
   id: string;

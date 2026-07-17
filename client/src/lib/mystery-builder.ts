@@ -64,6 +64,20 @@ export function isStatusStepComplete(_state: MysteryWizardState): boolean {
   return true;
 }
 
+/**
+ * One-line reasons a disabled Next button can't advance yet (docs/DESIGN.md
+ * "Screen patterns"). Null once the step is complete. Concept & Hook, Cast,
+ * Locations, and Status are always complete (optional steps), so they have
+ * no reason function.
+ */
+export function titleStepReason(state: MysteryWizardState): string | null {
+  return isTitleStepComplete(state) ? null : "Give this mystery a title to continue.";
+}
+
+export function countdownStepReason(state: MysteryWizardState): string | null {
+  return isCountdownStepComplete(state) ? null : "Every countdown step needs a label.";
+}
+
 export function isReviewStepComplete(state: MysteryWizardState): boolean {
   return (
     isTitleStepComplete(state) &&

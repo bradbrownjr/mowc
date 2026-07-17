@@ -55,6 +55,16 @@ All notable changes to MOWC are documented here. Format follows
   clearly visible in the dark theme (previously nearly invisible). Rolling
   a move now opens its outcomes automatically so you're not hunting for a
   disclosure triangle mid-scene.
+- Builder guidance pass (Phase 11 UI/UX, 0.11.5). Every step of the
+  character, monster, and mystery wizards, and every field of the minion,
+  bystander, and location forms, now has a short plain-language note
+  explaining what it's for. The wizard progress rail shows which steps are
+  done, which one you're on, and which are still locked. A disabled Next
+  (or Create) button now always says why, instead of leaving you to guess
+  ("Pick 1 more move.", "Give this monster a name to continue."). The
+  review step at the end of each wizard is now a compact preview of the
+  thing you're about to create instead of a plain list of labels and
+  values.
 
 ### Fixed
 - The Characters, World, and Mysteries screens showed a duplicate "Create

@@ -7,7 +7,8 @@
   import { getPack, type PackDetail } from "$lib/api/contentPacks.js";
   import { generateUuid } from "$lib/uuid.js";
   import { writeEntity } from "$lib/sync.js";
-  import { buildBystanderPayload, flattenBystanderTypes } from "$lib/world-entity-builder.js";
+  import { buildBystanderPayload, bystanderFormReason, flattenBystanderTypes } from "$lib/world-entity-builder.js";
+  import FieldNote from "$lib/FieldNote.svelte";
   import type { ArchetypeDef } from "@mowc/shared";
   import type { PageProps } from "./$types.js";
 
@@ -52,6 +53,8 @@
       });
   });
 
+  const formReason = $derived(bystanderFormReason(name));
+
   function onTypeSelect(typeId: string): void {
     selectedTypeId = typeId;
     const type = bystanderTypes.find((t) => t.id === typeId);
@@ -64,11 +67,6 @@
     if (!sessionState.user || !campaign) return;
 
     submitError = null;
-
-    if (!name.trim()) {
-      submitError = "Name is required.";
-      return;
-    }
 
     const id = generateUuid();
     const payload = buildBystanderPayload({
@@ -116,12 +114,14 @@
 
     <section class="panel">
       <label class="form-label" for="bystander-name">Name *</label>
+      <FieldNote>A bystander is a person the hunters can talk to, protect, or suspect: a witness, a victim, a local who knows too much.</FieldNote>
       <input id="bystander-name" type="text" class="form-input" placeholder="Sister Mary" bind:value={name} />
     </section>
 
     {#if bystanderTypes.length > 0}
       <section class="panel">
         <h3 class="form-label">Type</h3>
+        <FieldNote>Type (an archetype from a content pack) is optional; it just prefills a motivation you can still edit.</FieldNote>
         <div class="option-list">
           {#each bystanderTypes as type (type.id)}
             <button
@@ -140,11 +140,13 @@
 
     <section class="panel">
       <label class="form-label" for="bystander-motivation">Motivation</label>
+      <FieldNote>What this person wants, whether or not the hunters ever learn it. Optional.</FieldNote>
       <textarea id="bystander-motivation" class="form-textarea" placeholder="What do they want?" bind:value={motivation}></textarea>
     </section>
 
     <section class="panel">
       <label class="form-label" for="bystander-notes">Notes</label>
+      <FieldNote>Anything else worth remembering: secrets, relationships, or details for your own reference. Optional.</FieldNote>
       <textarea id="bystander-notes" class="form-textarea" placeholder="Secrets, relationships, details..." bind:value={notes}></textarea>
     </section>
 
@@ -152,7 +154,11 @@
       <p class="error">{submitError}</p>
     {/if}
 
-    <button type="button" class="submit-button" onclick={onSubmit} disabled={submitting}>
+    {#if formReason}
+      <FieldNote>{formReason}</FieldNote>
+    {/if}
+
+    <button type="button" class="submit-button" onclick={onSubmit} disabled={submitting || formReason !== null}>
       {submitting ? "Creating..." : "Create bystander"}
     </button>
   {/if}

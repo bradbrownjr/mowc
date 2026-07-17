@@ -8,7 +8,11 @@
   import { generateUuid } from "$lib/uuid.js";
   import { writeEntity } from "$lib/sync.js";
   import StepIndicator from "$lib/StepIndicator.svelte";
+  import FieldNote from "$lib/FieldNote.svelte";
+  import EvidenceTag from "$lib/EvidenceTag.svelte";
   import {
+    armorHarmStepReason,
+    attacksStepReason,
     buildMonsterPayload,
     emptyMonsterWizardState,
     flattenMonsterTypes,
@@ -18,6 +22,7 @@
     isNameStepComplete,
     isPowersWeaknessesStepComplete,
     isTypeStepComplete,
+    nameStepReason,
     selectMonsterType,
     type MonsterWizardState
   } from "$lib/monster-builder.js";
@@ -78,6 +83,16 @@
     isCustomMovesStepComplete(wizard),
     isNameStepComplete(wizard),
     true
+  ]);
+
+  const stepReasons = $derived([
+    null,
+    null,
+    attacksStepReason(wizard),
+    armorHarmStepReason(wizard),
+    null,
+    nameStepReason(wizard),
+    null
   ]);
 
   function next(): void {
@@ -197,6 +212,7 @@
     {#if currentStep === 0}
       <section class="panel">
         <h2 class="section-title">Type</h2>
+        <FieldNote>Type (an archetype from a content pack) is optional; it just prefills a motivation you can still edit. Everything about this monster is yours to change.</FieldNote>
         {#if availableMonsterTypes.length === 0}
           <p class="meta">No monster types in attached packs. Motivation can still be written freely.</p>
         {:else}
@@ -222,6 +238,7 @@
     {:else if currentStep === 1}
       <section class="panel">
         <h2 class="section-title">Powers</h2>
+        <FieldNote>Powers are the supernatural abilities that make this monster dangerous. Weaknesses are the flaw a clever hunter can exploit. Both are optional and freeform.</FieldNote>
         {#if wizard.powers.length > 0}
           <ul class="row-list">
             {#each wizard.powers as power, index (index)}
@@ -266,6 +283,7 @@
     {:else if currentStep === 2}
       <section class="panel">
         <h2 class="section-title">Attacks</h2>
+        <FieldNote>Attacks this monster can make in a fight, each with a harm value for how much damage it deals. Optional; leave it empty if this monster doesn't fight directly.</FieldNote>
         {#if wizard.attacks.length > 0}
           <ul class="row-list">
             {#each wizard.attacks as attack, index (index)}
@@ -295,6 +313,7 @@
     {:else if currentStep === 3}
       <section class="panel">
         <h2 class="section-title">Armor & Harm capacity</h2>
+        <FieldNote>Armor reduces harm this monster takes; harm capacity is how much harm it can take before it's taken out. Harm capacity is required.</FieldNote>
         <label class="field">
           <span class="field-label">Armor</span>
           <input
@@ -319,6 +338,7 @@
     {:else if currentStep === 4}
       <section class="panel">
         <h2 class="section-title">Custom moves</h2>
+        <FieldNote>Special moves unique to this monster, beyond the basic moves every monster of its type can already do. Optional.</FieldNote>
         {#if wizard.customMoves.length > 0}
           <ul class="row-list">
             {#each wizard.customMoves as move, index (index)}
@@ -342,6 +362,7 @@
     {:else if currentStep === 5}
       <section class="panel">
         <h2 class="section-title">Name</h2>
+        <FieldNote>What your hunters (and you) call this monster. Everything on this sheet can still be edited afterward.</FieldNote>
         <label class="field">
           <span class="field-label">Monster name</span>
           <input type="text" bind:value={wizard.name} required />
@@ -350,24 +371,42 @@
     {:else if currentStep === 6}
       <section class="panel">
         <h2 class="section-title">Review</h2>
-        <p class="meta">Type</p>
-        <p>{wizard.type?.name ?? "None"}</p>
-        <p class="meta">Motivation</p>
-        <p>{wizard.motivation || "None"}</p>
-        <p class="meta">Powers</p>
-        <p>{wizard.powers.join(", ") || "None"}</p>
-        <p class="meta">Weaknesses</p>
-        <p>{wizard.weaknesses.join(", ") || "None"}</p>
-        <p class="meta">Attacks</p>
-        <p>{wizard.attacks.map((a) => `${a.name} (Harm ${a.harm})`).join(", ") || "None"}</p>
-        <p class="meta">Armor</p>
-        <p>{wizard.armor}</p>
-        <p class="meta">Harm capacity</p>
-        <p>{wizard.harmCapacity ?? "Not set"}</p>
-        <p class="meta">Custom moves</p>
-        <p>{wizard.customMoves.join(", ") || "None"}</p>
-        <p class="meta">Name</p>
-        <p>{wizard.name}</p>
+        <FieldNote>Check everything below, then create this monster.</FieldNote>
+        <div class="preview-card">
+          <p class="preview-name">{wizard.name || "Unnamed monster"}</p>
+          <p class="meta">{wizard.type?.name ?? "No type"}{wizard.motivation ? ` · ${wizard.motivation}` : ""}</p>
+          <div class="preview-ratings">
+            <span class="preview-rating"><span class="preview-rating-label">Armor</span>{wizard.armor}</span>
+            <span class="preview-rating"><span class="preview-rating-label">Harm cap.</span>{wizard.harmCapacity ?? "—"}</span>
+          </div>
+          {#if wizard.powers.length > 0 || wizard.weaknesses.length > 0}
+            <div class="preview-section">
+              <p class="meta">Powers &amp; weaknesses</p>
+              <div class="option-list">
+                {#each wizard.powers as power (power)}<EvidenceTag label={power} />{/each}
+                {#each wizard.weaknesses as weakness (weakness)}<EvidenceTag label={weakness} />{/each}
+              </div>
+            </div>
+          {/if}
+          {#if wizard.attacks.length > 0}
+            <div class="preview-section">
+              <p class="meta">Attacks</p>
+              <ul class="row-list">
+                {#each wizard.attacks as attack (attack.name)}
+                  <li class="row"><span class="row-text">{attack.name} &middot; Harm {attack.harm}</span></li>
+                {/each}
+              </ul>
+            </div>
+          {/if}
+          {#if wizard.customMoves.length > 0}
+            <div class="preview-section">
+              <p class="meta">Custom moves</p>
+              <div class="option-list">
+                {#each wizard.customMoves as move (move)}<EvidenceTag label={move} />{/each}
+              </div>
+            </div>
+          {/if}
+        </div>
 
         {#if submitError}
           <p class="error">{submitError}</p>
@@ -377,6 +416,10 @@
           {submitting ? "Creating..." : "Create monster"}
         </button>
       </section>
+    {/if}
+
+    {#if stepReasons[currentStep]}
+      <FieldNote>{stepReasons[currentStep]}</FieldNote>
     {/if}
 
     <div class="nav-row">
@@ -573,6 +616,61 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
+  }
+
+  /* Review step's compact preview (docs/DESIGN.md Builders: "a compact
+     preview of the thing being created", not a flat label/value list). */
+  .preview-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+
+  .preview-name {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+
+  .preview-ratings {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--border);
+  }
+
+  .preview-rating {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    color: var(--ink);
+  }
+
+  .preview-rating-label {
+    font-family: var(--font-meta);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+
+  .preview-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--border);
   }
 
   .nav-row {

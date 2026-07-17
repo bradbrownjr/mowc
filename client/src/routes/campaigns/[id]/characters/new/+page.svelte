@@ -8,16 +8,24 @@
   import { generateUuid } from "$lib/uuid.js";
   import { writeEntity } from "$lib/sync.js";
   import StepIndicator from "$lib/StepIndicator.svelte";
+  import FieldNote from "$lib/FieldNote.svelte";
+  import EvidenceTag from "$lib/EvidenceTag.svelte";
   import {
     buildCharacterPayload,
     emptyWizardState,
     flattenPlaybooks,
+    gearStepReason,
     isGearStepComplete,
     isLooksStepComplete,
     isMovesStepComplete,
     isNameStepComplete,
     isPlaybookStepComplete,
     isRatingsStepComplete,
+    looksStepReason,
+    movesStepReason,
+    nameStepReason,
+    playbookStepReason,
+    ratingsStepReason,
     selectPlaybook,
     type WizardState
   } from "$lib/character-builder.js";
@@ -66,6 +74,16 @@
     isGearStepComplete(wizard),
     isNameStepComplete(wizard),
     true
+  ]);
+
+  const stepReasons = $derived([
+    playbookStepReason(wizard),
+    ratingsStepReason(wizard),
+    looksStepReason(wizard),
+    movesStepReason(wizard),
+    gearStepReason(wizard),
+    nameStepReason(wizard),
+    null
   ]);
 
   function next(): void {
@@ -156,6 +174,7 @@
     {#if currentStep === 0}
       <section class="panel">
         <h2 class="section-title">Playbook</h2>
+        <FieldNote>Your playbook (a character template) sets your hunter's role in the story, along with their starting moves and gear. Choose the one that fits how you want to play.</FieldNote>
         <div class="option-list stacked">
           {#each availablePlaybooks as playbook (playbook.id)}
             <button
@@ -173,6 +192,7 @@
     {:else if currentStep === 1 && wizard.playbook}
       <section class="panel">
         <h2 class="section-title">Ratings line</h2>
+        <FieldNote>Ratings are the numbers you add when you roll dice for a move. A higher rating means better odds at that kind of action.</FieldNote>
         <div class="option-list stacked">
           {#each wizard.playbook.ratingsLines as line, index (index)}
             <button
@@ -191,6 +211,7 @@
     {:else if currentStep === 2 && wizard.playbook}
       <section class="panel">
         <h2 class="section-title">Look</h2>
+        <FieldNote>A quick sketch of how your hunter looks and carries themselves. This is flavor, not rules; pick an option or write your own.</FieldNote>
         {#each wizard.playbook.looks as group, groupIndex (groupIndex)}
           <div class="look-group">
             <span class="field-label">Look choice {groupIndex + 1}</span>
@@ -218,6 +239,7 @@
     {:else if currentStep === 3 && wizard.playbook}
       <section class="panel">
         <h2 class="section-title">Moves</h2>
+        <FieldNote>Moves (actions your character can roll dice for) are how you interact with the story mechanically. Pick the ones that fit how you want to play.</FieldNote>
         <p class="meta">Pick {wizard.playbook.movesToPick} ({wizard.moveIds.length} chosen)</p>
         <div class="option-list stacked">
           {#each wizard.playbook.moves as move (move.id)}
@@ -236,6 +258,7 @@
     {:else if currentStep === 4 && wizard.playbook}
       <section class="panel">
         <h2 class="section-title">Gear</h2>
+        <FieldNote>Gear is equipment your hunter starts with. Some playbooks offer a choice between a few options; others hand you a fixed loadout.</FieldNote>
         {#each wizard.playbook.gearChoices as choice (choice.id)}
           <div class="look-group">
             <span class="field-label">{choice.label} - pick {choice.pick}</span>
@@ -257,6 +280,7 @@
     {:else if currentStep === 5}
       <section class="panel">
         <h2 class="section-title">Name</h2>
+        <FieldNote>What your hunter goes by. You can still edit ratings, moves, and notes later from the character sheet, but the playbook is set for good once you create this character.</FieldNote>
         <label class="field">
           <span class="field-label">Character name</span>
           <input type="text" bind:value={wizard.name} required />
@@ -265,26 +289,39 @@
     {:else if currentStep === 6 && wizard.playbook && wizard.ratings}
       <section class="panel">
         <h2 class="section-title">Review</h2>
-        <p class="meta">Playbook</p>
-        <p>{wizard.playbook.name}</p>
-        <p class="meta">Ratings</p>
-        <p>
-          Charm {wizard.ratings.charm}, Cool {wizard.ratings.cool}, Sharp {wizard.ratings.sharp}, Tough
-          {wizard.ratings.tough}, Weird {wizard.ratings.weird}
-        </p>
-        <p class="meta">Look</p>
-        <p>{wizard.lookChoices.join(", ")}</p>
-        <p class="meta">Moves</p>
-        <p>{wizard.playbook.moves.filter((m) => wizard.moveIds.includes(m.id)).map((m) => m.name).join(", ")}</p>
-        <p class="meta">Gear</p>
-        <p>
-          {wizard.playbook.gearChoices
-            .flatMap((c) => c.options.filter((o) => (wizard.gearSelections[c.id] ?? []).includes(o.id)))
-            .map((o) => o.name)
-            .join(", ")}
-        </p>
-        <p class="meta">Name</p>
-        <p>{wizard.name}</p>
+        <FieldNote>Check everything below, then create your hunter.</FieldNote>
+        <div class="preview-card">
+          <p class="preview-name">{wizard.name || "Unnamed hunter"}</p>
+          <p class="meta">{wizard.playbook.name}</p>
+          {#if wizard.lookChoices.some((choice) => choice.trim())}
+            <p class="preview-look">{wizard.lookChoices.filter((choice) => choice.trim()).join(", ")}</p>
+          {/if}
+          <div class="preview-ratings">
+            <span class="preview-rating"><span class="preview-rating-label">Charm</span>{wizard.ratings.charm}</span>
+            <span class="preview-rating"><span class="preview-rating-label">Cool</span>{wizard.ratings.cool}</span>
+            <span class="preview-rating"><span class="preview-rating-label">Sharp</span>{wizard.ratings.sharp}</span>
+            <span class="preview-rating"><span class="preview-rating-label">Tough</span>{wizard.ratings.tough}</span>
+            <span class="preview-rating"><span class="preview-rating-label">Weird</span>{wizard.ratings.weird}</span>
+          </div>
+          <div class="preview-section">
+            <p class="meta">Moves</p>
+            <div class="option-list">
+              {#each wizard.playbook.moves.filter((m) => wizard.moveIds.includes(m.id)) as move (move.id)}
+                <EvidenceTag label={move.name} />
+              {/each}
+            </div>
+          </div>
+          <div class="preview-section">
+            <p class="meta">Gear</p>
+            <div class="option-list">
+              {#each wizard.playbook.gearChoices.flatMap((c) => c.options.filter((o) => (wizard.gearSelections[c.id] ?? []).includes(o.id))) as item (item.id)}
+                <EvidenceTag label={item.name} />
+              {:else}
+                <p class="preview-empty">No gear.</p>
+              {/each}
+            </div>
+          </div>
+        </div>
 
         {#if submitError}
           <p class="error">{submitError}</p>
@@ -294,6 +331,10 @@
           {submitting ? "Creating..." : "Create character"}
         </button>
       </section>
+    {/if}
+
+    {#if stepReasons[currentStep]}
+      <FieldNote>{stepReasons[currentStep]}</FieldNote>
     {/if}
 
     <div class="nav-row">
@@ -453,6 +494,75 @@
   .option-card:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
+  }
+
+  /* Review step's compact preview (docs/DESIGN.md Builders: "a compact
+     preview of the thing being created", not a flat label/value list). */
+  .preview-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+
+  .preview-name {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+
+  .preview-look {
+    margin: 0;
+    color: var(--ink-muted);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+  }
+
+  .preview-ratings {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--border);
+  }
+
+  .preview-rating {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    color: var(--ink);
+  }
+
+  .preview-rating-label {
+    font-family: var(--font-meta);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+
+  .preview-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--border);
+  }
+
+  .preview-empty {
+    margin: 0;
+    color: var(--ink-muted);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
   }
 
   .nav-row {

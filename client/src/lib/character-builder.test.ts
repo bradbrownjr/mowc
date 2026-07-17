@@ -4,10 +4,16 @@ import {
   buildCharacterPayload,
   emptyWizardState,
   flattenPlaybooks,
+  gearStepReason,
   isGearStepComplete,
   isLooksStepComplete,
   isMovesStepComplete,
   isReviewStepComplete,
+  looksStepReason,
+  movesStepReason,
+  nameStepReason,
+  playbookStepReason,
+  ratingsStepReason,
   selectPlaybook,
   type WizardState
 } from "./character-builder.js";
@@ -121,6 +127,34 @@ describe("step completeness", () => {
   it("isReviewStepComplete is false until every step is done", () => {
     expect(isReviewStepComplete(emptyWizardState())).toBe(false);
     expect(isReviewStepComplete(completeState())).toBe(true);
+  });
+});
+
+describe("step-incomplete reasons", () => {
+  it("playbookStepReason/ratingsStepReason/nameStepReason are null once picked", () => {
+    expect(playbookStepReason(emptyWizardState())).toMatch(/playbook/i);
+    expect(playbookStepReason(completeState())).toBeNull();
+    expect(ratingsStepReason(emptyWizardState())).toMatch(/ratings/i);
+    expect(ratingsStepReason(completeState())).toBeNull();
+    expect(nameStepReason({ ...completeState(), name: "" })).toMatch(/name/i);
+    expect(nameStepReason(completeState())).toBeNull();
+  });
+
+  it("looksStepReason counts remaining look choices", () => {
+    expect(looksStepReason({ ...completeState(), lookChoices: [] })).toBe("Fill in 2 more look choices.");
+    expect(looksStepReason({ ...completeState(), lookChoices: ["Option A"] })).toBe("Fill in 1 more look choice.");
+    expect(looksStepReason(completeState())).toBeNull();
+  });
+
+  it("movesStepReason counts remaining moves", () => {
+    expect(movesStepReason({ ...completeState(), moveIds: [] })).toBe("Pick 2 more moves.");
+    expect(movesStepReason({ ...completeState(), moveIds: ["move-1"] })).toBe("Pick 1 more move.");
+    expect(movesStepReason(completeState())).toBeNull();
+  });
+
+  it("gearStepReason counts remaining gear picks", () => {
+    expect(gearStepReason({ ...completeState(), gearSelections: {} })).toBe("Pick 1 more gear item.");
+    expect(gearStepReason(completeState())).toBeNull();
   });
 });
 
