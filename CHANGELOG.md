@@ -35,6 +35,10 @@ All notable changes to MOWC are documented here. Format follows
   entities, plus a first-run checklist (attach a pack, invite players,
   create a mystery) that disappears once done. Content pack attach/detach
   and invite codes move to a new Keeper-only Settings screen.
+- The campaign Overview now briefly explains your role under the
+  "Keeper"/"Hunter" label: what a Keeper does and how hunters interact
+  with them, or what a hunter does and how the Keeper reveals the world to
+  them, to help new players and Keepers pick up the game's vocabulary.
 - Empty states across the new campaign screens now explain what the thing
   is and why you'd create one instead of a bare "No X yet."
 

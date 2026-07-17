@@ -8,6 +8,7 @@
   import { db, type LocalEntity } from "$lib/db.js";
   import { pull } from "$lib/sync.js";
   import EmptyState from "$lib/EmptyState.svelte";
+  import FieldNote from "$lib/FieldNote.svelte";
   import type { PageProps } from "./$types.js";
 
   let { data }: PageProps = $props();
@@ -129,6 +130,15 @@
   {:else if campaign}
     <h1 class="title">{campaign.name}</h1>
     <p class="meta">{isKeeper ? "Keeper" : "Hunter"}</p>
+    <FieldNote>
+      {#if isKeeper}
+        You are the Keeper (the person running the game). You build the mystery, the monsters, and the world, then reveal
+        pieces of it to your hunters as they investigate.
+      {:else}
+        You are a hunter (a player investigating the case). Your Keeper builds the mystery and reveals the world as you
+        explore it; focus on your character, the clues, and the people you meet.
+      {/if}
+    </FieldNote>
 
     {#if isKeeper}
       {#if !checklistDone}
@@ -177,8 +187,8 @@
 
       <section class="panel">
         <h2 class="section-title">Party</h2>
-        <a class="submit-button" href={resolve("/campaigns/[id]/characters/new", { id: data.id })}>Create a character</a>
         {#if characters.length > 0}
+          <a class="submit-button" href={resolve("/campaigns/[id]/characters/new", { id: data.id })}>Create a character</a>
           <ul class="entity-list">
             {#each characters as character (character.id)}
               <li class="entity-row">
@@ -203,8 +213,8 @@
 
       <section class="panel">
         <h2 class="section-title">Recent world entities</h2>
-        <a class="submit-button" href={resolve("/campaigns/[id]/world", { id: data.id })}>Open World</a>
         {#if recentWorld.length > 0}
+          <a class="submit-button" href={resolve("/campaigns/[id]/world", { id: data.id })}>Open World</a>
           <ul class="entity-list">
             {#each recentWorld as row (row.id)}
               <li class="entity-row">
