@@ -149,14 +149,28 @@ change "obviously works".
 
 ## Phase / Milestone Completion Guardrail
 
-Never mark a ROADMAP phase, milestone, or item "complete" without:
+Two different flags, two different bars. Conflating them is how 0.11.2
+shipped, fully working, with its ROADMAP checkbox left unflipped for two
+whole builds until caught in 0.11.4's session.
 
-1. Reading the full requirement section top-to-bottom.
-2. Checking for "pending", "planned", or "deferred". If any remain, the
-   phase is **not** complete.
-3. Verifying each requirement: code exists, tests pass, docs match.
-4. Asking the user "Ready to mark X complete?" before flipping the flag.
-5. If in doubt, leave it "in progress" and summarize done vs pending.
+- **Single ROADMAP line-item** (e.g. `- [ ] Character sheet play layout -
+  0.11.4 [Sonnet]`): flip it to `[x]` **in the same commit** as the
+  shipping work, no separate confirmation round-trip needed, as long as
+  every requirement in that bullet's own description is verified (code
+  exists, `npm run build && npm test && npm run check` pass, e2e green if
+  touched, docs updated). This is routine and low-risk; don't defer it,
+  and don't let it slip to "I'll flip it later" — later is how it gets
+  forgotten. Before starting the *next* item, re-scan the last few
+  ROADMAP lines you touched for any left unflipped.
+- **Phase/section header** (e.g. `## Phase 5: Keeper Tools ✅`): this is
+  the higher-stakes flag users see at a glance, so it still requires the
+  full guardrail before flipping:
+  1. Read the full requirement section top-to-bottom.
+  2. Check for "pending", "planned", or "deferred". If any remain, the
+     phase is **not** complete.
+  3. Verify each requirement: code exists, tests pass, docs match.
+  4. Ask the user "Ready to mark Phase X complete?" before flipping it.
+  5. If in doubt, leave it "in progress" and summarize done vs pending.
 
 ## Commit & Release Policy
 
@@ -211,6 +225,8 @@ when the two disagree.
 - Documentation updated:
   - `CHANGELOG.md` under `## [Unreleased]` for user-facing changes
   - `AGENTS.md` for new rules / gotchas / Feature Registry rows
+  - `ROADMAP.md` checkbox for the completed line-item flipped to `[x]`
+    (Phase / Milestone Completion Guardrail above)
   - `docs/DESIGN.md` for new UI patterns
   - `docs/DATA-MODEL.md` / `docs/SYNC.md` for new entities or sync changes
   - `docs/SECURITY.md` checked for any new endpoint, entity, or upload path
