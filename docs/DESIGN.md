@@ -42,9 +42,13 @@ font never used for paragraphs.
 - **Stamps**: status markers (REVEALED, UNSTABLE, DEAD, SOLVED) render as
   bordered uppercase stamps, slightly rotated (-2deg), in the accent or
   danger color at 80% opacity.
-- **Tracks**: Luck/Harm/XP are rows of tappable square boxes (44px min)
-  with hand-drawn-weight 2px borders; filled state is a solid ink block,
-  the "unstable" threshold box gets a danger border.
+- **Tracks**: Luck/Harm/XP are rows of tappable square boxes (44px tap
+  target; on the narrowest phones the visual box may flex down to 40px
+  with the hit area padded back up, see Layout) with hand-drawn-weight
+  2px borders; filled state is a solid ink block, the "unstable"
+  threshold box gets a danger border. Boxes must stay clearly visible
+  against `--bg` in both themes; an empty box is an outline, not a
+  near-invisible fill.
 - **Ruled sections**: notes areas show faint ruled lines (repeating
   linear-gradient), like notebook paper.
 - **Dice banner**: a roll result slides in as a torn-slip banner: big
@@ -63,6 +67,10 @@ Spacing and type scales are shared with sibling repos (tangible):
 `--space-1..16` (4/8/12/16/24/32/48/64px), `--text-xs..2xl`
 (12/14/16/18/20/24px), `--radius-sm/md/lg` (2/4/8px; deliberately squarer
 than typical, this is paperwork), `--tap-min: 44px`.
+
+Layout tokens (see the Layout section; land with 0.11.2):
+`--page-narrow: 28rem`, `--page-content: 46rem`, `--page-wide: 74rem`,
+`--rail-w: 13rem`, `--sheet-rail-w: 22rem`, `--bottombar-h: 56px`.
 
 Surfaces and ink (each theme overrides these, components never hardcode):
 
@@ -90,18 +98,139 @@ user-themable; they are the product's identity.
 
 ## Layout
 
-- Mobile-first. Primary nav: bottom tab bar (Sheet, Party, Mysteries,
-  Log, Settings) on <768px; folder-tab top nav plus a left context rail
-  on desktop, like D&D Beyond's sheet vs. Roll20's table split.
-- Character sheet (mobile): single column, order Ratings → Tracks → Moves
-  → Gear → Notes; ratings row is sticky under the header during play.
-- Builders (characters, monsters, mysteries): numbered wizard steps with a
-  progress rail (D&D Beyond's builder is the reference), each step one
-  decision, review screen at the end.
-- Keeper dashboard (desktop): two-pane, mystery list left, detail right;
-  collapses to list→detail navigation on mobile.
+Expanded 0.11.1 (Phase 11). This section is the binding spec for the
+0.11.2 app shell; routes must not invent their own page-level layout.
+
+### Breakpoints
+
+Exactly three tiers, two cut points. Components use no other widths in
+media queries. Mobile-first: base styles are the mobile layout, tiers
+add on top.
+
+| Tier | Range | Query |
+|---|---|---|
+| mobile | below 768px | base styles |
+| tablet | 768 to 1023px | `@media (min-width: 768px)` |
+| desktop | 1024px and up | `@media (min-width: 1024px)` |
+
+### Page container
+
+Every route's content renders inside the shared `.page` container,
+defined once in `styles.css`. Routes never declare their own
+page-level `max-width` (the pre-0.11 per-route rules are the bug this
+exists to fix).
+
+- Centered: `margin-inline: auto`; the page never hugs a screen edge.
+- Gutters: `padding-inline: var(--space-4)` on mobile, `var(--space-6)`
+  on tablet and up.
+- Sections inside a page stack with `gap: var(--space-6)`.
+- Width variants (tokens below):
+  - `.page` (default, `--page-content`): wizards and forms, entity
+    sheets on mobile/tablet, pack editor.
+  - `.page--narrow` (`--page-narrow`): login, register, invite
+    redemption. A lone form field never spans a wide page.
+  - `.page--wide` (`--page-wide`): screens with a rail or multi-column
+    grid: campaign screens (which carry the context rail), Keeper
+    dashboard, packs list, character sheet on desktop.
+
+### App shell
+
+- Top bar (all tiers): brand link left. On tablet/desktop the
+  folder-tab nav (File tabs motif) sits beside it. Right side is a
+  compact account menu: a button showing the display name (ellipsis
+  past 12rem) that opens a small panel with Log out (and the theme
+  toggle when 0.11.7 ships). The bar is one line, always; nothing in
+  it may wrap.
+- Mobile bottom tab bar: fixed to the viewport bottom, replaces the
+  folder tabs on mobile (the top bar keeps only brand + account).
+  Four destinations, each an icon plus a Courier label at `--text-xs`;
+  the tap target is the full bar height (`--bottombar-h`). Active tab:
+  2px accent top rule and accent-colored label. Destinations outside a
+  campaign: Home, Campaigns, Packs, Account. Inside a campaign:
+  Overview, Sheet (hunter) or Mysteries (Keeper), World, Campaigns
+  (back out). The page container reserves bottom padding equal to
+  `--bottombar-h` plus the safe-area inset so content never hides
+  behind the bar.
+- Campaign context rail (tablet/desktop, routes under
+  `/campaigns/[id]`): left column, `--rail-w` wide, sticky below the
+  top bar. Rows: Overview, Characters, Mysteries (Keeper), World
+  (monsters, minions, bystanders, locations grouped), Dashboard
+  (Keeper), Settings (Keeper). Hunters see only rows they can use.
+  Active row: accent left rule plus `--surface` background, the same
+  "open folder" language as the tabs. The rail is navigation only; it
+  never holds actions or stats.
+
+### Screen patterns
+
+- Character sheet, mobile/tablet: single column, order Ratings, Tracks,
+  Moves, Gear, Notes; the ratings row is sticky under the top bar
+  during play.
+- Character sheet, desktop: two-column grid inside `.page--wide`: left
+  column `--sheet-rail-w` (identity, ratings, tracks), sticky while the
+  right column (moves, gear, notes) scrolls.
+- Tracks never orphan-wrap. A track of up to 8 boxes fits on one row at
+  a 390px viewport: the box flexes between 40px and 52px visual size,
+  and when it renders below 44px the hit area is padded back to 44px
+  (the Accessibility rule is not waived).
+- Builders (characters, monsters, mysteries): numbered wizard steps
+  with a progress rail (D&D Beyond's builder is the reference), each
+  step one decision, review screen at the end that shows a compact
+  preview of the thing being created. A disabled Next is always
+  accompanied by a field note saying what is missing ("Pick 2 more
+  moves").
+- Keeper dashboard (desktop): two-pane, mystery list left, detail
+  right; collapses to list, then detail navigation on mobile.
 - Wide content (countdown tables, session log) scrolls inside its own
   `overflow-x: auto` container; the page never scrolls horizontally.
+
+## Guidance copy ("field notes")
+
+The helper-text pattern for forms, wizard steps, and section headers.
+It reads like a note in the margin of the case file.
+
+- One or two short sentences, body font, `--text-base` (16px floor
+  applies; this is prose, not a meta label), italic, `--ink-muted`,
+  placed directly under the heading or label it explains.
+- Plain language for someone who has never played a monster-hunting
+  tabletop game. Original wording only, never game text (AGENTS.md
+  rule 1).
+- Never restates its label. "Campaign name: the name of the campaign"
+  is banned; say something the label cannot ("Players will see this
+  when they join").
+- Component: `FieldNote.svelte` (lands with 0.11.2; add its inventory
+  row in that change).
+
+## Empty states
+
+A bare "No X yet." is banned. An empty state is a panel with a dashed
+`--border` border containing, in order:
+
+1. One sentence saying what the thing is, glossing jargon per the
+   plain-language policy below.
+2. One sentence saying when or why you would create one.
+3. Exactly one CTA (link or button). Not two. If a hunter cannot
+   create the thing (Keeper-only entity), there is no CTA; the second
+   sentence instead says who will fill it in ("Your Keeper reveals
+   locations here as you discover them").
+
+Component: `EmptyState.svelte` (lands with 0.11.3; inventory row in
+that change).
+
+## Plain language (glossary policy)
+
+The app must be usable by a player who joined five minutes ago and has
+never heard the word Keeper.
+
+- Screen titles and nav labels use the game's real terms (players
+  should learn them); glosses teach the terms without replacing them.
+- Every game term gets a parenthetical gloss on its first appearance
+  per screen: "Keeper (the person running the game)", "hunter (a
+  player's character)", "playbook (a character template)", "move (an
+  action your character can roll dice for)", "mystery (one session's
+  case)". Descriptions are our own wording, never quoted game text.
+- Gloss strings live in one module, `client/src/lib/glossary.ts`
+  (lands with 0.11.6); screens import them, never retype them, so the
+  wording stays consistent app-wide.
 
 ## Motion
 
