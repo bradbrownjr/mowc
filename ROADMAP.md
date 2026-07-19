@@ -476,7 +476,7 @@ guidance text renders at runtime from the user-supplied pack, never from
 repo-bundled strings (AGENTS.md rule 1); UI chrome copy stays original
 wording per the 0.11.1 plain-language policy.
 
-- [ ] Mystery wizard guidance: render the attached packs' `mysteryCreation`
+- [x] Mystery wizard guidance: render the attached packs' `mysteryCreation`
       steps and prompts inside the mystery builder as per-step guidance
       (FieldNote pattern, collapsible if long), so a new Keeper is walked
       through concept/hook/countdown with the source's own prompts -

@@ -41,6 +41,12 @@ All notable changes to MOWC are documented here. Format follows
   an optional type picker sourced from your campaign's attached content
   packs, matching the monster/minion/bystander builders; picking a type
   prefills the location's description (existing locations are unaffected).
+- Mystery wizard guidance (Phase 12, 0.12.1). The New Mystery builder now
+  shows a collapsible "Mystery creation guide" on the Concept & Hook and
+  Countdown steps, pulling the step-by-step prompts straight from your
+  attached content pack so a new Keeper is walked through building their
+  first mystery with the source's own guidance. Only shows up when an
+  attached pack actually carries this guidance.
 
 ## [0.11.8] - 2026-07-17
 

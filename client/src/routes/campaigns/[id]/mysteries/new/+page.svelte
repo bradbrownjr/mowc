@@ -9,10 +9,12 @@
     type Minion,
     type Monster,
     type Mystery,
+    type MysteryCreation,
     type MysteryStatus
   } from "@mowc/shared";
   import { sessionState } from "$lib/session.svelte";
   import { CampaignApiError, getCampaign } from "$lib/api/campaigns.js";
+  import { getPack, type PackDetail } from "$lib/api/contentPacks.js";
   import { db } from "$lib/db.js";
   import { pull, writeEntity } from "$lib/sync.js";
   import { generateUuid } from "$lib/uuid.js";
@@ -20,6 +22,7 @@
   import FieldNote from "$lib/FieldNote.svelte";
   import EvidenceTag from "$lib/EvidenceTag.svelte";
   import { GLOSS } from "$lib/glossary.js";
+  import { flattenMysteryCreation } from "$lib/mystery-guidance.js";
   import {
     addCountdownStep,
     buildMysteryPayload,
@@ -52,6 +55,7 @@
   let minions = $state<Minion[]>([]);
   let bystanders = $state<Bystander[]>([]);
   let locations = $state<Location[]>([]);
+  let creationSteps = $state<MysteryCreation["steps"]>([]);
 
   let wizard = $state<MysteryWizardState>(emptyMysteryWizardState());
   let currentStep = $state(0);
@@ -91,7 +95,7 @@
     }
 
     getCampaign(data.id)
-      .then((result) => {
+      .then(async (result) => {
         campaign = result;
         loadError = null;
         if (result.keeperUserId !== sessionState.user?.id) {
@@ -103,6 +107,9 @@
           .finally(() => {
             void loadCastOptions();
           });
+        const packs = await Promise.all(result.packIds.map((id) => getPack(id).catch(() => null)));
+        const loaded = packs.filter((p): p is PackDetail => p !== null);
+        creationSteps = flattenMysteryCreation(loaded.map((p) => p.pack));
       })
       .catch((err) => {
         loadError = err instanceof CampaignApiError ? err.message : "Campaign not found.";
@@ -194,6 +201,36 @@
   }
 </script>
 
+{#snippet mysteryCreationGuidance()}
+  {#if creationSteps.length > 0}
+    <details class="guidance">
+      <summary class="guidance-summary">Mystery creation guide (from your content pack)</summary>
+      <div class="guidance-body">
+        {#each creationSteps as step, index (index)}
+          <div class="guidance-step">
+            <p class="guidance-step-title">{step.step}</p>
+            {#if step.prompts.length > 0}
+              <ul class="guidance-list">
+                {#each step.prompts as prompt, promptIndex (promptIndex)}
+                  <li>{prompt}</li>
+                {/each}
+              </ul>
+            {/if}
+            {#if step.countdownSteps && step.countdownSteps.length > 0}
+              <p class="guidance-substep">Suggested countdown steps</p>
+              <ul class="guidance-list">
+                {#each step.countdownSteps as countdownLabel, countdownIndex (countdownIndex)}
+                  <li>{countdownLabel}</li>
+                {/each}
+              </ul>
+            {/if}
+          </div>
+        {/each}
+      </div>
+    </details>
+  {/if}
+{/snippet}
+
 <main class="page">
   <a class="back-link" href={resolve("/campaigns/[id]", { id: data.id })}>Back to campaign</a>
 
@@ -226,6 +263,7 @@
       <section class="panel">
         <h2 class="section-title">Concept</h2>
         <FieldNote>The concept is what's really going on behind the scenes, for your eyes only. The hook is how the hunters get pulled into it. Both are optional and can be filled in later.</FieldNote>
+        {@render mysteryCreationGuidance()}
         <textarea class="form-textarea" bind:value={wizard.concept} placeholder="What's really going on?"></textarea>
         <h2 class="section-title">Hook</h2>
         <textarea class="form-textarea" bind:value={wizard.hook} placeholder="How do the hunters get pulled in?"></textarea>
@@ -234,6 +272,7 @@
       <section class="panel">
         <h2 class="section-title">Countdown</h2>
         <FieldNote>The countdown is the mystery's clock: a short ordered list of things that happen if the hunters don't intervene. Optional, and you can keep adjusting it as you run the session.</FieldNote>
+        {@render mysteryCreationGuidance()}
         {#if wizard.countdownSteps.length > 0}
           <ul class="row-list">
             {#each wizard.countdownSteps as step, index (index)}
@@ -634,6 +673,70 @@
     gap: var(--space-1);
     padding-top: var(--space-2);
     border-top: 1px solid var(--border);
+  }
+
+  /* Sourced-guidance pattern (docs/DESIGN.md "Guidance copy"): a
+     collapsible callout for pack-supplied mystery-creation prompts, kept
+     closed by default since pack guidance can run long. */
+  .guidance {
+    padding: var(--space-2) var(--space-3);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+
+  .guidance-summary {
+    cursor: pointer;
+    color: var(--ink-muted);
+    font-family: var(--font-meta);
+    font-size: var(--text-sm);
+    letter-spacing: 0.04em;
+  }
+
+  .guidance-summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .guidance-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding-top: var(--space-2);
+  }
+
+  .guidance-step {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .guidance-step-title {
+    margin: 0;
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-size: var(--text-base);
+    letter-spacing: 0.02em;
+  }
+
+  .guidance-substep {
+    margin: 0;
+    color: var(--ink-muted);
+    font-family: var(--font-meta);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .guidance-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin: 0;
+    padding-left: var(--space-4);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
   }
 
   .nav-row {

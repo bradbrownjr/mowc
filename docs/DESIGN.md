@@ -215,6 +215,26 @@ It reads like a note in the margin of the case file.
 - Component: `FieldNote.svelte` (lands with 0.11.2; add its inventory
   row in that change).
 
+### Sourced guidance (collapsible, pack content)
+
+A variant for when the guidance text itself comes from an attached
+content pack rather than app copy, and can therefore run long (a full
+mystery-creation process with several steps and prompts, for example).
+Unlike a `FieldNote`, this is collapsed by default:
+
+- A native `<summary>`/`<details>` element, `<summary>` in original
+  wording that says the guidance is sourced from the player's own
+  content pack (e.g. "Mystery creation guide (from your content
+  pack)"), never a game-text heading.
+- Body content (headings, prompt lists) is the pack's own text,
+  rendered as-is; this is allowed to be game text since it renders at
+  runtime from user-supplied content, never bundled in the repo
+  (AGENTS.md rule 1).
+- Only rendered when the relevant pack field is present; an attached
+  pack without that guidance renders nothing extra.
+- First user: the mystery builder's Concept & Hook and Countdown steps
+  (0.12.1), rendering each attached pack's `mysteryCreation.steps`.
+
 ## Empty states
 
 A bare "No X yet." is banned. An empty state is a panel with a dashed
