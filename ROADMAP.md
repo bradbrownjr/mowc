@@ -493,7 +493,7 @@ wording per the 0.11.1 plain-language policy.
       Empty state teaches that this content comes from an attached Keeper
       reference pack - 0.12.3 [Sonnet]
 
-## Phase 13: My Characters (cross-campaign and standalone)
+## Phase 13: My Characters (cross-campaign and standalone) ✅
 
 Version 0.13. User request (2026-07-19): a top-level Characters tab where
 a player finds every character they own across all campaigns, plus
