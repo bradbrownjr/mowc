@@ -492,3 +492,38 @@ wording per the 0.11.1 plain-language policy.
       lists from the campaign's attached packs, for at-the-table lookup.
       Empty state teaches that this content comes from an attached Keeper
       reference pack - 0.12.3 [Sonnet]
+
+## Phase 13: My Characters (cross-campaign and standalone)
+
+Version 0.13. User request (2026-07-19): a top-level Characters tab where
+a player finds every character they own across all campaigns, plus
+standalone characters that belong to no campaign at all. Rationale: some
+Keepers run from paper and books, so their players have no campaign in
+the app to hang a character on, but still want a digital sheet,
+especially players new to the game.
+
+Standalone is the hard part: today `Character.campaignId` is required and
+the entire sync/authz path (per-campaign pull, seat-based access, pack
+readability) is campaign-scoped. Two candidate designs, decide in 0.13.1
+before any UI work:
+
+1. Nullable `campaignId` with owner-only authz. Touches
+   `CharacterSchema`, the sync envelope, `server/src/entities/router.ts`
+   authz, `docs/DATA-MODEL.md`, and `docs/SYNC.md`.
+2. An auto-provisioned hidden per-user "personal space" campaign that
+   reuses every existing code path unchanged (KISS-preferred default;
+   needs list/nav filtering so it never appears as a real campaign, and
+   a story for which packs a solo player can read - shared packs and
+   their own uploads already work without a Keeper).
+
+- [ ] Standalone character architecture: pick between the two designs
+      above, implement the chosen one end to end (schema/sync/authz/docs
+      as required), with regression tests proving campaign-scoped
+      characters are untouched - 0.13.1 [Opus]
+- [ ] My Characters tab: global `/characters` route listing the user's
+      own characters grouped by campaign plus a Standalone group, each
+      linking to its sheet; "New character" CTA into the existing builder
+      sourcing shared and self-owned packs; freshness via pull across
+      seated campaigns on visit. Add the tab to the top-bar folder tabs
+      and the global bottom bar (currently 4 global tabs; update
+      DESIGN.md's layout section in the same commit) - 0.13.2 [Sonnet]
