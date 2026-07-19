@@ -1,0 +1,891 @@
+<script lang="ts">
+  /**
+   * The interactive character sheet body (tracks, moves, gear, notes,
+   * level-up), extracted from
+   * client/src/routes/campaigns/[id]/characters/[characterId]/+page.svelte
+   * (0.13.2) so it can also drive the standalone (campaign-less) sheet at
+   * client/src/routes/characters/[characterId]/+page.svelte. Both callers
+   * own data loading (campaign packs vs shared/self-owned packs, and the
+   * campaign- vs owner-scoped pull) plus their own chrome ("Back to..."
+   * link, not-found/loading states); this component owns everything once a
+   * character and its readable packs are in hand.
+   */
+  import { CharacterSchema, type Character, type ContentPack, type ImprovementDef, type MoveDef } from "@mowc/shared";
+  import {
+    DEFAULT_HARM_TRACK,
+    DEFAULT_LUCK_MAX,
+    resolveCharacterMoves,
+    resolveCharacterPlaybook
+  } from "$lib/character-sheet.js";
+  import { crossesUnstable, nextTrackValue } from "$lib/track-tap.js";
+  import {
+    allBasicImprovementsTaken,
+    applyImprovement,
+    eligibleAdvancedImprovements,
+    eligibleImprovements,
+    pickableMoves
+  } from "$lib/level-up.js";
+  import { writeEntity } from "$lib/sync.js";
+  import { rollMove, type RollResult } from "$lib/dice.js";
+  import EvidenceTag from "$lib/EvidenceTag.svelte";
+  import Stamp from "$lib/Stamp.svelte";
+  import DiceBanner from "$lib/DiceBanner.svelte";
+
+  // Fixed engine constant (docs/DATA-MODEL.md): 5 experience = an
+  // improvement. NOT pack-configurable; there is no experienceMax on
+  // PlaybookDef.
+  const EXPERIENCE_MAX = 5;
+  const NOTES_DEBOUNCE_MS = 600;
+  // 0.4.7: roll history is local-only (not synced, see CHANGELOG), capped
+  // so it doesn't grow unbounded over a long session.
+  const ROLL_HISTORY_MAX = 20;
+
+  interface Props {
+    /** The loaded, validated character; used as this component's initial
+     * state. Callers should `{#key}` this component on the character's id
+     * so switching to a different character remounts it with fresh state. */
+    character: Character;
+    /** writeEntity's campaignId/scope param: the real campaign id, or the
+     * literal "standalone" scope for a campaign-less character. */
+    scope: string;
+    packs: ContentPack[];
+  }
+
+  let { character: initialCharacter, scope, packs }: Props = $props();
+
+  // Deliberately a one-time snapshot, not a synced mirror: the caller
+  // `{#key}`s this component on the character's id, so a different
+  // character means a fresh mount with a fresh snapshot rather than this
+  // component re-deriving from a changing prop mid-session.
+  // svelte-ignore state_referenced_locally
+  let character = $state<Character>(initialCharacter);
+  // svelte-ignore state_referenced_locally
+  let notesDraft = $state(initialCharacter.notes);
+  // Inline "choose your improvement" picker (docs/DESIGN.md: tracks are
+  // already inline on this sheet, and this is a single list-pick, not a
+  // multi-step flow, so it doesn't warrant the separate-route pattern the
+  // character-creation wizard uses).
+  let showImprovementPicker = $state(false);
+  // Set only for an `addMove` improvement with `moveId: null` ("player picks
+  // a move"), while the second-step move picker is open.
+  let pendingImprovement = $state<ImprovementDef | null>(null);
+
+  // The Dice banner (docs/DESIGN.md's signature interaction). Null when no
+  // roll has been made yet or the banner has been dismissed.
+  let currentRoll = $state<{
+    moveName: string;
+    ratingLabel: string;
+    result: RollResult;
+    outcomeText: string | null;
+  } | null>(null);
+
+  // Last-rolled move's outcomes panel opens by default (docs/DESIGN.md
+  // Layout, 0.11.4 finding 6: readable without hunting), other moves stay
+  // collapsed until tapped.
+  let lastRolledMoveId = $state<string | null>(null);
+
+  interface RollHistoryEntry {
+    moveName: string;
+    ratingLabel: string;
+    result: RollResult;
+    ts: number;
+  }
+
+  // Local-only roll history (0.4.7 scope boundary, see CHANGELOG): not a
+  // synced SessionLog entity (that's 0.6.3), just an in-memory list for this
+  // browser session, most-recent-first, capped at ROLL_HISTORY_MAX.
+  let rollHistory = $state<RollHistoryEntry[]>([]);
+
+  /**
+   * Applies a field change locally-first: validates the full updated
+   * Character (defense in depth, same as character-builder), updates the
+   * `character` $state optimistically so the tap feels instant, then queues
+   * the local Dexie write plus background push via writeEntity. The UI never
+   * waits on the network (AGENTS.md rule 2).
+   */
+  async function applyUpdate(patch: Partial<Character>): Promise<void> {
+    const result = CharacterSchema.safeParse({ ...character, ...patch });
+    if (!result.success) return;
+    character = result.data;
+    await writeEntity("character", scope, result.data.id, result.data);
+  }
+
+  function tapLuck(boxNumber: number): void {
+    void applyUpdate({ luckSpent: nextTrackValue(character.luckSpent, luckMax, boxNumber) });
+  }
+
+  function tapHarm(boxNumber: number): void {
+    const harm = nextTrackValue(character.harm, harmTrack.max, boxNumber);
+    const patch: Partial<Character> = { harm };
+    // Never auto-clear unstable when harm drops (recovery is a table
+    // decision); only set it when harm reaches the threshold.
+    if (crossesUnstable(harm, harmTrack.unstableAt)) patch.unstable = true;
+    void applyUpdate(patch);
+  }
+
+  function tapExperience(boxNumber: number): void {
+    void applyUpdate({ experience: nextTrackValue(character.experience, EXPERIENCE_MAX, boxNumber) });
+  }
+
+  function clearUnstable(): void {
+    void applyUpdate({ unstable: false });
+  }
+
+  function formatSigned(value: number): string {
+    return value >= 0 ? `+${value}` : `${value}`;
+  }
+
+  function capitalize(value: string): string {
+    return value.charAt(0).toUpperCase() + value.slice(1);
+  }
+
+  /**
+   * Rolls a move (2d6 + rating, docs/DATA-MODEL.md engine constants), shows
+   * the result in the Dice banner, prepends it to the local roll history,
+   * and marks experience on a miss (one applyUpdate call, clamped to
+   * EXPERIENCE_MAX per the "mark experience on a miss" rule).
+   */
+  function rollFor(move: MoveDef): void {
+    if (move.rating === null) return;
+    const ratingValue = character.ratings[move.rating];
+    const result = rollMove(ratingValue);
+    const ratingLabel = `${capitalize(move.rating)} ${formatSigned(ratingValue)}`;
+    currentRoll = {
+      moveName: move.name,
+      ratingLabel,
+      result,
+      outcomeText: move.outcomes ? move.outcomes[result.band] : null
+    };
+    rollHistory = [{ moveName: move.name, ratingLabel, result, ts: Date.now() }, ...rollHistory].slice(0, ROLL_HISTORY_MAX);
+    lastRolledMoveId = move.id;
+    if (result.band === "miss") {
+      void applyUpdate({ experience: Math.min(EXPERIENCE_MAX, character.experience + 1) });
+    }
+  }
+
+  function dismissRoll(): void {
+    currentRoll = null;
+  }
+
+  function openImprovementPicker(): void {
+    showImprovementPicker = true;
+    pendingImprovement = null;
+  }
+
+  function closeImprovementPicker(): void {
+    showImprovementPicker = false;
+    pendingImprovement = null;
+  }
+
+  /**
+   * Picking an `addMove` improvement with `moveId: null` doesn't apply
+   * immediately; it opens a second small picker over pickableMoves() (see
+   * level-up.ts) so the player can choose which move to gain. Every other
+   * effect kind applies in one step.
+   */
+  function chooseImprovement(improvement: ImprovementDef): void {
+    if (improvement.effect.kind === "addMove" && improvement.effect.moveId === null) {
+      pendingImprovement = improvement;
+      return;
+    }
+    void applyUpdate(applyImprovement(character, improvement));
+    closeImprovementPicker();
+  }
+
+  function chooseGrantedMove(moveId: string): void {
+    if (!pendingImprovement) return;
+    void applyUpdate(applyImprovement(character, pendingImprovement, moveId));
+    closeImprovementPicker();
+  }
+
+  let notesTimer: ReturnType<typeof setTimeout> | undefined;
+  function onNotesInput(): void {
+    if (notesTimer) clearTimeout(notesTimer);
+    notesTimer = setTimeout(() => {
+      void applyUpdate({ notes: notesDraft });
+    }, NOTES_DEBOUNCE_MS);
+  }
+
+  function trackLabel(name: string, boxNumber: number, current: number, max: number): string {
+    return boxNumber === current
+      ? `Clear ${name} back to ${current - 1}`
+      : `Mark ${name} ${boxNumber} of ${max}`;
+  }
+
+  const resolved = $derived(resolveCharacterPlaybook(character, packs));
+  const moves = $derived(resolveCharacterMoves(character, resolved, packs));
+  const luckMax = $derived(resolved?.playbook.luckMax ?? DEFAULT_LUCK_MAX);
+  const harmTrack = $derived(resolved?.playbook.harmTrack ?? DEFAULT_HARM_TRACK);
+  const eligibleBasic = $derived(resolved ? eligibleImprovements(resolved.playbook, character) : []);
+  const advancedUnlocked = $derived(resolved ? allBasicImprovementsTaken(resolved.playbook, character) : false);
+  const eligibleAdvanced = $derived(resolved ? eligibleAdvancedImprovements(resolved.playbook, character) : []);
+  const moveOptions = $derived(pickableMoves(character, packs));
+</script>
+
+{#if currentRoll}
+  <DiceBanner
+    moveName={currentRoll.moveName}
+    ratingLabel={currentRoll.ratingLabel}
+    result={currentRoll.result}
+    outcomeText={currentRoll.outcomeText}
+    onDismiss={dismissRoll}
+  />
+{/if}
+
+<div class="sheet-grid">
+<div class="sheet-left">
+<header class="sheet-header">
+  <h1 class="title">{character.name}</h1>
+  <p class="meta">{resolved ? resolved.playbook.name : `Unknown playbook (${character.playbookId})`}</p>
+  {#if character.unstable}
+    <div class="unstable-row">
+      <Stamp label="Unstable" tone="danger" />
+      <button type="button" class="text-button" onclick={clearUnstable}>Clear unstable</button>
+    </div>
+  {/if}
+</header>
+
+<section class="ratings">
+  <div class="rating">
+    <span class="rating-label">Charm</span>
+    <span class="rating-value">{character.ratings.charm}</span>
+  </div>
+  <div class="rating">
+    <span class="rating-label">Cool</span>
+    <span class="rating-value">{character.ratings.cool}</span>
+  </div>
+  <div class="rating">
+    <span class="rating-label">Sharp</span>
+    <span class="rating-value">{character.ratings.sharp}</span>
+  </div>
+  <div class="rating">
+    <span class="rating-label">Tough</span>
+    <span class="rating-value">{character.ratings.tough}</span>
+  </div>
+  <div class="rating">
+    <span class="rating-label">Weird</span>
+    <span class="rating-value">{character.ratings.weird}</span>
+  </div>
+</section>
+
+<section class="panel panel--track">
+  <h2 class="section-title">Luck</h2>
+  <p class="meta">{Math.max(luckMax - character.luckSpent, 0)} of {luckMax} remaining</p>
+  <div class="track">
+    {#each Array.from({ length: luckMax }) as _, index (index)}
+      {@const boxNumber = index + 1}
+      {@const spent = index < character.luckSpent}
+      <button
+        type="button"
+        class="track-box"
+        class:filled={spent}
+        onclick={() => tapLuck(boxNumber)}
+        aria-label={trackLabel("luck", boxNumber, character.luckSpent, luckMax)}
+      ></button>
+    {/each}
+  </div>
+</section>
+
+<section class="panel panel--track">
+  <h2 class="section-title">Harm</h2>
+  <p class="meta">{character.harm} of {harmTrack.max}</p>
+  <div class="track">
+    {#each Array.from({ length: harmTrack.max }) as _, index (index)}
+      {@const boxNumber = index + 1}
+      {@const filled = boxNumber <= character.harm}
+      {@const isThreshold = boxNumber === harmTrack.unstableAt}
+      <button
+        type="button"
+        class="track-box"
+        class:filled
+        class:unstable-threshold={isThreshold}
+        onclick={() => tapHarm(boxNumber)}
+        aria-label={`${trackLabel("harm", boxNumber, character.harm, harmTrack.max)}${isThreshold ? ", unstable threshold" : ""}`}
+      ></button>
+    {/each}
+  </div>
+</section>
+
+<section class="panel panel--track">
+  <h2 class="section-title">Experience</h2>
+  <p class="meta">{character.experience} of {EXPERIENCE_MAX}</p>
+  <div class="track">
+    {#each Array.from({ length: EXPERIENCE_MAX }) as _, index (index)}
+      {@const boxNumber = index + 1}
+      {@const filled = boxNumber <= character.experience}
+      <button
+        type="button"
+        class="track-box"
+        class:filled
+        onclick={() => tapExperience(boxNumber)}
+        aria-label={trackLabel("experience", boxNumber, character.experience, EXPERIENCE_MAX)}
+      ></button>
+    {/each}
+  </div>
+  {#if character.experience >= EXPERIENCE_MAX}
+    <p class="level-up">Ready to level up</p>
+    {#if resolved}
+      <button type="button" class="text-button" onclick={openImprovementPicker}>Choose your improvement</button>
+    {/if}
+  {/if}
+</section>
+
+{#if showImprovementPicker && resolved}
+  <section class="panel">
+    <h2 class="section-title">Choose your improvement</h2>
+    {#if pendingImprovement}
+      <p class="meta">{pendingImprovement.text} &mdash; pick a move</p>
+      {#if moveOptions.length === 0}
+        <p class="meta">No eligible moves to grant.</p>
+      {:else}
+        <ul class="moves">
+          {#each moveOptions as move (move.id)}
+            <li class="move">
+              <button type="button" class="text-button" onclick={() => chooseGrantedMove(move.id)}>{move.name}</button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+      <button type="button" class="text-button" onclick={() => (pendingImprovement = null)}>Back</button>
+    {:else}
+      {#if eligibleBasic.length === 0 && eligibleAdvanced.length === 0}
+        <p class="meta">No more improvements available.</p>
+      {:else}
+        <ul class="moves">
+          {#each eligibleBasic as improvement (improvement.id)}
+            <li class="move">
+              <button type="button" class="text-button" onclick={() => chooseImprovement(improvement)}>{improvement.text}</button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+      {#if advancedUnlocked && eligibleAdvanced.length > 0}
+        <h3 class="section-title">Advanced</h3>
+        <ul class="moves">
+          {#each eligibleAdvanced as improvement (improvement.id)}
+            <li class="move">
+              <button type="button" class="text-button" onclick={() => chooseImprovement(improvement)}>{improvement.text}</button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    {/if}
+    <button type="button" class="text-button" onclick={closeImprovementPicker}>Cancel</button>
+  </section>
+{/if}
+</div>
+
+<div class="sheet-right">
+<section class="panel">
+  <h2 class="section-title">Moves</h2>
+  {#if resolved}
+    {#if moves.length === 0}
+      <p class="meta">No moves.</p>
+    {:else}
+      <ul class="moves">
+        {#each moves as move (move.id)}
+          <li class="move">
+            <span class="move-name">{move.name}</span>
+            {#each move.tags as tag (tag)}
+              <EvidenceTag label={tag} />
+            {/each}
+            <p class="move-trigger">{move.trigger}</p>
+            {#if move.outcomes}
+              <details open={move.id === lastRolledMoveId}>
+                <summary>Outcomes</summary>
+                <p class="outcome"><strong>10+:</strong> {move.outcomes.full}</p>
+                <p class="outcome"><strong>7-9:</strong> {move.outcomes.mixed}</p>
+                <p class="outcome"><strong>Miss:</strong> {move.outcomes.miss}</p>
+              </details>
+            {/if}
+            {#if move.rating !== null}
+              <button type="button" class="roll-button" onclick={() => rollFor(move)}>
+                Roll {capitalize(move.rating)} ({formatSigned(character.ratings[move.rating])})
+              </button>
+            {/if}
+          </li>
+        {/each}
+      </ul>
+    {/if}
+  {:else if character.moves.length > 0}
+    <p class="meta">Playbook not found in this campaign's attached packs; showing raw move ids.</p>
+    <ul class="moves">
+      {#each character.moves as moveId (moveId)}
+        <li class="move"><span class="move-name">{moveId}</span></li>
+      {/each}
+    </ul>
+  {:else}
+    <p class="meta">No moves.</p>
+  {/if}
+</section>
+
+{#if rollHistory.length > 0}
+  <section class="panel">
+    <h2 class="section-title">Roll History</h2>
+    <p class="meta">This session only, not synced (last {ROLL_HISTORY_MAX})</p>
+    <ul class="roll-history">
+      {#each rollHistory as entry (entry.ts)}
+        <li class="roll-entry band-{entry.result.band}">
+          <span class="roll-move">{entry.moveName}</span>
+          <span class="roll-detail">{entry.ratingLabel} &middot; {entry.result.die1}+{entry.result.die2} = {entry.result.total}</span>
+          <span class="stamp roll-stamp">{entry.result.band === "full" ? "10+" : entry.result.band === "mixed" ? "7-9" : "Miss"}</span>
+        </li>
+      {/each}
+    </ul>
+  </section>
+{/if}
+
+<section class="panel">
+  <h2 class="section-title">Gear</h2>
+  {#if character.gear.length === 0}
+    <p class="meta">No gear.</p>
+  {:else}
+    <ul class="gear-list">
+      {#each character.gear as item (item.id)}
+        <li class="gear-item">
+          <span class="move-name">{item.name}</span>
+          {#if item.harm !== null}<span class="gear-stat">Harm {item.harm}</span>{/if}
+          {#if item.armor !== null}<span class="gear-stat">Armor {item.armor}</span>{/if}
+          {#each item.tags as tag (tag)}
+            <EvidenceTag label={tag} />
+          {/each}
+        </li>
+      {/each}
+    </ul>
+  {/if}
+</section>
+
+<section class="panel">
+  <h2 class="section-title">Notes</h2>
+  <textarea
+    class="notes"
+    rows="6"
+    placeholder="No notes yet."
+    aria-label="Character notes"
+    bind:value={notesDraft}
+    oninput={onNotesInput}
+  ></textarea>
+</section>
+</div>
+</div>
+
+<style>
+  /* Two-column desktop grid (docs/DESIGN.md "Screen patterns"): identity,
+     ratings, and tracks in a sticky left rail while moves/gear/notes scroll
+     in the right column. Mobile/tablet: both stack in the same DOM order
+     (Ratings, Tracks, Moves, Gear, Notes), just a plain single column. */
+  .sheet-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  .sheet-left,
+  .sheet-right {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  @media (min-width: 1024px) {
+    .sheet-grid {
+      flex-direction: row;
+      align-items: flex-start;
+    }
+
+    .sheet-left {
+      flex: 0 0 var(--sheet-rail-w);
+      position: sticky;
+      top: var(--space-6);
+    }
+
+    .sheet-right {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  .sheet-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+
+  .meta {
+    margin: 0;
+    font-family: var(--font-meta);
+    font-size: var(--text-sm);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+
+  .stamp {
+    display: inline-block;
+    padding: var(--space-1) var(--space-3);
+    border: 2px solid var(--danger);
+    border-radius: var(--radius-sm);
+    color: var(--danger);
+    opacity: 0.8;
+    transform: rotate(-2deg);
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .ratings {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+  }
+
+  .rating {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    min-width: var(--space-12);
+  }
+
+  .rating-label {
+    font-family: var(--font-meta);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+
+  .rating-value {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    color: var(--ink);
+  }
+
+  .panel {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+  }
+
+  .section-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+
+  /* Tracks never orphan-wrap (docs/DESIGN.md "Screen patterns"): a track of
+     up to 8 boxes fits on one row at a 390px viewport by shrinking box size
+     (40-52px) instead of wrapping. Track panels get a tighter horizontal
+     padding on mobile to make room; gaps tighten to match. */
+  .panel--track {
+    padding-inline: var(--space-3);
+  }
+
+  @media (min-width: 768px) {
+    .panel--track {
+      padding-inline: var(--space-4);
+    }
+  }
+
+  .track {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--space-1);
+    width: 100%;
+  }
+
+  @media (min-width: 768px) {
+    .track {
+      gap: var(--space-2);
+    }
+  }
+
+  .track-box {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 40px;
+    max-width: 52px;
+    aspect-ratio: 1;
+    padding: 0;
+    background: var(--surface-2);
+    border: 2px solid var(--ink-muted);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+
+  /* Below --tap-min visual size, pad the actual tap target back out to
+     --tap-min via an invisible centered pseudo-element (docs/DESIGN.md
+     Accessibility: "not waived" even when the box itself renders smaller). */
+  .track-box::before {
+    content: "";
+    position: absolute;
+    inset: 50%;
+    width: max(var(--tap-min), 100%);
+    height: max(var(--tap-min), 100%);
+    transform: translate(-50%, -50%);
+  }
+
+  .track-box:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .track-box.filled {
+    background: var(--ink);
+  }
+
+  .track-box.unstable-threshold {
+    border-color: var(--danger);
+  }
+
+  /* Track boxes fill with a 120ms ink-blot scale (docs/DESIGN.md Motion).
+     Reduced-motion users get an instant change (no animation). */
+  @media (prefers-reduced-motion: no-preference) {
+    .track-box {
+      transition: background 120ms ease, border-color 120ms ease;
+    }
+
+    .track-box.filled {
+      animation: ink-blot 120ms ease-out;
+    }
+  }
+
+  @keyframes ink-blot {
+    from {
+      transform: scale(0.6);
+    }
+    to {
+      transform: scale(1);
+    }
+  }
+
+  .unstable-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .text-button {
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--ink-muted);
+    font-family: var(--font-meta);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .text-button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .level-up {
+    margin: 0;
+    padding: var(--space-1) var(--space-3);
+    border: 2px solid var(--accent);
+    border-radius: var(--radius-sm);
+    color: var(--accent);
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .moves {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+  }
+
+  .move {
+    padding: var(--space-3);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+
+  .move-name {
+    font-family: var(--font-body);
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .move-trigger {
+    margin: var(--space-1) 0 0;
+    color: var(--ink-muted);
+  }
+
+  .outcome {
+    margin: var(--space-1) 0 0;
+    color: var(--ink);
+  }
+
+  details {
+    margin-top: var(--space-2);
+    color: var(--ink);
+    font-family: var(--font-body);
+  }
+
+  summary {
+    cursor: pointer;
+    font-family: var(--font-meta);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+
+  .roll-button {
+    min-height: var(--tap-min);
+    margin-top: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    background: var(--surface);
+    border: 2px solid var(--accent);
+    border-radius: var(--radius-sm);
+    color: var(--accent);
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .roll-button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .roll-history {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+  }
+
+  .roll-entry {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+
+  .roll-move {
+    font-family: var(--font-body);
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .roll-detail {
+    font-family: var(--font-meta);
+    font-size: var(--text-xs);
+    letter-spacing: 0.05em;
+    color: var(--ink-muted);
+  }
+
+  .roll-stamp {
+    margin-left: auto;
+    padding: 0 var(--space-2);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-size: var(--text-xs);
+  }
+
+  .roll-entry.band-full .roll-stamp {
+    border-color: var(--ok);
+    color: var(--ok);
+  }
+
+  .roll-entry.band-miss .roll-stamp {
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+
+  .gear-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+  }
+
+  .gear-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+
+  .gear-stat {
+    font-family: var(--font-meta);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+
+  .notes {
+    width: 100%;
+    margin: 0;
+    padding: var(--space-3);
+    color: var(--ink);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    white-space: pre-wrap;
+    resize: vertical;
+  }
+
+  .notes:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+</style>

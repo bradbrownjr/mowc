@@ -137,7 +137,7 @@ function resolveGear(playbook: PlaybookDef, selections: GearSelections): GearDef
  */
 export function buildCharacterPayload(params: {
   id: string;
-  campaignId: string;
+  campaignId: string | null;
   ownerUserId: string;
   state: WizardState;
 }): Character | null {
