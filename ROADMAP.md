@@ -523,10 +523,12 @@ before any UI work:
    new players cannot diagnose. Only fall back to this if 0.13.1 finds
    a blocking problem with option 1, and record why.
 
-- [ ] Standalone character architecture: pick between the two designs
+- [x] Standalone character architecture: pick between the two designs
       above, implement the chosen one end to end (schema/sync/authz/docs
       as required), with regression tests proving campaign-scoped
-      characters are untouched - 0.13.1 [Opus]
+      characters are untouched - 0.13.1 [Opus] (Design 1: nullable
+      `campaignId`, owner-bucketed `/api/sync/standalone` scope, no DB
+      migration)
 - [ ] My Characters tab: global `/characters` route listing the user's
       own characters grouped by campaign plus a Standalone group, each
       linking to its sheet; "New character" CTA into the existing builder

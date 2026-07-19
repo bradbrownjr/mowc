@@ -141,7 +141,11 @@ export async function pull(campaignId: string): Promise<void> {
       }
       await db.entities.put({
         id: row.id,
-        campaignId: row.campaignId,
+        // Store under the scope we pulled, not the wire campaignId. For a
+        // campaign these are identical; for the standalone scope the server
+        // buckets rows under the owner's user id while the client keys them by
+        // the literal "standalone" scope, so local writes and pulls agree.
+        campaignId,
         type: row.type,
         payload: row.payload as Record<string, unknown>,
         rev: row.rev,

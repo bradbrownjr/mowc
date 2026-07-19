@@ -78,6 +78,28 @@ re-scanned. Client upserts each row into `entities` unless the entity has a
 pending op in `oplog` (local-wins until push resolves it), then stores the new
 `lastServerSeq`.
 
+## Standalone characters
+
+A Character with `campaignId === null` belongs to no campaign (a player whose
+Keeper runs from paper, or someone trying the app solo). It cannot ride the
+campaign-scoped `/api/sync/:campaignId` route, so it syncs under a dedicated
+owner-bucketed scope:
+
+- Server route `POST` / `GET /api/sync/standalone`, bucketed by the
+  authenticated user's own id (`entities.campaign_id` holds that user id for
+  these rows, so `seq` and `applied_ops` partition per user exactly like a
+  campaign). Authorization is owner-only: a user sees and edits only rows whose
+  `ownerUserId` is their own, with no seat lookup. Only `character` is accepted;
+  the Keeper-owned world entities are campaign-only by construction. The router
+  forces the merged payload's `campaignId` to `null`, so a standalone op can
+  never escape its scope by claiming a real campaign id.
+- On the client the scope key is the literal string `"standalone"` (used both as
+  the local `campaignId` bucket in `entities`/`oplog`/`syncState` and as the URL
+  segment). Pull stores each row under the scope it pulled, not the wire
+  `campaignId`, so the server's user-id bucketing and the client's `"standalone"`
+  key stay consistent. Everything else (oplog, debounce, backoff, tombstones) is
+  identical to a campaign.
+
 ## When sync runs
 
 - On app start / campaign open (pull, then push if oplog non-empty)

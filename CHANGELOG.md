@@ -23,6 +23,14 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+- Standalone character foundation (Phase 13, 0.13.1). A character can now
+  belong to no campaign at all, for players whose Keeper runs from paper or
+  who are trying the app on their own. Under the hood these standalone
+  characters sync privately to their owner, kept fully separate from any
+  campaign. This build lays the groundwork; the "My Characters" screen that
+  surfaces them arrives next (0.13.2).
+
 ## [0.11.8] - 2026-07-17
 
 ### Changed

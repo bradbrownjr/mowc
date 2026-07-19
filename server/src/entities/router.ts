@@ -11,7 +11,8 @@ import {
   UuidSchema,
   type SyncConflict,
   type SyncEntityType,
-  type SyncEnvelope
+  type SyncEnvelope,
+  type SyncOp
 } from "@mowc/shared";
 import { zodErrorResponse } from "../http/validation.js";
 import { hasDangerousKeys } from "../http/proto.js";
@@ -100,6 +101,137 @@ function toWire(envelope: EntityEnvelope): SyncEnvelope {
 }
 
 /**
+ * A sync scope is one bucket of rows that share a `seq`/`applied_ops` partition:
+ * a campaign (bucket = campaignId, role-based authz) or a user's standalone
+ * space (bucket = the owner's userId, owner-only authz). Both drive the same
+ * push/pull core below, so the hard-won op ordering, merge, and idempotency
+ * logic exists in exactly one place.
+ */
+interface SyncScope {
+  bucketId: string;
+  userId: string;
+  /** Forced onto every merged row's `campaignId`: the bucket id for a campaign, null for standalone. */
+  payloadCampaignId: string | null;
+  /** The strict schema for a pushed op's type, or undefined if this scope forbids that type. */
+  schemaFor(type: SyncEntityType): ZodTypeAny | undefined;
+  canView(ownerUserId: string | undefined, revealed: boolean | undefined): boolean;
+  canEdit(ownerUserId: string | undefined): boolean;
+}
+
+function parseSince(req: Request, res: Response): number | undefined {
+  const since = Number(req.query["since"] ?? 0);
+  if (!Number.isInteger(since) || since < 0) {
+    res.status(400).json({ errors: [{ path: "since", message: "since must be a non-negative integer" }] });
+    return undefined;
+  }
+  return since;
+}
+
+function pullRows(repo: EntitiesRepo, scope: SyncScope, since: number): { rows: SyncEnvelope[]; seq: number } {
+  const rows = repo.listSince(scope.bucketId, since);
+  const visible = rows.filter((row) => scope.canView(ownerOf(row.payload), revealedOf(row.payload)));
+  // Advance the cursor past every scanned row, including ones filtered out for
+  // visibility, so they are never re-scanned (docs/SYNC.md invariants 4 and 5).
+  const seq = rows.length > 0 ? rows[rows.length - 1]!.seq : since;
+  return { rows: visible.map(toWire), seq };
+}
+
+function parsePushOps(req: Request, res: Response): SyncOp[] | undefined {
+  if (hasDangerousKeys(req.body)) {
+    res.status(400).json({ errors: [{ path: "", message: "payload contains disallowed keys" }] });
+    return undefined;
+  }
+  const parsed = SyncPushRequestSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json(zodErrorResponse(parsed.error));
+    return undefined;
+  }
+  return parsed.data.ops;
+}
+
+function applyPushOps(
+  repo: EntitiesRepo,
+  scope: SyncScope,
+  ops: SyncOp[]
+): { applied: string[]; conflicts: SyncConflict[] } {
+  const applied: string[] = [];
+  const conflicts: SyncConflict[] = [];
+
+  // The client's oplog is a Dexie table keyed by opId (a random uuid), so
+  // toArray() order is arbitrary, not chronological. Without this sort, a
+  // create immediately followed by an edit (both queued in the same 2s
+  // debounce window, docs/SYNC.md "When sync runs") can arrive with the
+  // edit's partial patch ahead of the create: `current` is still undefined,
+  // the patch alone fails the type's strict schema (missing required
+  // fields), and the edit is dropped silently and permanently (it is never
+  // added to `applied`, but nothing re-queues a retry either). Sorting by
+  // `ts` ascending, the same field already used as the LWW key, guarantees
+  // every entity's ops are applied in the order they were actually written.
+  const orderedOps = [...ops].sort((a, b) => a.ts.localeCompare(b.ts));
+
+  for (const op of orderedOps) {
+    if (repo.isOpApplied(scope.bucketId, op.opId)) {
+      applied.push(op.opId); // idempotent replay: already applied, drop it (step 5)
+      continue;
+    }
+
+    const schema = scope.schemaFor(op.type);
+    if (!schema) {
+      continue; // this scope does not accept this entity type (e.g. only characters are standalone)
+    }
+
+    const current = repo.getById(op.entityId);
+    if (current && current.campaignId !== scope.bucketId) {
+      continue; // an id may only live in one bucket; never cross the boundary
+    }
+    if (current && current.type !== op.type) {
+      continue; // an id may never change entity type
+    }
+    // Authorize touching the existing row by its current owner.
+    if (current && !scope.canEdit(ownerOf(current.payload))) {
+      continue;
+    }
+
+    const ts = clampTs(op.ts, Date.now());
+    const { payload, conflict } = op.deleted
+      ? { payload: current ? current.payload : op.patch, conflict: false }
+      : mergePatch(current?.payload, op.patch, ts, current?.updatedAt);
+
+    // Force this scope's campaignId onto the row so a standalone op can never
+    // smuggle a real campaign id (or a campaign op a null) past validation.
+    const merged = { ...payload, id: op.entityId, campaignId: scope.payloadCampaignId };
+    const validated = schema.safeParse(merged);
+    if (!validated.success) {
+      continue; // a patch that does not yield a valid entity of this type is dropped
+    }
+    // Authorize the resulting row too, so a hunter cannot reassign a
+    // character to (or away from) another user, or write a Keeper-only entity.
+    if (!scope.canEdit(ownerOf(validated.data as Record<string, unknown>))) {
+      continue;
+    }
+
+    repo.commit({
+      campaignId: scope.bucketId,
+      id: op.entityId,
+      type: op.type,
+      payload: validated.data,
+      baseRev: op.baseRev,
+      currentRev: current?.rev,
+      updatedAt: ts,
+      updatedBy: scope.userId,
+      deleted: op.deleted,
+      opId: op.opId
+    });
+    applied.push(op.opId);
+    if (conflict && current) {
+      conflicts.push({ opId: op.opId, serverPayload: current.payload });
+    }
+  }
+
+  return { applied, conflicts };
+}
+
+/**
  * Mounted at /api/sync/:campaignId. `POST` pushes an op batch, `GET` pulls
  * rows with seq > ?since=. Both are scoped by membership (404 for a
  * non-member, so a guessed campaign id is indistinguishable from a real one)
@@ -109,130 +241,95 @@ function toWire(envelope: EntityEnvelope): SyncEnvelope {
 export function createSyncRouter(repo: EntitiesRepo, authz: Authz): Router {
   const router = Router({ mergeParams: true });
 
-  function readableCampaignId(req: Request, res: Response): string | undefined {
+  function scopeFor(req: Request, res: Response): SyncScope | undefined {
     const idResult = UuidSchema.safeParse(req.params["campaignId"]);
     if (!idResult.success) {
       res.status(400).json({ errors: [{ path: "campaignId", message: "invalid campaign id" }] });
       return undefined;
     }
-    if (!authz.canReadCampaign(idResult.data, req.user!.id)) {
+    const campaignId = idResult.data;
+    const userId = req.user!.id;
+    if (!authz.canReadCampaign(campaignId, userId)) {
       res.status(404).json(NOT_FOUND);
       return undefined;
     }
-    return idResult.data;
+    return {
+      bucketId: campaignId,
+      userId,
+      payloadCampaignId: campaignId,
+      schemaFor: (type) => ENTITY_SCHEMAS[type],
+      canView: (ownerUserId, revealed) => authz.canView(accessCtx(campaignId, userId, ownerUserId, revealed)),
+      canEdit: (ownerUserId) => authz.canEdit(accessCtx(campaignId, userId, ownerUserId))
+    };
   }
 
   router.get("/", (req, res) => {
-    const campaignId = readableCampaignId(req, res);
-    if (!campaignId) {
+    const scope = scopeFor(req, res);
+    if (!scope) {
       return;
     }
-
-    const since = Number(req.query["since"] ?? 0);
-    if (!Number.isInteger(since) || since < 0) {
-      res.status(400).json({ errors: [{ path: "since", message: "since must be a non-negative integer" }] });
+    const since = parseSince(req, res);
+    if (since === undefined) {
       return;
     }
-
-    const userId = req.user!.id;
-    const rows = repo.listSince(campaignId, since);
-    const visible = rows.filter((row) =>
-      authz.canView(accessCtx(campaignId, userId, ownerOf(row.payload), revealedOf(row.payload)))
-    );
-    // Advance lastServerSeq past every scanned row, including ones filtered out
-    // for visibility, so they are never re-scanned (invariant 4 keeps them out
-    // of the payload; invariant 5 requires the client store this only after it
-    // commits the upserts).
-    const seq = rows.length > 0 ? rows[rows.length - 1]!.seq : since;
-    res.json({ rows: visible.map(toWire), seq });
+    res.json(pullRows(repo, scope, since));
   });
 
   router.post("/", createSyncPushRateLimiter(), (req, res) => {
-    const campaignId = readableCampaignId(req, res);
-    if (!campaignId) {
+    const scope = scopeFor(req, res);
+    if (!scope) {
       return;
     }
-
-    if (hasDangerousKeys(req.body)) {
-      res.status(400).json({ errors: [{ path: "", message: "payload contains disallowed keys" }] });
+    const ops = parsePushOps(req, res);
+    if (!ops) {
       return;
     }
+    const { applied, conflicts } = applyPushOps(repo, scope, ops);
+    res.json({ applied, conflicts, newSeq: repo.maxSeq(scope.bucketId) });
+  });
 
-    const parsed = SyncPushRequestSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json(zodErrorResponse(parsed.error));
-      return;
-    }
+  return router;
+}
 
+/**
+ * Mounted at /api/sync/standalone. The owner-bucketed sync space for characters
+ * that belong to no campaign (Character.campaignId === null). The bucket is the
+ * authenticated user's own id, so `seq`/`applied_ops` partition per user and a
+ * user only ever sees or edits their own standalone rows (owner-only authz, no
+ * seats). Only `character` is allowed here; the five Keeper-owned world
+ * entities are campaign-only by construction (docs/SYNC.md, docs/SECURITY.md).
+ */
+export function createStandaloneSyncRouter(repo: EntitiesRepo): Router {
+  const router = Router();
+
+  function scopeFor(req: Request): SyncScope {
     const userId = req.user!.id;
-    const applied: string[] = [];
-    const conflicts: SyncConflict[] = [];
+    return {
+      bucketId: userId,
+      userId,
+      payloadCampaignId: null,
+      schemaFor: (type) => (type === "character" ? ENTITY_SCHEMAS.character : undefined),
+      canView: (ownerUserId) => ownerUserId === userId,
+      canEdit: (ownerUserId) => ownerUserId === userId
+    };
+  }
 
-    // The client's oplog is a Dexie table keyed by opId (a random uuid), so
-    // toArray() order is arbitrary, not chronological. Without this sort, a
-    // create immediately followed by an edit (both queued in the same 2s
-    // debounce window, docs/SYNC.md "When sync runs") can arrive with the
-    // edit's partial patch ahead of the create: `current` is still undefined,
-    // the patch alone fails the type's strict schema (missing required
-    // fields), and the edit is dropped silently and permanently (it is never
-    // added to `applied`, but nothing re-queues a retry either). Sorting by
-    // `ts` ascending, the same field already used as the LWW key, guarantees
-    // every entity's ops are applied in the order they were actually written.
-    const orderedOps = [...parsed.data.ops].sort((a, b) => a.ts.localeCompare(b.ts));
-
-    for (const op of orderedOps) {
-      if (repo.isOpApplied(campaignId, op.opId)) {
-        applied.push(op.opId); // idempotent replay: already applied, drop it (step 5)
-        continue;
-      }
-
-      const current = repo.getById(op.entityId);
-      if (current && current.campaignId !== campaignId) {
-        continue; // an id may only live in one campaign; never cross the boundary
-      }
-      if (current && current.type !== op.type) {
-        continue; // an id may never change entity type
-      }
-      // Authorize touching the existing row by its current owner.
-      if (current && !authz.canEdit(accessCtx(campaignId, userId, ownerOf(current.payload)))) {
-        continue;
-      }
-
-      const ts = clampTs(op.ts, Date.now());
-      const { payload, conflict } = op.deleted
-        ? { payload: current ? current.payload : op.patch, conflict: false }
-        : mergePatch(current?.payload, op.patch, ts, current?.updatedAt);
-
-      const merged = { ...payload, id: op.entityId, campaignId };
-      const validated = ENTITY_SCHEMAS[op.type].safeParse(merged);
-      if (!validated.success) {
-        continue; // a patch that does not yield a valid entity of this type is dropped
-      }
-      // Authorize the resulting row too, so a hunter cannot reassign a
-      // character to (or away from) another user, or write a Keeper-only entity.
-      if (!authz.canEdit(accessCtx(campaignId, userId, ownerOf(validated.data as Record<string, unknown>)))) {
-        continue;
-      }
-
-      repo.commit({
-        campaignId,
-        id: op.entityId,
-        type: op.type,
-        payload: validated.data,
-        baseRev: op.baseRev,
-        currentRev: current?.rev,
-        updatedAt: ts,
-        updatedBy: userId,
-        deleted: op.deleted,
-        opId: op.opId
-      });
-      applied.push(op.opId);
-      if (conflict && current) {
-        conflicts.push({ opId: op.opId, serverPayload: current.payload });
-      }
+  router.get("/", (req, res) => {
+    const since = parseSince(req, res);
+    if (since === undefined) {
+      return;
     }
+    res.json(pullRows(repo, scopeFor(req), since));
+  });
 
-    res.json({ applied, conflicts, newSeq: repo.maxSeq(campaignId) });
+  router.post("/", createSyncPushRateLimiter(), (req, res) => {
+    const ops = parsePushOps(req, res);
+    if (!ops) {
+      return;
+    }
+    const scope = scopeFor(req);
+    const { applied, conflicts } = applyPushOps(repo, scope, ops);
+    res.json({ applied, conflicts, newSeq: repo.maxSeq(scope.bucketId) });
   });
 
   return router;

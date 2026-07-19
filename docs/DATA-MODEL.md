@@ -114,6 +114,12 @@ Character { id, campaignId, ownerUserId, playbookId, name, look,
             ratings {charm,cool,sharp,tough,weird},
             luckSpent, harm, unstable, experience,
             moves[ids], improvements[ids], gear[], extrasState, notes }
+            -- campaignId is nullable: null = a standalone character that
+            -- belongs to no campaign (a player whose Keeper runs from paper,
+            -- or someone trying the app solo). Standalone rows sync under an
+            -- owner-bucketed scope rather than a campaign (docs/SYNC.md
+            -- "Standalone characters"). Only Character may be standalone; the
+            -- Keeper-owned entities below are always campaign-scoped.
 Mystery   { id, campaignId, title, concept, hook, status,
             countdown: { steps: [{label, text, done}] },
             locationIds[], monsterIds[], minionIds[], bystanderIds[],

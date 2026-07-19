@@ -33,6 +33,11 @@ describe("CharacterSchema", () => {
     expect(character.gear[0].name).toBe("Test Widget");
   });
 
+  it("accepts a null campaignId (standalone character)", () => {
+    const character = CharacterSchema.parse({ ...validCharacter, campaignId: null });
+    expect(character.campaignId).toBeNull();
+  });
+
   it("rejects a missing ratings block", () => {
     const { ratings: _ratings, ...rest } = validCharacter;
     expect(() => CharacterSchema.parse(rest)).toThrow();

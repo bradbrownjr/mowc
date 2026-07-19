@@ -80,6 +80,12 @@ The app must still be safe if exposed directly.
 - The **sync pull** path applies the same visibility filter as REST reads
   (SYNC.md invariant 4), and the **sync push** path applies the same
   edit rules per op. Sync is not a side door.
+- **Standalone characters** (`Character.campaignId === null`) sync through
+  `/api/sync/standalone`, bucketed by the owner's user id with owner-only
+  authorization: a user reads and edits only rows whose `ownerUserId` is
+  their own, and the route forces the stored `campaignId` to `null` so an op
+  cannot escape into a campaign it does not belong to. Only `character` is
+  accepted there; Keeper-owned world entities remain campaign-only.
 
 ## 4. Rate limiting & resource exhaustion
 

@@ -4,7 +4,10 @@ import { GearDefSchema } from "./contentPack.js";
 
 export const CharacterSchema = z.object({
   id: UuidSchema,
-  campaignId: UuidSchema,
+  // null = a standalone character that belongs to no campaign (a player whose
+  // Keeper runs from paper, or one trying the app solo). Standalone rows sync
+  // under an owner-bucketed scope, not a campaign (docs/SYNC.md, docs/DATA-MODEL.md).
+  campaignId: UuidSchema.nullable(),
   ownerUserId: UserIdSchema,
   playbookId: DefIdSchema,
   name: z.string().min(1).max(100),

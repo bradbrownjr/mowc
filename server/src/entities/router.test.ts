@@ -498,3 +498,92 @@ describe("same-batch ops are applied in chronological order", () => {
     expect(pull.body.rows[0].payload.revealed).toBe(true);
   });
 });
+
+describe("campaign characters unaffected by nullable campaignId (0.13.1)", () => {
+  it("keeps a campaign character's campaignId non-null through push and pull", async () => {
+    const app = createTestApp();
+    const { agent: keeper, userId } = await registerAgent(app, "keeper@example.com");
+    const created = await keeper.post("/api/campaigns").send({ name: "The Vermont Job" });
+    const campaignId = created.body.id as string;
+    const char = character(campaignId, userId);
+
+    await keeper.post(`/api/sync/${campaignId}`).send({ ops: [op(char.id, char)] });
+    const pull = await keeper.get(`/api/sync/${campaignId}?since=0`);
+    expect(pull.body.rows).toHaveLength(1);
+    expect(pull.body.rows[0].payload.campaignId).toBe(campaignId);
+  });
+});
+
+describe("standalone character sync (0.13.1)", () => {
+  it("round-trips a standalone character for its owner with a null campaignId", async () => {
+    const app = createTestApp();
+    const { agent, userId } = await registerAgent(app, "solo@example.com");
+    const char = character("00000000-0000-4000-8000-000000000010", userId, { campaignId: null });
+
+    const push = await agent.post("/api/sync/standalone").send({ ops: [op(char.id, char)] });
+    expect(push.status).toBe(200);
+    expect(push.body.applied).toHaveLength(1);
+    expect(push.body.newSeq).toBe(1);
+
+    const pull = await agent.get("/api/sync/standalone?since=0");
+    expect(pull.body.rows).toHaveLength(1);
+    expect(pull.body.rows[0].payload.campaignId).toBeNull();
+    expect(pull.body.rows[0].payload.name).toBe("Test Hunter");
+  });
+
+  it("forces campaignId to null even when an op supplies a real campaign id", async () => {
+    // A standalone op must never escape its owner-bucketed scope by claiming a
+    // campaign; the router overwrites campaignId to null before validation.
+    const app = createTestApp();
+    const { agent, userId } = await registerAgent(app, "solo@example.com");
+    const char = character("00000000-0000-4000-8000-000000000010", userId, {
+      campaignId: "00000000-0000-4000-8000-0000000000aa"
+    });
+
+    await agent.post("/api/sync/standalone").send({ ops: [op(char.id, char)] });
+    const pull = await agent.get("/api/sync/standalone?since=0");
+    expect(pull.body.rows).toHaveLength(1);
+    expect(pull.body.rows[0].payload.campaignId).toBeNull();
+  });
+
+  it("never exposes one user's standalone character to another user", async () => {
+    const app = createTestApp();
+    const { agent: a, userId: aId } = await registerAgent(app, "alice@example.com");
+    const { agent: b } = await registerAgent(app, "bob@example.com");
+    const char = character("00000000-0000-4000-8000-000000000010", aId, { campaignId: null });
+    await a.post("/api/sync/standalone").send({ ops: [op(char.id, char)] });
+
+    const bobPull = await b.get("/api/sync/standalone?since=0");
+    expect(bobPull.body.rows).toHaveLength(0);
+  });
+
+  it("drops another user's attempt to edit a standalone character (cross-bucket)", async () => {
+    const app = createTestApp();
+    const { agent: a, userId: aId } = await registerAgent(app, "alice@example.com");
+    const { agent: b } = await registerAgent(app, "bob@example.com");
+    const char = character("00000000-0000-4000-8000-000000000010", aId, { campaignId: null });
+    await a.post("/api/sync/standalone").send({ ops: [op(char.id, char)] });
+
+    const bobEdit = await b
+      .post("/api/sync/standalone")
+      .send({ ops: [op(char.id, { name: "Hijacked" }, { baseRev: 1 })] });
+    expect(bobEdit.body.applied).toHaveLength(0);
+
+    const alicePull = await a.get("/api/sync/standalone?since=0");
+    expect(alicePull.body.rows[0].payload.name).toBe("Test Hunter");
+  });
+
+  it("rejects a non-character entity type on the standalone route", async () => {
+    const app = createTestApp();
+    const { agent, userId } = await registerAgent(app, "solo@example.com");
+    const char = character("00000000-0000-4000-8000-000000000010", userId, { campaignId: null });
+
+    const push = await agent
+      .post("/api/sync/standalone")
+      .send({ ops: [op(char.id, char, { type: "monster" })] });
+    expect(push.body.applied).toHaveLength(0);
+
+    const pull = await agent.get("/api/sync/standalone?since=0");
+    expect(pull.body.rows).toHaveLength(0);
+  });
+});

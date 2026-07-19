@@ -17,7 +17,7 @@ import { createAuthz } from "./authz/index.js";
 import { createInvitesRepo } from "./invites/repo.js";
 import { createCampaignInvitesRouter, createInviteRedeemRouter } from "./invites/router.js";
 import { createEntitiesRepo } from "./entities/repo.js";
-import { createSyncRouter } from "./entities/router.js";
+import { createStandaloneSyncRouter, createSyncRouter } from "./entities/router.js";
 
 /**
  * The built SvelteKit client is expected as a sibling of this package:
@@ -84,6 +84,10 @@ export function createApp(version: string, db: Database.Database, adminEmail?: s
   );
   app.use("/api/campaigns", requireAuth, createCampaignsRouter(campaignsRepo, authz, createPackReadableCheck(db)));
   app.use("/api/invites", requireAuth, createInviteRedeemRouter(campaignsRepo, invitesRepo));
+  // Standalone (campaign-less) character sync, bucketed by the owner's user id.
+  // Mounted before the :campaignId route so "standalone" is never parsed as a
+  // campaign id (docs/SYNC.md "Standalone characters").
+  app.use("/api/sync/standalone", requireAuth, createStandaloneSyncRouter(entitiesRepo));
   app.use("/api/sync/:campaignId", requireAuth, createSyncRouter(entitiesRepo, authz));
 
   if (existsSync(CLIENT_DIR)) {
