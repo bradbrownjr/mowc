@@ -259,7 +259,7 @@ Version 0.7 — the local-first queue from Phase 4 becomes full multi-device
 sync. `docs/SYNC.md` is the spec; update it in the same PR as any protocol
 change.
 
-- [ ] Server sync endpoints: `GET /sync/:campaign?since=seq` and
+- [x] Server sync endpoints: `GET /sync/:campaign?since=seq` and
       `POST /sync/:campaign` (push mutations, LWW conflict resolution,
       tombstones) - 0.7.1 [Opus]
 - [ ] Client sync engine: Dexie oplog, background sync on reconnect,
