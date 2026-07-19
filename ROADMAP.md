@@ -529,7 +529,7 @@ before any UI work:
       characters are untouched - 0.13.1 [Opus] (Design 1: nullable
       `campaignId`, owner-bucketed `/api/sync/standalone` scope, no DB
       migration)
-- [ ] My Characters tab: global `/characters` route listing the user's
+- [x] My Characters tab: global `/characters` route listing the user's
       own characters grouped by campaign plus a Standalone group, each
       linking to its sheet; "New character" CTA into the existing builder
       sourcing shared and self-owned packs; freshness via pull across

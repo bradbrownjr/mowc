@@ -54,11 +54,12 @@
   {:else if groups.length === 0}
     <EmptyState
       what="A character (a hunter's playbook sheet) is who you play as when you take on the monsters."
-      why="Join or start a campaign, then create your hunter there."
-      ctaLabel="Go to campaigns"
-      ctaHref={resolve("/campaigns")}
+      why="Create a standalone character, or join or start a campaign and create your hunter there."
+      ctaLabel="New character"
+      ctaHref={resolve("/characters/new")}
     />
   {:else}
+    <a class="submit-button" href={resolve("/characters/new")}>New character</a>
     {#each groups as group (group.key)}
       <section class="group">
         <h2 class="group-label">{group.label}</h2>
@@ -76,7 +77,9 @@
                   {character.name}
                 </a>
               {:else}
-                <span class="entity-link">{character.name}</span>
+                <a class="entity-link" href={resolve("/characters/[characterId]", { characterId: character.id })}>
+                  {character.name}
+                </a>
               {/if}
             </li>
           {/each}
@@ -103,6 +106,25 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--ink-muted);
+  }
+
+  .submit-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: flex-start;
+    min-height: var(--tap-min);
+    padding: var(--space-2) var(--space-4);
+    background: var(--surface-2);
+    color: var(--ink);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-family: var(--font-meta);
+    font-size: var(--text-sm);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
   }
 
   .group {
