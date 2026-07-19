@@ -21,7 +21,7 @@ All notable changes to MOWC are documented here. Format follows
   (Overview, plus a Keeper Dashboard link) so navigation within a campaign
   no longer relies solely on in-page links.
 
-## [Unreleased]
+## [0.13.1] - 2026-07-19
 
 ### Added
 - Multi-device torture test (Phase 7, 0.7.3). A scripted test suite now

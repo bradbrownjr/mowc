@@ -253,7 +253,7 @@ Version 0.6
 - [ ] Keeper screen: at-a-glance party status (Harm, Luck, conditions) -
       0.6.4 [Sonnet]
 
-## Phase 7: Offline Sync Hardening
+## Phase 7: Offline Sync Hardening ✅
 
 Version 0.7 — the local-first queue from Phase 4 becomes full multi-device
 sync. `docs/SYNC.md` is the spec; update it in the same PR as any protocol
