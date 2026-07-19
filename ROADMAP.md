@@ -461,3 +461,34 @@ viewports are part of the milestone's Definition of Done.
       WCAG AA contrast in both themes (DESIGN.md accessibility section),
       and confirm the e2e suite is green. This is the phase's exit gate;
       do not mark the phase complete without it.
+
+## Phase 12: Keeper Guidance
+
+Version 0.12. The Keeper reference pack (transcribed 2026-07 from the
+free Keeper Reference Sheets) already carries agenda, principles, keeper
+move lists, a 4-step mystery creation process with prompts, and location
+types with motivations, all validating against `ContentPackSchema`, but
+none of it has a UI: the mystery wizard never shows the creation prompts,
+the location builder has no type picker (unlike monster/minion/bystander),
+and there is no screen where a Keeper can read their agenda or moves
+during play. This phase wires that dormant pack data into the app. All
+guidance text renders at runtime from the user-supplied pack, never from
+repo-bundled strings (AGENTS.md rule 1); UI chrome copy stays original
+wording per the 0.11.1 plain-language policy.
+
+- [ ] Mystery wizard guidance: render the attached packs' `mysteryCreation`
+      steps and prompts inside the mystery builder as per-step guidance
+      (FieldNote pattern, collapsible if long), so a new Keeper is walked
+      through concept/hook/countdown with the source's own prompts -
+      0.12.1 [Sonnet]
+- [ ] Location type picker: add a nullable `typeId` to `LocationSchema`
+      (shared schema; optional with null default so existing rows and
+      queued sync ops stay valid), a `flattenLocationTypes(packs)` helper,
+      and a type dropdown on the location form that prefills motivation,
+      mirroring the monster/minion/bystander builders. Update
+      `docs/DATA-MODEL.md` in the same commit - 0.12.2 [Sonnet]
+- [ ] Keeper reference panel: read-only screen (rail row, Keeper-only)
+      rendering agenda, principles, "always say", and the keeper move
+      lists from the campaign's attached packs, for at-the-table lookup.
+      Empty state teaches that this content comes from an attached Keeper
+      reference pack - 0.12.3 [Sonnet]
