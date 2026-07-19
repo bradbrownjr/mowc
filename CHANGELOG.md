@@ -23,6 +23,15 @@ All notable changes to MOWC are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+- Multi-device torture test (Phase 7, 0.7.3). A scripted test suite now
+  simulates two devices sharing one campaign and one character: they edit
+  it while offline and reconnect in interleaved order, proving both devices
+  converge to the same result (different-field edits both survive, same-field
+  edits resolve to the most recent write with the loser warned, deletes and
+  out-of-order batches converge, and a re-sent batch changes nothing). This
+  is a test-only change with no user-facing behavior change.
+
 ## [0.13.0] - 2026-07-19
 
 ### Added

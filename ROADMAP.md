@@ -265,7 +265,7 @@ change.
 - [ ] Client sync engine: Dexie oplog, background sync on reconnect,
       exponential backoff, conflict toast when a local write loses -
       0.7.2 [Opus]
-- [ ] Multi-device torture test: scripted vitest scenario with two
+- [x] Multi-device torture test: scripted vitest scenario with two
       simulated clients diverging offline and converging - 0.7.3 [Opus]
 - [ ] Sync status UI: online/offline badge, pending-changes count, manual
       sync button - 0.7.4 [Haiku]
