@@ -2,7 +2,7 @@
   import { onDestroy } from "svelte";
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
-  import { LayoutList, ClipboardList, Users, Globe, BookOpen, Settings } from "@lucide/svelte";
+  import { LayoutList, ClipboardList, Users, Globe, BookOpen, BookMarked, Settings } from "@lucide/svelte";
   import Icon from "$lib/Icon.svelte";
   import { sessionState } from "$lib/session.svelte";
   import { getCampaign } from "$lib/api/campaigns.js";
@@ -78,6 +78,7 @@
   const overviewHref = $derived(resolve("/campaigns/[id]", { id: data.id }));
   const charactersHref = $derived(resolve("/campaigns/[id]/characters", { id: data.id }));
   const mysteriesHref = $derived(resolve("/campaigns/[id]/mysteries", { id: data.id }));
+  const referenceHref = $derived(resolve("/campaigns/[id]/reference", { id: data.id }));
   const worldHref = $derived(resolve("/campaigns/[id]/world", { id: data.id }));
   const dashboardHref = $derived(resolve("/campaigns/[id]/dashboard", { id: data.id }));
   const settingsHref = $derived(resolve("/campaigns/[id]/settings", { id: data.id }));
@@ -98,6 +99,10 @@
       <a class="rail-row" class:active={current === normalize(mysteriesHref)} href={resolve("/campaigns/[id]/mysteries", { id: data.id })}>
         <Icon icon={BookOpen} size={18} />
         <span>Mysteries</span>
+      </a>
+      <a class="rail-row" class:active={current === normalize(referenceHref)} href={resolve("/campaigns/[id]/reference", { id: data.id })}>
+        <Icon icon={BookMarked} size={18} />
+        <span>Reference</span>
       </a>
     {/if}
     <a class="rail-row" class:active={current === normalize(worldHref)} href={resolve("/campaigns/[id]/world", { id: data.id })}>

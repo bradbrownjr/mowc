@@ -24,6 +24,12 @@ All notable changes to MOWC are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- Keeper reference panel (Phase 12, 0.12.3). A new "Reference" screen in
+  the campaign rail (Keeper only) shows your agenda, principles, "always
+  say" reminders, and keeper move lists at a glance for lookup during
+  play, pulled from the campaign's attached content packs. Shows a plain
+  explanation of where this content comes from when no attached pack
+  carries it yet.
 - Standalone character foundation (Phase 13, 0.13.1). A character can now
   belong to no campaign at all, for players whose Keeper runs from paper or
   who are trying the app on their own. Under the hood these standalone

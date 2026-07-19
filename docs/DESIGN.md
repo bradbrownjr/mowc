@@ -168,12 +168,14 @@ exists to fix).
   content never hides behind the bar.
 - Campaign context rail (tablet/desktop, routes under
   `/campaigns/[id]`): left column, `--rail-w` wide, sticky below the
-  top bar. Rows: Overview, Characters, Mysteries (Keeper), World
-  (monsters, minions, bystanders, locations grouped), Dashboard
-  (Keeper), Settings (Keeper). Hunters see only rows they can use.
-  Active row: accent left rule plus `--surface` background, the same
-  "open folder" language as the tabs. The rail is navigation only; it
-  never holds actions or stats.
+  top bar. Rows: Overview, Characters, Mysteries (Keeper), Reference
+  (Keeper), World (monsters, minions, bystanders, locations grouped),
+  Dashboard (Keeper), Settings (Keeper). Hunters see only rows they can
+  use. Active row: accent left rule plus `--surface` background, the
+  same "open folder" language as the tabs. The rail is navigation only;
+  it never holds actions or stats. Reference, like Dashboard and
+  Settings, is rail-only: it is not added to the mobile in-campaign
+  bottom bar, which is already at its four-tab limit above.
 
 ### Screen patterns
 

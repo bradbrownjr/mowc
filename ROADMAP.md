@@ -487,7 +487,7 @@ wording per the 0.11.1 plain-language policy.
       and a type dropdown on the location form that prefills motivation,
       mirroring the monster/minion/bystander builders. Update
       `docs/DATA-MODEL.md` in the same commit - 0.12.2 [Sonnet]
-- [ ] Keeper reference panel: read-only screen (rail row, Keeper-only)
+- [x] Keeper reference panel: read-only screen (rail row, Keeper-only)
       rendering agenda, principles, "always say", and the keeper move
       lists from the campaign's attached packs, for at-the-table lookup.
       Empty state teaches that this content comes from an attached Keeper
