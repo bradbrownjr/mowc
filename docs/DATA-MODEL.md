@@ -128,7 +128,11 @@ Monster   { id, campaignId, name, typeId, motivation, powers[],
             weaknesses[], attacks[{name,harm,tags}], armor,
             harmCapacity, harmTaken, customMoves[], revealed }
 Minion / Bystander: same pattern, fewer fields
-Location  { id, campaignId, name, description, mapNotes, revealed }
+Location  { id, campaignId, name, typeId, description, mapNotes, revealed }
+            -- typeId is nullable, defaulting to null, so existing rows and
+            -- already-queued sync ops stay valid; when set, it references a
+            -- pack's locationTypes archetype, same as Monster/Minion/
+            -- Bystander's typeId referencing their own pack-sourced types.
 SessionLog{ id, campaignId, entries: [{ts, userId, kind, payload}] }
             kind: roll|harm|luck|reveal|countdown|note
 ```

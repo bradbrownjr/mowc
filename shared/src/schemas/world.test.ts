@@ -98,9 +98,20 @@ describe("LocationSchema", () => {
       campaignId,
       name: "Test Location"
     });
+    expect(location.typeId).toBeNull();
     expect(location.description).toBe("");
     expect(location.mapNotes).toBe("");
     expect(location.revealed).toBe(false);
+  });
+
+  it("parses a location with a typeId set", () => {
+    const location = LocationSchema.parse({
+      id: "00000000-0000-4000-8000-000000000044",
+      campaignId,
+      name: "Test Location",
+      typeId: "location-type-test-1"
+    });
+    expect(location.typeId).toBe("location-type-test-1");
   });
 
   it("rejects a non-uuid id", () => {

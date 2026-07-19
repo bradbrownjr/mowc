@@ -481,7 +481,7 @@ wording per the 0.11.1 plain-language policy.
       (FieldNote pattern, collapsible if long), so a new Keeper is walked
       through concept/hook/countdown with the source's own prompts -
       0.12.1 [Sonnet]
-- [ ] Location type picker: add a nullable `typeId` to `LocationSchema`
+- [x] Location type picker: add a nullable `typeId` to `LocationSchema`
       (shared schema; optional with null default so existing rows and
       queued sync ops stay valid), a `flattenLocationTypes(packs)` helper,
       and a type dropdown on the location form that prefills motivation,

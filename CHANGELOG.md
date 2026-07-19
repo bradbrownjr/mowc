@@ -37,6 +37,10 @@ All notable changes to MOWC are documented here. Format follows
   and play a character that belongs to no campaign at all, for a Keeper
   running from paper or books, or for trying the app solo, via "New
   character" on that screen.
+- Location type picker (Phase 12, 0.12.2). The New Location form now shows
+  an optional type picker sourced from your campaign's attached content
+  packs, matching the monster/minion/bystander builders; picking a type
+  prefills the location's description (existing locations are unaffected).
 
 ## [0.11.8] - 2026-07-17
 

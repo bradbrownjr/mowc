@@ -6,6 +6,7 @@ import {
   buildMinionPayload,
   bystanderFormReason,
   flattenBystanderTypes,
+  flattenLocationTypes,
   flattenMinionTypes,
   locationFormReason,
   minionFormReason
@@ -13,6 +14,7 @@ import {
 
 const MINION_TYPE = { id: "minion-type-1", name: "Test Minion Type", motivation: "to harm" };
 const BYSTANDER_TYPE = { id: "bystander-type-1", name: "Test Bystander Type", motivation: "to escape" };
+const LOCATION_TYPE = { id: "location-type-1", name: "Test Location Type", motivation: "to loom" };
 
 describe("flattenMinionTypes", () => {
   it("flattens minion types across every pack in order", () => {
@@ -61,6 +63,31 @@ describe("flattenBystanderTypes", () => {
     };
 
     expect(flattenBystanderTypes([packA, packB]).map((b) => b.id)).toEqual(["bystander-type-1", "bystander-type-2"]);
+  });
+});
+
+describe("flattenLocationTypes", () => {
+  it("flattens location types across every pack in order", () => {
+    const packA: ContentPack = {
+      id: "pack-a",
+      name: "Pack A",
+      author: "Tester",
+      version: "1.0.0",
+      playbooks: [],
+      basicMoves: [],
+      minionTypes: [],
+      bystanderTypes: [],
+      locationTypes: [LOCATION_TYPE],
+      gear: [],
+      monsterTypes: []
+    };
+    const packB: ContentPack = {
+      ...packA,
+      id: "pack-b",
+      locationTypes: [{ id: "location-type-2", name: "Another Location", motivation: "to hide" }]
+    };
+
+    expect(flattenLocationTypes([packA, packB]).map((l) => l.id)).toEqual(["location-type-1", "location-type-2"]);
   });
 });
 
@@ -197,6 +224,7 @@ describe("buildLocationPayload", () => {
       id: "location-1",
       campaignId: "campaign-1",
       name: "  Old Warehouse  ",
+      typeId: "location-type-1",
       description: "  A decaying industrial building  ",
       mapNotes: "  Near the docks  "
     });
@@ -205,6 +233,7 @@ describe("buildLocationPayload", () => {
       id: "location-1",
       campaignId: "campaign-1",
       name: "Old Warehouse",
+      typeId: "location-type-1",
       description: "A decaying industrial building",
       mapNotes: "Near the docks",
       revealed: false
@@ -216,11 +245,25 @@ describe("buildLocationPayload", () => {
       id: "location-1",
       campaignId: "campaign-1",
       name: "Test",
+      typeId: null,
       description: "   ",
       mapNotes: "   "
     });
 
     expect(payload.description).toBe("");
     expect(payload.mapNotes).toBe("");
+  });
+
+  it("defaults typeId to null when not selected", () => {
+    const payload = buildLocationPayload({
+      id: "location-1",
+      campaignId: "campaign-1",
+      name: "Test",
+      typeId: null,
+      description: "",
+      mapNotes: ""
+    });
+
+    expect(payload.typeId).toBeNull();
   });
 });

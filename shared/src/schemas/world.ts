@@ -54,6 +54,7 @@ export const LocationSchema = z.object({
   id: UuidSchema,
   campaignId: UuidSchema,
   name: z.string().min(1),
+  typeId: DefIdSchema.nullable().default(null),
   description: z.string().default(""),
   mapNotes: z.string().default(""),
   revealed: z.boolean().default(false)

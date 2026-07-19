@@ -15,6 +15,11 @@ export function flattenBystanderTypes(packs: ContentPack[]): ArchetypeDef[] {
   return packs.flatMap((pack) => pack.bystanderTypes);
 }
 
+/** All location types across every attached content pack, in pack order. */
+export function flattenLocationTypes(packs: ContentPack[]): ArchetypeDef[] {
+  return packs.flatMap((pack) => pack.locationTypes);
+}
+
 /**
  * One-line reasons a disabled Create button can't submit yet (docs/DESIGN.md
  * "Screen patterns": "a disabled Next is always accompanied by a field note
@@ -89,14 +94,16 @@ export function buildLocationPayload(params: {
   id: string;
   campaignId: string;
   name: string;
+  typeId: string | null;
   description: string;
   mapNotes: string;
 }): Location {
-  const { id, campaignId, name, description, mapNotes } = params;
+  const { id, campaignId, name, typeId, description, mapNotes } = params;
   return {
     id,
     campaignId,
     name: name.trim(),
+    typeId: typeId || null,
     description: description.trim(),
     mapNotes: mapNotes.trim(),
     revealed: false
