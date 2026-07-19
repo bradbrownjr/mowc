@@ -509,12 +509,19 @@ before any UI work:
 
 1. Nullable `campaignId` with owner-only authz. Touches
    `CharacterSchema`, the sync envelope, `server/src/entities/router.ts`
-   authz, `docs/DATA-MODEL.md`, and `docs/SYNC.md`.
+   authz, `docs/DATA-MODEL.md`, and `docs/SYNC.md`. PREFERRED (user
+   decision 2026-07-19): it is the truthful domain model and has no
+   leak-class failure modes; its risks are loud (schema/sync tests)
+   rather than quiet.
 2. An auto-provisioned hidden per-user "personal space" campaign that
-   reuses every existing code path unchanged (KISS-preferred default;
-   needs list/nav filtering so it never appears as a real campaign, and
-   a story for which packs a solo player can read - shared packs and
-   their own uploads already work without a Keeper).
+   reuses every existing code path unchanged. Rejected as default: its
+   simplicity is for the maintainer, not the player. It requires
+   filter-this-ghost-campaign discipline in every current and future
+   list/nav/pull path plus magic pack auto-attachment, and its failure
+   mode is quiet user-visible leaks (a phantom campaign row, a pack
+   missing only in the standalone builder), exactly the confusing bugs
+   new players cannot diagnose. Only fall back to this if 0.13.1 finds
+   a blocking problem with option 1, and record why.
 
 - [ ] Standalone character architecture: pick between the two designs
       above, implement the chosen one end to end (schema/sync/authz/docs
