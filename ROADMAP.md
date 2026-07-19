@@ -462,7 +462,7 @@ viewports are part of the milestone's Definition of Done.
       and confirm the e2e suite is green. This is the phase's exit gate;
       do not mark the phase complete without it.
 
-## Phase 12: Keeper Guidance
+## Phase 12: Keeper Guidance ✅
 
 Version 0.12. The Keeper reference pack (transcribed 2026-07 from the
 free Keeper Reference Sheets) already carries agenda, principles, keeper
