@@ -148,21 +148,24 @@ exists to fix).
 ### App shell
 
 - Top bar (all tiers): brand link left. On tablet/desktop the
-  folder-tab nav (File tabs motif) sits beside it. Right side is a
-  compact account menu: a button showing the display name (ellipsis
-  past 12rem) that opens a small panel with a Theme group (Midnight
-  Unit / Field Notes / Follow system, landed 0.11.7) above Log out.
-  The bar is one line, always; nothing in it may wrap.
+  folder-tab nav (File tabs motif) sits beside it: My campaigns, My
+  characters, Content packs. Right side is a compact account menu: a
+  button showing the display name (ellipsis past 12rem) that opens a
+  small panel with a Theme group (Midnight Unit / Field Notes / Follow
+  system, landed 0.11.7) above Log out. The bar is one line, always;
+  nothing in it may wrap.
 - Mobile bottom tab bar: fixed to the viewport bottom, replaces the
   folder tabs on mobile (the top bar keeps only brand + account).
-  Four destinations, each an icon plus a Courier label at `--text-xs`;
-  the tap target is the full bar height (`--bottombar-h`). Active tab:
-  2px accent top rule and accent-colored label. Destinations outside a
-  campaign: Home, Campaigns, Packs, Account. Inside a campaign:
-  Overview, Sheet (hunter) or Mysteries (Keeper), World, Campaigns
-  (back out). The page container reserves bottom padding equal to
-  `--bottombar-h` plus the safe-area inset so content never hides
-  behind the bar.
+  Each destination is an icon plus a Courier label at `--text-xs`; the
+  tap target is the full bar height (`--bottombar-h`). Active tab: 2px
+  accent top rule and accent-colored label. Destinations outside a
+  campaign: Home, Campaigns, Characters, Packs, Account (five; the
+  cross-campaign My Characters roster earns its own tab, added 0.13.2).
+  Inside a campaign: Overview, Sheet (hunter) or Mysteries (Keeper),
+  World, Campaigns (back out) (four; Account is dropped there since the
+  top bar's account button stays reachable). The page container reserves
+  bottom padding equal to `--bottombar-h` plus the safe-area inset so
+  content never hides behind the bar.
 - Campaign context rail (tablet/desktop, routes under
   `/campaigns/[id]`): left column, `--rail-w` wide, sticky below the
   top bar. Rows: Overview, Characters, Mysteries (Keeper), World

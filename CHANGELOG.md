@@ -30,6 +30,12 @@ All notable changes to MOWC are documented here. Format follows
   characters sync privately to their owner, kept fully separate from any
   campaign. This build lays the groundwork; the "My Characters" screen that
   surfaces them arrives next (0.13.2).
+- My Characters roster (Phase 13, 0.13.2, partial). A new top-level
+  "Characters" tab (top bar and mobile bottom bar) gathers every hunter you
+  play into one screen, grouped by campaign, so you no longer have to open
+  each campaign to find a character. Creating and viewing a campaign-less
+  standalone character is the remaining half of 0.13.2 and lands in a
+  follow-up.
 
 ## [0.11.8] - 2026-07-17
 

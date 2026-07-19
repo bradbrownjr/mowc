@@ -73,6 +73,7 @@
   <nav class="tabs" aria-label="Sections">
     {#if sessionState.user}
       <a class="tab" class:active={isActive(resolve("/campaigns"))} href={resolve("/campaigns")}>My campaigns</a>
+      <a class="tab" class:active={isActive(resolve("/characters"))} href={resolve("/characters")}>My characters</a>
       <a class="tab" class:active={isActive(resolve("/packs"))} href={resolve("/packs")}>Content packs</a>
     {/if}
   </nav>
@@ -125,9 +126,9 @@
 {#if sessionState.user}
   <!-- Mobile bottom tab bar (docs/DESIGN.md "App shell"): destinations
        switch when inside a campaign (Overview, Sheet-or-Mysteries, World,
-       Campaigns) vs outside (Home, Campaigns, Packs, Account). The Account
-       tab is dropped inside a campaign to hold the line to four
-       destinations; the top bar's account button stays reachable on mobile
+       Campaigns; four, with Account dropped since the top bar's account
+       button stays reachable) vs outside (Home, Campaigns, Characters, Packs,
+       Account; five). The top bar's account button stays reachable on mobile
        either way (never hidden below 768px). hrefs inline resolve() per the
        repo's navigation convention. -->
   <nav class="bottom-bar" aria-label="Primary">
@@ -168,6 +169,10 @@
       <a class="bottom-tab" class:active={isActive(resolve("/campaigns"))} href={resolve("/campaigns")}>
         <Icon icon={Library} size={20} />
         <span class="bottom-label">Campaigns</span>
+      </a>
+      <a class="bottom-tab" class:active={isActive(resolve("/characters"))} href={resolve("/characters")}>
+        <Icon icon={ScrollText} size={20} />
+        <span class="bottom-label">Characters</span>
       </a>
       <a class="bottom-tab" class:active={isActive(resolve("/packs"))} href={resolve("/packs")}>
         <Icon icon={Package} size={20} />
