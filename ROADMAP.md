@@ -262,12 +262,12 @@ change.
 - [x] Server sync endpoints: `GET /sync/:campaign?since=seq` and
       `POST /sync/:campaign` (push mutations, LWW conflict resolution,
       tombstones) - 0.7.1 [Opus]
-- [ ] Client sync engine: Dexie oplog, background sync on reconnect,
+- [x] Client sync engine: Dexie oplog, background sync on reconnect,
       exponential backoff, conflict toast when a local write loses -
       0.7.2 [Opus]
 - [x] Multi-device torture test: scripted vitest scenario with two
       simulated clients diverging offline and converging - 0.7.3 [Opus]
-- [ ] Sync status UI: online/offline badge, pending-changes count, manual
+- [x] Sync status UI: online/offline badge, pending-changes count, manual
       sync button - 0.7.4 [Haiku]
 
 ## Phase 8: Theming & Customization

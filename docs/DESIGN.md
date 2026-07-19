@@ -60,6 +60,17 @@ font never used for paragraphs.
   "verify this", not a failure), a flag icon, the message in body font, and
   any verbatim source excerpt in Courier at `--text-xs` inside its own
   scrollable block below the message.
+- **Sync status**: a compact app-shell cluster (right of the top bar): a
+  cloud/cloud-off icon for online/offline (`--ink-muted`, `--danger` when
+  offline), an optional pending-changes count chip (`--surface-2` box,
+  Courier), and a bordered "Sync now" icon button that flushes queued ops
+  (disabled when offline or nothing is queued; its icon spins while syncing,
+  opacity-only under `prefers-reduced-motion`). When a local write loses a
+  merge, a **conflict toast** appears: a `--danger`-bordered card stacked
+  bottom-right (clear of the mobile bottom bar and its safe-area inset), a
+  warning icon, "Your edit to X was overridden by a newer change." in body
+  font, and a dismiss button. Toasts are dismissible and deduped by the
+  losing op id; never `{@html}`.
 
 ## Tokens (CSS custom properties, defined once in `client/src/lib/styles.css`)
 
@@ -314,4 +325,5 @@ never heard the word Keeper.
 | DiceBanner | `client/src/lib/DiceBanner.svelte` | The "Dice banner" motif (Motifs section): a torn-slip card, fixed near the top of the viewport with a full-screen transparent tap-to-dismiss backdrop, showing the move name, a die/rating breakdown line, the total in oversized display type, the outcome band (10+/7-9/Miss) as a rotated stamp, then the matching outcome text. Props: `moveName: string`, `ratingLabel: string`, `result: RollResult`, `outcomeText: string \| null`, `onDismiss: () => void`. 400ms slide-in + stamp thunk (scale 1.1→1.0) per the Motion section; opacity-only fade under `prefers-reduced-motion`. Stamp/border color is `--accent` for a mixed result, `--ok` for full success, `--danger` for a miss. First user: the character sheet's move rollers (`campaigns/[id]/characters/[characterId]`). |
 | Footer | `client/src/lib/Footer.svelte` | Rendered once in the root layout, below `{@render children()}`, on every route. Two centered `--font-meta` lines at `--text-xs`, `--ink-muted`, uppercase, letterspaced 0.08em (the same "field caption" treatment as `.meta`/`.nav-link` elsewhere), separated from page content by a `--border` top rule. Line 1 is the LICENSING.md-required "unofficial fan project, not affiliated with Evil Hat" notice; line 2 is copyright, MIT license, and the running app version pulled from `healthState` (`client/src/lib/health.svelte.ts`). |
 | ConversionNote | `client/src/lib/pack-editor/ConversionNote.svelte` | Renders one `conversionNotes` string (`<fieldPath>: <message>`, optionally a blank line then a verbatim source excerpt; grammar is `formatConversionNote` in `shared/src/schemas/conversion.ts`) as the "Conversion flags" motif callout. Props: `note: string`. First user: the admin PDF-conversion review screen (`packs/convert`); also threaded optionally into `PlaybookEditor`/`MovesEditor` via a `notes` prop that defaults to none, so the plain `packs/new` flow is unaffected. |
+| SyncStatus | `client/src/lib/SyncStatus.svelte` | The "Sync status" motif: the top-bar online/offline indicator + pending-changes count + "Sync now" button, and the dismissible conflict-toast stack. Reads the `syncStatus` runes store (`client/src/lib/sync-status.svelte.ts`); "Sync now" calls `syncNow()` (flushes every scope with queued ops through the existing `push` path, no new API); each toast's dismiss calls `dismissConflict(opId)`. Rendered once in the root layout inside the `.shell-right` cluster next to the account menu, only when signed in. Landed 0.7.4 (folded in with the 0.7.2 conflict-toast work; they share the store). |
 | EmptyState | `client/src/lib/EmptyState.svelte` | The "Empty states" pattern: a dashed-border panel with what-it-is copy, why/when-to-create copy (or, via the `children` snippet, who fills it in when the viewer cannot create the entity themselves), and at most one CTA. Props: `what: string`, `why: string`, `ctaLabel?: string`, `ctaHref?: string`, optional `children` snippet overriding the why copy. Landed with 0.11.3; first users are the campaign hub's Characters/World/Mysteries list routes and the role-aware Overview. |

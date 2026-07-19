@@ -2,6 +2,7 @@ import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "./db.js";
 import { computePatch, pull, push, writeEntity, SyncError } from "./sync.js";
+import { registerSyncStatusSinks, resetSyncStatusSinks, type ConflictNotice } from "./sync-status.js";
 
 const CAMPAIGN = "00000000-0000-4000-8000-000000000001";
 const ENTITY = "00000000-0000-4000-8000-0000000000aa";
@@ -43,6 +44,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  resetSyncStatusSinks();
 });
 
 describe("computePatch", () => {
@@ -110,6 +112,23 @@ describe("push", () => {
 
     expect(result).toBeUndefined();
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("surfaces server conflicts to the sync-status store", async () => {
+    await writeEntity("character", CAMPAIGN, ENTITY, character());
+    const queued = await db.oplog.toArray();
+    const opId = queued[0]!.opId;
+    // The conflicting op is returned in BOTH applied and conflicts (the server
+    // applied its own value and reports the loser).
+    mockFetch({ applied: [opId], conflicts: [{ opId, serverPayload: character({ name: "Server Wins" }) }], newSeq: 2 });
+
+    const received: ConflictNotice[][] = [];
+    registerSyncStatusSinks({ onConflicts: (n) => received.push(n), onPending: () => {} });
+
+    await push(CAMPAIGN);
+
+    expect(received).toEqual([[{ opId, label: "Server Wins" }]]);
+    expect(await db.oplog.count()).toBe(0); // conflicting op still cleared from the queue
   });
 
   it("does not re-remove an op the server already applied on replay", async () => {

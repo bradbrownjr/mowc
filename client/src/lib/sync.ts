@@ -1,6 +1,10 @@
 import type { SyncEntityType, SyncOp, SyncPullResponse, SyncPushResponse } from "@mowc/shared";
 import { db, type OplogEntry } from "./db.js";
 import { generateUuid } from "./uuid.js";
+// Plain (non-runes) bridge to the sync-status store. Importing the .ts sibling,
+// never the .svelte.ts store, keeps sync.ts free of $state so the vitest suite
+// (which imports this file) still compiles.
+import { refreshPendingCount, reportConflicts } from "./sync-status.js";
 
 const DEBOUNCE_MS = 2000;
 const BACKOFF_START_MS = 1000;
@@ -64,6 +68,7 @@ export async function writeEntity(
       await db.oplog.put({ opId: generateUuid(), entityId: id, campaignId, type, baseRev, patch, deleted: false, ts: now });
     }
   });
+  void refreshPendingCount();
   schedulePush(campaignId);
 }
 
@@ -78,6 +83,7 @@ export async function deleteEntity(type: SyncEntityType, campaignId: string, id:
     }
     await db.oplog.put({ opId: generateUuid(), entityId: id, campaignId, type, baseRev, patch: {}, deleted: true, ts: now });
   });
+  void refreshPendingCount();
   schedulePush(campaignId);
 }
 
@@ -110,6 +116,12 @@ export async function push(campaignId: string): Promise<SyncPushResponse | undef
   }
   const data = (await res.json()) as SyncPushResponse;
   await db.oplog.bulkDelete(data.applied);
+  // A conflicting op is returned in BOTH `applied` and `conflicts` (the server
+  // applied its own winning value and reports the loser), so it is already
+  // removed above; here we just surface it to the sync-status store so the UI
+  // can toast "your edit to X was overridden" (docs/SYNC.md push step 3).
+  reportConflicts(data.conflicts);
+  void refreshPendingCount();
   return data;
 }
 

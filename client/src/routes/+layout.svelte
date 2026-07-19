@@ -23,6 +23,7 @@
   import InstallButton from "$lib/InstallButton.svelte";
   import Footer from "$lib/Footer.svelte";
   import Icon from "$lib/Icon.svelte";
+  import SyncStatus from "$lib/SyncStatus.svelte";
   import { initPwa } from "$lib/pwa.svelte";
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
@@ -31,6 +32,7 @@
   import { initTheme, setThemePreference, themeState, type ThemePreference } from "$lib/theme.svelte";
   import { initHealth } from "$lib/health.svelte";
   import { startSync } from "$lib/sync.js";
+  import { initSyncStatus } from "$lib/sync-status.svelte";
   import { campaignNav } from "$lib/campaign-nav.svelte";
 
   let { children } = $props();
@@ -57,6 +59,10 @@
       // (docs/SYNC.md); without this, edits made offline never push until
       // the next online write.
       startSync();
+      // Sync-status store (online/offline badge, pending-op count, conflict
+      // toasts). Registers its own online/offline listeners and the callback
+      // bridge sync.ts reports through.
+      void initSyncStatus();
     }
   });
 
@@ -78,7 +84,12 @@
     {/if}
   </nav>
 
-  <div class="account">
+  <div class="shell-right">
+    {#if sessionState.user}
+      <SyncStatus />
+    {/if}
+
+    <div class="account">
     {#if sessionState.user}
       <button
         type="button"
@@ -117,6 +128,7 @@
     {:else if sessionState.status === "ready"}
       <a class="tab" class:active={isActive(resolve("/login"))} href={resolve("/login")}>Log in</a>
     {/if}
+    </div>
   </div>
 </header>
 
@@ -238,12 +250,20 @@
     }
   }
 
+  /* Right-hand shell cluster: sync-status control + account menu, kept
+     together and pushed to the far right at every tier. */
+  .shell-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-left: auto;
+    margin-bottom: var(--space-2);
+  }
+
   .account {
     position: relative;
     display: flex;
-    align-items: flex-end;
-    margin-left: auto;
-    margin-bottom: var(--space-2);
+    align-items: center;
   }
 
   /* File-tab motif (docs/DESIGN.md): folder-shaped tabs (angled sides, like

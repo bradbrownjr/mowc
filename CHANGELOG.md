@@ -31,6 +31,12 @@ All notable changes to MOWC are documented here. Format follows
   edits resolve to the most recent write with the loser warned, deletes and
   out-of-order batches converge, and a re-sent batch changes nothing). This
   is a test-only change with no user-facing behavior change.
+- Sync status and conflict warnings (Phase 7, 0.7.2 + 0.7.4). The top bar
+  now shows whether you are online or offline, how many local changes are
+  still waiting to sync, and a "Sync now" button to push them immediately.
+  When two devices edit the same thing at once and your edit loses, a
+  dismissible warning toast tells you which entry was overridden by a newer
+  change instead of the loss happening silently.
 
 ## [0.13.0] - 2026-07-19
 
