@@ -8,9 +8,11 @@
    */
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
+  import { liveQuery } from "dexie";
   import type { Campaign } from "@mowc/shared";
   import { listCampaigns } from "$lib/api/campaigns.js";
   import { migrateCharacter } from "$lib/api/characters.js";
+  import { db } from "$lib/db.js";
   import { applyMigration, pendingCountForScope, push } from "$lib/sync.js";
   import { generateUuid } from "$lib/uuid.js";
 
@@ -41,10 +43,6 @@
       .map((campaign) => ({ value: campaign.id, label: campaign.name }))
   ]);
 
-  async function refreshPending(): Promise<void> {
-    pending = await pendingCountForScope(sourceScope);
-  }
-
   $effect(() => {
     listCampaigns()
       .then((list) => {
@@ -53,7 +51,24 @@
       .catch(() => {
         campaigns = [];
       });
-    void refreshPending();
+
+    // Proactively flush this scope so a just-created (or just-edited) character
+    // can be moved as soon as its ops reach the server, rather than waiting for
+    // the 2s debounce or a manual sync (ADR 0002 SS6: push, then enable once the
+    // oplog is clean). Offline is fine, the live count below keeps the gate honest.
+    void push(sourceScope).catch(() => {});
+
+    // Keep the pending count live off the oplog so the Move button re-enables the
+    // moment the queue drains (a background push, a reconnect, or Sync now) with
+    // no manual refresh. liveQuery re-runs whenever the oplog table changes.
+    const subscription = liveQuery(() =>
+      db.oplog.where("campaignId").equals(sourceScope).count()
+    ).subscribe({
+      next: (count) => {
+        pending = count;
+      }
+    });
+    return () => subscription.unsubscribe();
   });
 
   async function syncNow(): Promise<void> {
@@ -61,7 +76,6 @@
     error = null;
     try {
       await push(sourceScope);
-      await refreshPending();
     } catch {
       error = "Could not sync your latest changes. Check your connection and try again.";
     } finally {
@@ -76,9 +90,10 @@
     try {
       // Precondition (ADR 0002 §6): a migrate against a scope with pending local
       // ops would snapshot a stale server row and silently drop unsynced edits.
+      // The live `pending` above already gates the button; this is the durable
+      // guard in case an op was queued between the last render and the click.
       const count = await pendingCountForScope(sourceScope);
       if (count > 0) {
-        pending = count;
         error = "You have unsynced changes on this character. Sync first, then move.";
         return;
       }
