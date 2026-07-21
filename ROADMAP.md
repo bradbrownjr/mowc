@@ -568,7 +568,7 @@ wrong for MotW per-table play-state).
       folder tabs AND both bottom-bars). Drop the word "My" from tab
       names ("My characters" -> "Characters"). Client-only, no schema or
       sync change.
-- [ ] Campaign picker at character creation - 0.14.2 [Sonnet]. Add a
+- [x] Campaign picker at character creation - 0.14.2 [Sonnet]. Add a
       campaign selector to the shared `CharacterBuilder.svelte` (list the
       user's seated campaigns plus a "Standalone" option) that routes the
       create write to the chosen scope. The builder already accepts
