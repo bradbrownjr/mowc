@@ -46,7 +46,7 @@
 </script>
 
 <main class="page page--wide">
-  <h1 class="title">My characters</h1>
+  <h1 class="title">Characters</h1>
   <FieldNote>Every hunter you play, gathered from all your campaigns in one place.</FieldNote>
 
   {#if loading}

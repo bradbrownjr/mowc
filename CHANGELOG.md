@@ -16,6 +16,17 @@ All notable changes to MOWC are documented here. Format follows
   the new one. A retried move is safe (idempotent) and never creates a second
   copy. Migration is a deliberate online action; you are asked to sync any
   unsaved changes on that character first.
+- Signed-in home dashboard (Phase 14, 0.14.1). Signing in now lands you on
+  a dashboard with three sections: your characters across every campaign,
+  the campaigns you're running as Keeper, and the campaigns you've joined
+  as a player, each showing a helpful empty state when there's nothing
+  there yet.
+
+### Changed
+- Top-bar and bottom-bar navigation order is now Characters, then
+  Campaigns, then Packs (Phase 14, 0.14.1). Both tab sets also drop the
+  "My" prefix ("My characters" is now "Characters"), matching the
+  `/characters` page heading.
 
 ### Fixed
 - Sticky tombstones (Phase 14, 0.14.4). A deleted character or world entity
