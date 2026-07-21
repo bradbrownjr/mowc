@@ -362,7 +362,7 @@ const MIGRATE_FORBIDDEN = {
  * "Standalone characters"). A campaign id is a random uuid and never equals a
  * user id, so `bucket === userId` uniquely identifies the standalone space.
  */
-function scopeForBucket(bucket: string, userId: string): string {
+export function scopeForBucket(bucket: string, userId: string): string {
   return bucket === userId ? "standalone" : bucket;
 }
 

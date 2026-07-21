@@ -72,6 +72,42 @@ export function createMigrationRateLimiter(): ReturnType<typeof rateLimit> {
 }
 
 /**
+ * Migration-request create bucket: 10 requests/hour per authenticated user
+ * (docs/SECURITY.md section 4, ADR 0003 section 9). Keyed by user id (the route
+ * is behind requireAuth). The body carries a full ContentPack payload, the same
+ * order of write cost as a pack upload, so it gets the pack-upload weight rather
+ * than the lighter migrate/decide weight.
+ */
+export function createMigrationRequestRateLimiter(): ReturnType<typeof rateLimit> {
+  return rateLimit({
+    windowMs: 60 * 60_000,
+    limit: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req: Request) => req.user?.id ?? "anonymous",
+    handler: loggedHandler
+  });
+}
+
+/**
+ * Migration-decision bucket: 30 cancel/approve/deny actions/hour per
+ * authenticated user (docs/SECURITY.md section 4, ADR 0003 section 9). Keyed by
+ * user id. Each is a small, infrequent, human-driven action, matching the direct
+ * migrate bucket's weight, but still gets a strict bucket per this codebase's
+ * convention of never leaving a mutating route on only the global IP limiter.
+ */
+export function createMigrationDecisionRateLimiter(): ReturnType<typeof rateLimit> {
+  return rateLimit({
+    windowMs: 60 * 60_000,
+    limit: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req: Request) => req.user?.id ?? "anonymous",
+    handler: loggedHandler
+  });
+}
+
+/**
  * PDF conversion bucket: 10 conversions/hour per authenticated user
  * (docs/SECURITY.md section 4, ADR 0001). Keyed by user id (admin-only route
  * behind requireAuth). Single-flight concurrency is enforced separately in the

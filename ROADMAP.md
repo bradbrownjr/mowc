@@ -740,7 +740,7 @@ hunter-facing warning already shipped.
       deny-fallback, pack ownership on approval, the notification path,
       and idempotency/expiry. Design only, no code. Resolve the open
       sub-decisions above.
-- [ ] Server: pending migration requests + carry-pack + approve/deny -
+- [x] Server: pending migration requests + carry-pack + approve/deny -
       0.15.2 [Opus]. Depends on 0.15.1.
 - [ ] Keeper approval dialog on campaign access - 0.15.3 [Sonnet].
       Depends on 0.15.2.

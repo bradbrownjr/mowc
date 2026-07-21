@@ -22,6 +22,11 @@ import {
   createStandaloneSyncRouter,
   createSyncRouter
 } from "./entities/router.js";
+import { createMigrationRequestsRepo } from "./entities/migrationRequests.js";
+import {
+  createKeeperMigrationRequestsRouter,
+  createOwnerMigrationRequestsRouter
+} from "./entities/migrationRequestRouter.js";
 
 /**
  * The built SvelteKit client is expected as a sibling of this package:
@@ -51,6 +56,13 @@ export function createApp(version: string, db: Database.Database, adminEmail?: s
    * makes the wider limit apply only to this path.
    */
   app.use("/api/content-packs", express.json({ limit: "5mb" }));
+  /**
+   * A migration request carries a full copied ContentPack (ADR 0003), so its
+   * create body gets the same 5 MB limit content-pack uploads get, scoped to
+   * this path and mounted (like the content-packs parser above) before the
+   * general 1 MB parser so body-parser applies the wider limit only here.
+   */
+  app.use("/api/characters/:characterId/migrate-requests", express.json({ limit: "5mb" }));
   app.use(express.json({ limit: "1mb" }));
   app.use(attachUser(authRepo));
   app.use(csrfOriginCheck);
@@ -62,6 +74,7 @@ export function createApp(version: string, db: Database.Database, adminEmail?: s
   const campaignsRepo = createCampaignsRepo(db);
   const invitesRepo = createInvitesRepo(db);
   const entitiesRepo = createEntitiesRepo(db);
+  const migrationRequestsRepo = createMigrationRequestsRepo(db, entitiesRepo, adminEmail);
   const authz = createAuthz(campaignsRepo);
 
   app.use("/api/auth", createAuthRouter(authRepo, adminEmail));
@@ -86,12 +99,28 @@ export function createApp(version: string, db: Database.Database, adminEmail?: s
     requireAuth,
     createCampaignInvitesRouter(invitesRepo, authz)
   );
+  // Keeper-facing pack-transfer approval (ADR 0003): list/approve/deny pending
+  // migration requests targeting this campaign. Mounted at its own nested base
+  // (like invites) so it is never parsed as the campaigns router's "/:id".
+  app.use(
+    "/api/campaigns/:campaignId/migrate-requests",
+    requireAuth,
+    createKeeperMigrationRequestsRouter(migrationRequestsRepo, authz)
+  );
   app.use("/api/campaigns", requireAuth, createCampaignsRouter(campaignsRepo, authz, createPackReadableCheck(db)));
   app.use("/api/invites", requireAuth, createInviteRedeemRouter(campaignsRepo, invitesRepo));
   // Character migration between buckets (ADR 0002): a dedicated, owner-only,
   // transactional move, NOT a sync/oplog op (it spans two buckets). Mounted
   // under /api/characters, clearly separate from the per-bucket sync core.
   app.use("/api/characters", requireAuth, createCharacterMigrationRouter(entitiesRepo, authz));
+  // Owner-facing pack-transfer approval (ADR 0003): create/poll/cancel a held
+  // migration request. Distinct paths from /migrate above, so both routers at
+  // /api/characters fall through cleanly.
+  app.use(
+    "/api/characters",
+    requireAuth,
+    createOwnerMigrationRequestsRouter(migrationRequestsRepo, entitiesRepo, authz)
+  );
   // Standalone (campaign-less) character sync, bucketed by the owner's user id.
   // Mounted before the :campaignId route so "standalone" is never parsed as a
   // campaign id (docs/SYNC.md "Standalone characters").
