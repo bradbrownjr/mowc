@@ -185,4 +185,46 @@ migrations(
 -- short-circuit). Unlike applied_ops, which is pruned after 30 days.
 ```
 
+Keeper-approved pack transfer on migration
+(docs/adr/0003-pack-transfer-approval.md) adds one more small table, for
+the case where a migration's destination lacks the character's playbook
+pack: the move is **held** as a pending request, carrying a copy of the
+source pack, until the destination Keeper approves or denies it. This
+table is deliberately **not** part of the synced `entities` envelope (it
+is read and written only through plain online REST calls, matching
+ADR 0002's own migrate endpoint and AGENTS.md rule 2's Keeper-admin
+carve-out); see docs/SYNC.md "Migration requiring Keeper-approved pack
+transfer" for the full flow.
+
+```
+migration_requests(
+  migration_id TEXT PRIMARY KEY,     -- client idempotency key (uuid); reused,
+                                      -- unchanged, as the migrations table's
+                                      -- own PRIMARY KEY once approved
+  source_id TEXT NOT NULL,           -- the character id, unchanged while pending
+  source_bucket TEXT NOT NULL,       -- source envelope bucket at request time
+  destination_campaign_id TEXT NOT NULL,  -- always a real campaign; standalone
+                                           -- destinations never need approval
+  requested_by TEXT NOT NULL,        -- owner user id (== character's ownerUserId)
+  pack_id TEXT NOT NULL,             -- id of the carried ContentPack, as authored
+  pack_payload TEXT NOT NULL,        -- the full copied ContentPack JSON
+  status TEXT NOT NULL DEFAULT 'pending',  -- pending | approved | denied | expired
+  created_at TEXT NOT NULL,
+  decided_at TEXT,                   -- set on approve/deny/cancel
+  decided_by TEXT                    -- Keeper (or the owner, on cancel) user id
+)
+-- At most one 'pending' row per source_id (partial unique index): a
+-- character can only ever be waiting on one Keeper decision at a time.
+-- Never pruned, same reasoning as `migrations`; a stale pending row is
+-- retired by a lazy 72h expiry sweep (docs/SYNC.md), not deletion.
+```
+
+On approval, the request's carried pack is created (or, if the
+destination Keeper already owns/can read a pack with the same id,
+deduped onto the existing one) in the ordinary `content_packs` table and
+attached to the destination `Campaign.packIds`, and the character
+migration itself runs through the same `migrations`-table-backed
+transaction described above; nothing about `migrations` or `entities`
+changes shape for this flow.
+
 Never add a synced entity as its own table; extend the envelope.
