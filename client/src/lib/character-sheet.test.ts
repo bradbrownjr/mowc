@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { Character, ContentPack, PlaybookDef } from "@mowc/shared";
-import { DEFAULT_HARM_TRACK, DEFAULT_LUCK_MAX, resolveCharacterMoves, resolveCharacterPlaybook } from "./character-sheet.js";
+import {
+  DEFAULT_HARM_TRACK,
+  DEFAULT_LUCK_MAX,
+  packsContainPlaybook,
+  resolveCharacterMoves,
+  resolveCharacterPlaybook
+} from "./character-sheet.js";
 
 const PLAYBOOK: PlaybookDef = {
   id: "playbook-placeholder",
@@ -148,6 +154,20 @@ describe("resolveCharacterMoves", () => {
     const moves = resolveCharacterMoves(character, resolved, [PACK, otherPack]);
 
     expect(moves.map((m) => m.id)).toEqual(["basic-1", "move-1", "move-b-1"]);
+  });
+});
+
+describe("packsContainPlaybook", () => {
+  it("is true when some pack defines the playbook id", () => {
+    expect(packsContainPlaybook([PACK], "playbook-placeholder")).toBe(true);
+  });
+
+  it("is false when no attached pack defines it (migrate destination lacks the pack)", () => {
+    expect(packsContainPlaybook([PACK], "playbook-missing")).toBe(false);
+  });
+
+  it("is false when there are no packs at all", () => {
+    expect(packsContainPlaybook([], "playbook-placeholder")).toBe(false);
   });
 });
 

@@ -72,7 +72,7 @@
     {#key data.characterId}
       <CharacterSheet character={character} scope={data.id} packs={packs} />
       {#if character.ownerUserId === sessionState.user?.id}
-        <MigrateCharacter characterId={character.id} sourceScope={data.id} />
+        <MigrateCharacter characterId={character.id} sourceScope={data.id} playbookId={character.playbookId} />
       {/if}
     {/key}
   {/if}
