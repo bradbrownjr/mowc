@@ -734,7 +734,7 @@ hunter-facing warning already shipped.
 - Idempotency and expiry of a pending request; behavior if the character
   is edited or deleted while a request is pending.
 
-- [ ] Pack-transfer approval design ADR - 0.15.1 [Fable]. Extend/supersede
+- [x] Pack-transfer approval design ADR - 0.15.1 [Fable]. Extend/supersede
       ADR 0002 for the missing-pack case: the pending-migration-request
       model, carry-pack semantics, Keeper approve/deny, hunter
       deny-fallback, pack ownership on approval, the notification path,

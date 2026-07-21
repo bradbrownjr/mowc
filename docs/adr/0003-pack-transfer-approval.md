@@ -1,6 +1,6 @@
 # ADR 0003: Keeper-approved pack transfer on migration
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-07-21
 - Scope: ROADMAP 0.15.1. Extends/supersedes ADR 0002 for the case where a
   character migrates into a campaign whose Keeper does not have the
