@@ -592,6 +592,13 @@ wrong for MotW per-table play-state).
       both buckets' pulls, non-seated destination is rejected, idempotent
       replay. Depends on 0.14.3. Sticky tombstones landed alongside (a
       post-tombstone edit can no longer resurrect a deleted row).
+- [x] Missing-pack warning at migration - 0.14.5 [Sonnet]. Close ADR 0002
+      open risk 3: when the chosen migrate destination has no attached pack
+      defining the character's playbook, `MigrateCharacter.svelte` shows a
+      non-blocking notice (the move is still allowed; packs can be attached
+      afterward). Pure `packsContainPlaybook` helper in character-sheet.ts,
+      unit-tested; the sheet already renders a graceful fallback when the
+      playbook can't resolve.
 
 ### Dispatch prompts (0.14 work orders)
 

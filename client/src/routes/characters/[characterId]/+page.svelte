@@ -71,7 +71,7 @@
   {:else}
     {#key data.characterId}
       <CharacterSheet character={character} scope="standalone" packs={packs} />
-      <MigrateCharacter characterId={character.id} sourceScope="standalone" />
+      <MigrateCharacter characterId={character.id} sourceScope="standalone" playbookId={character.playbookId} />
     {/key}
   {/if}
 </main>

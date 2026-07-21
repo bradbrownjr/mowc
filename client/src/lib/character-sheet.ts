@@ -20,6 +20,17 @@ export interface ResolvedPlaybook {
 }
 
 /**
+ * Whether a given playbook id is defined by any of the supplied packs. Used
+ * by the migrate control to warn (never block) when a destination campaign or
+ * the owner's standalone space lacks the pack a character's playbook comes
+ * from, so the player is not surprised by a sparse sheet after the move
+ * (ADR 0002 open risk 3).
+ */
+export function packsContainPlaybook(packs: ContentPack[], playbookId: string): boolean {
+  return packs.some((pack) => pack.playbooks.some((playbook) => playbook.id === playbookId));
+}
+
+/**
  * Finds the PlaybookDef (and its containing pack, needed for basicMoves)
  * matching a character's playbookId across every content pack attached to
  * the campaign. Returns null if no attached pack contains it; callers must

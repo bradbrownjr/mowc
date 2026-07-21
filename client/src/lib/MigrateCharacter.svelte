@@ -9,9 +9,11 @@
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
   import { liveQuery } from "dexie";
-  import type { Campaign } from "@mowc/shared";
+  import type { Campaign, ContentPack } from "@mowc/shared";
   import { listCampaigns } from "$lib/api/campaigns.js";
   import { migrateCharacter } from "$lib/api/characters.js";
+  import { getPack, listPacks, type PackDetail } from "$lib/api/contentPacks.js";
+  import { packsContainPlaybook } from "$lib/character-sheet.js";
   import { db } from "$lib/db.js";
   import { applyMigration, pendingCountForScope, push } from "$lib/sync.js";
   import { generateUuid } from "$lib/uuid.js";
@@ -20,9 +22,11 @@
     characterId: string;
     /** The character's current scope key: a campaign id, or "standalone". */
     sourceScope: string;
+    /** The character's playbook id, used to warn when a destination lacks its pack. */
+    playbookId: string;
   }
 
-  let { characterId, sourceScope }: Props = $props();
+  let { characterId, sourceScope, playbookId }: Props = $props();
 
   // "standalone" sentinel for the detach option; a campaign id otherwise.
   const STANDALONE = "standalone";
@@ -33,6 +37,10 @@
   let busy = $state(false);
   let syncing = $state(false);
   let error = $state<string | null>(null);
+  // Set when the chosen destination has no attached pack defining this
+  // character's playbook: the move is still allowed (packs can be attached
+  // afterward), but the player is warned the sheet may render sparse.
+  let packWarning = $state<string | null>(null);
 
   // Destinations: every campaign the owner is seated in except the current one,
   // plus "Standalone" unless the character is already standalone.
@@ -69,6 +77,56 @@
       }
     });
     return () => subscription.unsubscribe();
+  });
+
+  // Loads the content packs that would resolve this character at the chosen
+  // destination: a campaign's attached packs, or the owner's own + shared
+  // packs for a standalone detach (mirrors how each sheet route sources packs).
+  async function loadDestinationPacks(dest: string): Promise<ContentPack[]> {
+    if (dest === STANDALONE) {
+      const summaries = await listPacks();
+      const details = await Promise.all(summaries.map((summary) => getPack(summary.id).catch(() => null)));
+      return details.filter((detail): detail is PackDetail => detail !== null).map((detail) => detail.pack);
+    }
+    const campaign = campaigns.find((candidate) => candidate.id === dest);
+    if (!campaign) {
+      return [];
+    }
+    const details = await Promise.all(campaign.packIds.map((id) => getPack(id).catch(() => null)));
+    return details.filter((detail): detail is PackDetail => detail !== null).map((detail) => detail.pack);
+  }
+
+  // When a destination is chosen, check (lazily, only for that destination)
+  // whether it can resolve the character's playbook, and warn if not. This is
+  // advisory only and never disables the Move button (ADR 0002 open risk 3).
+  $effect(() => {
+    const dest = selected;
+    const pb = playbookId;
+    packWarning = null;
+    if (!dest) {
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const packs = await loadDestinationPacks(dest);
+        if (cancelled || packsContainPlaybook(packs, pb)) {
+          return;
+        }
+        packWarning =
+          dest === STANDALONE
+            ? "Your standalone space doesn't have the content pack this character's playbook comes from, so parts of the sheet may look sparse until you add it."
+            : "This campaign doesn't have the content pack this character's playbook comes from. You can still move it, but parts of the sheet stay sparse until its Keeper attaches that pack.";
+      } catch {
+        // Can't check right now (e.g. offline): don't warn and don't block.
+        if (!cancelled) {
+          packWarning = null;
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   });
 
   async function syncNow(): Promise<void> {
@@ -145,6 +203,10 @@
           {syncing ? "Syncing..." : "Sync now"}
         </button>
       </p>
+    {/if}
+
+    {#if packWarning}
+      <p class="notice">{packWarning}</p>
     {/if}
 
     <button type="button" class="move-button" onclick={move} disabled={busy || !selected || pending > 0}>
@@ -224,6 +286,19 @@
     font-size: var(--text-sm);
     letter-spacing: 0.04em;
     color: var(--danger);
+  }
+
+  .notice {
+    margin: 0;
+    padding: var(--space-2) var(--space-3);
+    width: 100%;
+    border-left: 3px solid var(--accent);
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-meta);
+    font-size: var(--text-sm);
+    letter-spacing: 0.04em;
+    color: var(--ink-muted);
   }
 
   .text-button {

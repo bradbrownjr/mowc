@@ -15,7 +15,9 @@ All notable changes to MOWC are documented here. Format follows
   or duplicated: it disappears from the old campaign's roster and appears in
   the new one. A retried move is safe (idempotent) and never creates a second
   copy. Migration is a deliberate online action; you are asked to sync any
-  unsaved changes on that character first.
+  unsaved changes on that character first. If the destination doesn't have
+  the content pack the character's playbook comes from, you're warned before
+  moving (the move is still allowed; the pack can be attached afterward).
 - Signed-in home dashboard (Phase 14, 0.14.1). Signing in now lands you on
   a dashboard with three sections: your characters across every campaign,
   the campaigns you're running as Keeper, and the campaigns you've joined
