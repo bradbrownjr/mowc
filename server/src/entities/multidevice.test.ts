@@ -38,6 +38,12 @@ function createTestApp() {
 
 const CREDENTIALS = { email: "keeper@example.com", password: "hunter2hunter" };
 
+function seatAsHunter(campaignId: string, userId: string): void {
+  db!
+    .prepare("INSERT INTO seats (campaign_id, user_id, role, created_at) VALUES (?, ?, 'hunter', ?)")
+    .run(campaignId, userId, new Date().toISOString());
+}
+
 /** Full placeholder character payload (invented content only, per AGENTS.md). */
 function character(campaignId: string, ownerUserId: string, overrides: Record<string, unknown> = {}) {
   return {
@@ -279,5 +285,208 @@ describe("multi-device torture test (0.7.3)", () => {
     await clientB.pull();
     expect(clientA.view(char.id)!.payload.harm).toBe(3);
     expect(clientB.view(char.id)!.payload.harm).toBe(3);
+  });
+
+  it("does not resurrect a tombstoned row when a second device edits it after the delete", async () => {
+    // Sticky tombstones (ADR 0002 open risk 1): once a row is deleted, a
+    // non-delete op from a second offline device must NOT un-delete it,
+    // otherwise a migrate's source tombstone could reappear alongside the
+    // destination copy.
+    const app = createTestApp();
+    const { userId, campaignId, clientA, clientB } = await twoDevices(app);
+    const char = character(campaignId, userId);
+
+    await clientA.push([op(char.id, char, { ts: "2026-07-14T09:00:00.000Z" })]);
+    await clientB.pull();
+
+    // A deletes the character; B (which pulled before the delete) edits it
+    // offline and pushes the edit AFTER the tombstone lands.
+    await clientA.push([
+      op(char.id, {}, { baseRev: 1, deleted: true, ts: "2026-07-14T11:00:00.000Z" })
+    ]);
+    const bEdit = op(char.id, { harm: 4 }, { baseRev: 1, ts: "2026-07-14T11:05:00.000Z" });
+    const bPush = await clientB.push([bEdit]);
+    // The edit is acknowledged (so B drops it from its oplog) but the row is
+    // NOT revived.
+    expect(bPush.applied).toContain(bEdit.opId);
+
+    await clientA.pull();
+    await clientB.pull();
+    expect(clientA.view(char.id)!.deleted).toBe(true);
+    expect(clientB.view(char.id)!.deleted).toBe(true);
+  });
+});
+
+/**
+ * Registers one user (device A) and creates two campaigns they Keeper, plus a
+ * second user seated nowhere. Returns raw agents so migration tests can drive
+ * the dedicated /api/characters/:id/migrate endpoint (not the sync core) and
+ * pull each campaign independently.
+ */
+async function migrationFixture(app: ReturnType<typeof createApp>) {
+  const owner = request.agent(app);
+  const reg = await owner.post("/api/auth/register").send({ ...CREDENTIALS, displayName: "Owner" });
+  const ownerId = reg.body.id as string;
+
+  const first = await owner.post("/api/campaigns").send({ name: "First Table" });
+  const campaignA = first.body.id as string;
+  const second = await owner.post("/api/campaigns").send({ name: "Second Table" });
+  const campaignB = second.body.id as string;
+
+  const stranger = request.agent(app);
+  const strangerReg = await stranger
+    .post("/api/auth/register")
+    .send({ email: "stranger@example.com", password: "hunter2hunter", displayName: "Stranger" });
+  const strangerId = strangerReg.body.id as string;
+  const strangerCampaign = (await stranger.post("/api/campaigns").send({ name: "Stranger Table" })).body
+    .id as string;
+
+  return { owner, ownerId, campaignA, campaignB, stranger, strangerId, strangerCampaign };
+}
+
+async function pullRows(agent: ReturnType<typeof request.agent>, scope: string) {
+  const res = await agent.get(`/api/sync/${scope}?since=0`);
+  expect(res.status).toBe(200);
+  return res.body.rows as { id: string; payload: Record<string, unknown>; deleted: boolean }[];
+}
+
+describe("character migration (0.14.4, ADR 0002)", () => {
+  it("carries full progress and tombstones the source in the source bucket's pull", async () => {
+    const app = createTestApp();
+    const { owner, ownerId, campaignA, campaignB } = await migrationFixture(app);
+    const char = character(campaignA, ownerId, {
+      name: "Progressed Hunter",
+      harm: 3,
+      luckSpent: 2,
+      experience: 4,
+      unstable: true,
+      notes: "carried across",
+      improvements: ["imp-1"],
+      extrasState: { charges: 2 }
+    });
+    await owner.post(`/api/sync/${campaignA}`).send({ ops: [op(char.id, char)] });
+
+    const res = await owner
+      .post(`/api/characters/${char.id}/migrate`)
+      .send({ migrationId: randomUUID(), destinationCampaignId: campaignB });
+    expect(res.status).toBe(200);
+    const { newId, sourceId, sourceScope, destScope } = res.body;
+    expect(sourceId).toBe(char.id);
+    expect(newId).not.toBe(char.id);
+    expect(sourceScope).toBe(campaignA);
+    expect(destScope).toBe(campaignB);
+
+    // Source bucket: the old row is now a tombstone.
+    const sourceRows = await pullRows(owner, campaignA);
+    const sourceRow = sourceRows.find((row) => row.id === char.id);
+    expect(sourceRow?.deleted).toBe(true);
+
+    // Destination bucket: a fresh live row with every progress field intact and
+    // campaignId re-pointed.
+    const destRows = await pullRows(owner, campaignB);
+    const destRow = destRows.find((row) => row.id === newId);
+    expect(destRow?.deleted).toBe(false);
+    expect(destRow?.payload).toMatchObject({
+      id: newId,
+      campaignId: campaignB,
+      ownerUserId: ownerId,
+      name: "Progressed Hunter",
+      harm: 3,
+      luckSpent: 2,
+      experience: 4,
+      unstable: true,
+      notes: "carried across",
+      improvements: ["imp-1"],
+      extrasState: { charges: 2 }
+    });
+  });
+
+  it("detaches a campaign character to the owner's standalone space", async () => {
+    const app = createTestApp();
+    const { owner, ownerId, campaignA } = await migrationFixture(app);
+    const char = character(campaignA, ownerId);
+    await owner.post(`/api/sync/${campaignA}`).send({ ops: [op(char.id, char)] });
+
+    const res = await owner
+      .post(`/api/characters/${char.id}/migrate`)
+      .send({ migrationId: randomUUID(), destinationCampaignId: null });
+    expect(res.status).toBe(200);
+    expect(res.body.destScope).toBe("standalone");
+
+    const standaloneRows = await pullRows(owner, "standalone");
+    const moved = standaloneRows.find((row) => row.id === res.body.newId);
+    expect(moved?.deleted).toBe(false);
+    expect(moved?.payload.campaignId).toBeNull();
+  });
+
+  it("rejects a destination the owner is not seated in", async () => {
+    const app = createTestApp();
+    const { owner, ownerId, campaignA, strangerCampaign } = await migrationFixture(app);
+    const char = character(campaignA, ownerId);
+    await owner.post(`/api/sync/${campaignA}`).send({ ops: [op(char.id, char)] });
+
+    const res = await owner
+      .post(`/api/characters/${char.id}/migrate`)
+      .send({ migrationId: randomUUID(), destinationCampaignId: strangerCampaign });
+    expect(res.status).toBe(403);
+
+    // The source row is untouched (still live in campaignA).
+    const sourceRows = await pullRows(owner, campaignA);
+    expect(sourceRows.find((row) => row.id === char.id)?.deleted).toBe(false);
+  });
+
+  it("rejects a non-owner (Keeper) migrating a hunter's character", async () => {
+    const app = createTestApp();
+    const { owner, campaignA, stranger, strangerId } = await migrationFixture(app);
+    // Seat the stranger as a hunter in the owner's campaign and give them a
+    // character there; the owner (Keeper) must not be able to migrate it.
+    seatAsHunter(campaignA, strangerId);
+    const hunterChar = character(campaignA, strangerId);
+    await stranger.post(`/api/sync/${campaignA}`).send({ ops: [op(hunterChar.id, hunterChar)] });
+
+    const res = await owner
+      .post(`/api/characters/${hunterChar.id}/migrate`)
+      .send({ migrationId: randomUUID(), destinationCampaignId: campaignA });
+    // 403 (not owner) rather than 400 for same-bucket; owner check comes first.
+    expect(res.status).toBe(403);
+  });
+
+  it("is idempotent: a replayed migrationId returns the same result and moves nothing new", async () => {
+    const app = createTestApp();
+    const { owner, ownerId, campaignA, campaignB } = await migrationFixture(app);
+    const char = character(campaignA, ownerId);
+    await owner.post(`/api/sync/${campaignA}`).send({ ops: [op(char.id, char)] });
+
+    const migrationId = randomUUID();
+    const first = await owner
+      .post(`/api/characters/${char.id}/migrate`)
+      .send({ migrationId, destinationCampaignId: campaignB });
+    expect(first.status).toBe(200);
+
+    const destBefore = (await pullRows(owner, campaignB)).length;
+
+    // The client retries the identical request. The source is already a
+    // tombstone; a naive handler would mint a SECOND destination row. Instead
+    // the stored migration short-circuits and returns the first result.
+    const replay = await owner
+      .post(`/api/characters/${char.id}/migrate`)
+      .send({ migrationId, destinationCampaignId: campaignB });
+    expect(replay.status).toBe(200);
+    expect(replay.body).toEqual(first.body);
+
+    const destAfter = (await pullRows(owner, campaignB)).length;
+    expect(destAfter).toBe(destBefore);
+  });
+
+  it("rejects migrating a character to the campaign it already lives in", async () => {
+    const app = createTestApp();
+    const { owner, ownerId, campaignA } = await migrationFixture(app);
+    const char = character(campaignA, ownerId);
+    await owner.post(`/api/sync/${campaignA}`).send({ ops: [op(char.id, char)] });
+
+    const res = await owner
+      .post(`/api/characters/${char.id}/migrate`)
+      .send({ migrationId: randomUUID(), destinationCampaignId: campaignA });
+    expect(res.status).toBe(400);
   });
 });

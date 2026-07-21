@@ -176,6 +176,29 @@ export async function sync(campaignId: string): Promise<void> {
   await push(campaignId);
 }
 
+/** Count of queued local ops for one scope (the migrate precondition, ADR 0002). */
+export async function pendingCountForScope(scope: string): Promise<number> {
+  return db.oplog.where("campaignId").equals(scope).count();
+}
+
+/**
+ * Re-points local IndexedDB after a server migrate returns 200 (ADR 0002 §6):
+ * drops the source row and purges any stale oplog entries for it (a queued
+ * non-delete op pushed after the server tombstone would otherwise resurrect the
+ * source row), then pulls both scopes so the source tombstone and the fresh
+ * destination row converge locally.
+ */
+export async function applyMigration(sourceScope: string, sourceId: string, destScope: string): Promise<void> {
+  await db.transaction("rw", db.entities, db.oplog, async () => {
+    await db.entities.delete(sourceId);
+    const stale = await db.oplog.where("entityId").equals(sourceId).toArray();
+    await db.oplog.bulkDelete(stale.map((entry) => entry.opId));
+  });
+  await pull(sourceScope);
+  await pull(destScope);
+  void refreshPendingCount();
+}
+
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
 const backoff = new Map<string, number>();
 

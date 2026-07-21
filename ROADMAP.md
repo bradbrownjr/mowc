@@ -585,12 +585,13 @@ wrong for MotW per-table play-state).
       (owner-only; the owner must hold a seat in the destination campaign;
       standalone<->campaign both directions), id handling (fresh id in the
       destination), and which progress fields carry. Design only, no code.
-- [ ] Implement character migration - 0.14.4 [Opus]. Build the migrate
+- [x] Implement character migration - 0.14.4 [Opus]. Build the migrate
       endpoint + repo transaction and the client "Move to campaign" /
       "Detach to standalone" UI on the character sheet and roster, per the
       0.14.3 ADR. Regression tests: progress carries, source tombstones in
       both buckets' pulls, non-seated destination is rejected, idempotent
-      replay. Depends on 0.14.3.
+      replay. Depends on 0.14.3. Sticky tombstones landed alongside (a
+      post-tombstone edit can no longer resurrect a deleted row).
 
 ### Dispatch prompts (0.14 work orders)
 

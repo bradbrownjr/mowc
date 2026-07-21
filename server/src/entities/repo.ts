@@ -53,6 +53,37 @@ export interface CommitParams {
   opId: string;
 }
 
+/** A recorded character migration (docs/adr/0002-character-migration.md). */
+export interface MigrationRecord {
+  migrationId: string;
+  sourceId: string;
+  newId: string;
+  sourceBucket: string;
+  destBucket: string;
+  requestedBy: string;
+  createdAt: string;
+}
+
+export interface MigrateCharacterParams {
+  migrationId: string;
+  /** The retired character id, tombstoned in place in the source bucket. */
+  sourceId: string;
+  /** Source envelope bucket (campaign id, or the owner user id for standalone). */
+  sourceBucket: string;
+  /** The source row's payload, carried unchanged onto its tombstone. */
+  sourcePayload: Record<string, unknown>;
+  /** Current server rev of the source row; the tombstone gets sourceRev + 1. */
+  sourceRev: number;
+  /** Fresh id for the character in the destination bucket. */
+  newId: string;
+  /** Destination envelope bucket (campaign id, or the owner user id for standalone). */
+  destBucket: string;
+  /** The validated payload for the destination row (id/campaignId already forced). */
+  destPayload: Record<string, unknown>;
+  requestedBy: string;
+  updatedAt: string;
+}
+
 export interface EntitiesRepo {
   getById(id: string): EntityEnvelope | undefined;
   /** Rows with seq > since, oldest first (docs/SYNC.md pull). */
@@ -73,6 +104,15 @@ export interface EntitiesRepo {
    * stored seq and rev.
    */
   commit(params: CommitParams): { seq: number; rev: number };
+  /** A previously completed migration by its client id, or undefined. */
+  findMigration(migrationId: string): MigrationRecord | undefined;
+  /**
+   * Moves a character between buckets in ONE transaction: tombstones the source
+   * row (next source-bucket seq), inserts a fresh destination row (next
+   * dest-bucket seq, rev 1), and records the migration for idempotency
+   * (docs/adr/0002-character-migration.md). No id ever lives in two buckets.
+   */
+  migrateCharacter(params: MigrateCharacterParams): MigrationRecord;
 }
 
 export function createEntitiesRepo(db: Database.Database): EntitiesRepo {
@@ -94,6 +134,11 @@ export function createEntitiesRepo(db: Database.Database): EntitiesRepo {
     "INSERT INTO applied_ops (campaign_id, op_id, applied_at) VALUES (?, ?, ?)"
   );
   const pruneOps = db.prepare("DELETE FROM applied_ops WHERE applied_at < ?");
+  const selectMigration = db.prepare("SELECT * FROM migrations WHERE migration_id = ?");
+  const insertMigration = db.prepare(
+    "INSERT INTO migrations (migration_id, source_id, new_id, source_bucket, dest_bucket, requested_by, created_at) " +
+      "VALUES (@migrationId, @sourceId, @newId, @sourceBucket, @destBucket, @requestedBy, @createdAt)"
+  );
 
   function nextSeq(campaignId: string): number {
     return (selectMaxSeq.get(campaignId) as { max: number }).max + 1;
@@ -115,6 +160,81 @@ export function createEntitiesRepo(db: Database.Database): EntitiesRepo {
     });
     recordOp.run(params.campaignId, params.opId, new Date().toISOString());
     return { seq, rev };
+  });
+
+  function toMigrationRecord(row: {
+    migration_id: string;
+    source_id: string;
+    new_id: string;
+    source_bucket: string;
+    dest_bucket: string;
+    requested_by: string;
+    created_at: string;
+  }): MigrationRecord {
+    return {
+      migrationId: row.migration_id,
+      sourceId: row.source_id,
+      newId: row.new_id,
+      sourceBucket: row.source_bucket,
+      destBucket: row.dest_bucket,
+      requestedBy: row.requested_by,
+      createdAt: row.created_at
+    };
+  }
+
+  const migrateTx = db.transaction((params: MigrateCharacterParams): MigrationRecord => {
+    // 1. Tombstone the source row in the source bucket with a fresh seq, so the
+    //    source Keeper's (and every source-bucket device's) next pull sees the
+    //    removal. Its payload is carried unchanged; only `deleted` flips.
+    upsert.run({
+      id: params.sourceId,
+      campaignId: params.sourceBucket,
+      type: "character",
+      payload: JSON.stringify(params.sourcePayload),
+      rev: params.sourceRev + 1,
+      seq: nextSeq(params.sourceBucket),
+      updatedAt: params.updatedAt,
+      updatedBy: params.requestedBy,
+      deleted: 1
+    });
+    // 2. Insert the fresh destination row (new id, rev 1) in the dest bucket.
+    upsert.run({
+      id: params.newId,
+      campaignId: params.destBucket,
+      type: "character",
+      payload: JSON.stringify(params.destPayload),
+      rev: 1,
+      seq: nextSeq(params.destBucket),
+      updatedAt: params.updatedAt,
+      updatedBy: params.requestedBy,
+      deleted: 0
+    });
+    // Seed applied_ops with the two deterministic op ids so even a hand-crafted
+    // sync replay of these synthetic ops is inert (ADR 0002 belt-and-suspenders;
+    // the migrations row below is the primary idempotency guard).
+    recordOp.run(params.sourceBucket, `migrate:${params.migrationId}:src`, params.updatedAt);
+    recordOp.run(params.destBucket, `migrate:${params.migrationId}:dst`, params.updatedAt);
+    // 3. Record the migration. Its PRIMARY KEY is the final backstop: a racing
+    //    duplicate conflicts here, rolls the whole transaction back, and the
+    //    caller falls back to findMigration and returns the first result.
+    insertMigration.run({
+      migrationId: params.migrationId,
+      sourceId: params.sourceId,
+      newId: params.newId,
+      sourceBucket: params.sourceBucket,
+      destBucket: params.destBucket,
+      requestedBy: params.requestedBy,
+      createdAt: params.updatedAt
+    });
+    return {
+      migrationId: params.migrationId,
+      sourceId: params.sourceId,
+      newId: params.newId,
+      sourceBucket: params.sourceBucket,
+      destBucket: params.destBucket,
+      requestedBy: params.requestedBy,
+      createdAt: params.updatedAt
+    };
   });
 
   return {
@@ -141,6 +261,17 @@ export function createEntitiesRepo(db: Database.Database): EntitiesRepo {
 
     commit(params) {
       return commitTx(params);
+    },
+
+    findMigration(migrationId) {
+      const row = selectMigration.get(migrationId) as
+        | Parameters<typeof toMigrationRecord>[0]
+        | undefined;
+      return row ? toMigrationRecord(row) : undefined;
+    },
+
+    migrateCharacter(params) {
+      return migrateTx(params);
     }
   };
 }
