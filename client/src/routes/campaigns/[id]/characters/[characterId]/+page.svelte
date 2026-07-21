@@ -8,6 +8,7 @@
   import { db } from "$lib/db.js";
   import { pull } from "$lib/sync.js";
   import CharacterSheet from "$lib/CharacterSheet.svelte";
+  import MigrateCharacter from "$lib/MigrateCharacter.svelte";
   import type { PageProps } from "./$types.js";
 
   let { data }: PageProps = $props();
@@ -70,6 +71,9 @@
   {:else}
     {#key data.characterId}
       <CharacterSheet character={character} scope={data.id} packs={packs} />
+      {#if character.ownerUserId === sessionState.user?.id}
+        <MigrateCharacter characterId={character.id} sourceScope={data.id} />
+      {/if}
     {/key}
   {/if}
 </main>

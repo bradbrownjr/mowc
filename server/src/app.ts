@@ -17,7 +17,11 @@ import { createAuthz } from "./authz/index.js";
 import { createInvitesRepo } from "./invites/repo.js";
 import { createCampaignInvitesRouter, createInviteRedeemRouter } from "./invites/router.js";
 import { createEntitiesRepo } from "./entities/repo.js";
-import { createStandaloneSyncRouter, createSyncRouter } from "./entities/router.js";
+import {
+  createCharacterMigrationRouter,
+  createStandaloneSyncRouter,
+  createSyncRouter
+} from "./entities/router.js";
 
 /**
  * The built SvelteKit client is expected as a sibling of this package:
@@ -84,6 +88,10 @@ export function createApp(version: string, db: Database.Database, adminEmail?: s
   );
   app.use("/api/campaigns", requireAuth, createCampaignsRouter(campaignsRepo, authz, createPackReadableCheck(db)));
   app.use("/api/invites", requireAuth, createInviteRedeemRouter(campaignsRepo, invitesRepo));
+  // Character migration between buckets (ADR 0002): a dedicated, owner-only,
+  // transactional move, NOT a sync/oplog op (it spans two buckets). Mounted
+  // under /api/characters, clearly separate from the per-bucket sync core.
+  app.use("/api/characters", requireAuth, createCharacterMigrationRouter(entitiesRepo, authz));
   // Standalone (campaign-less) character sync, bucketed by the owner's user id.
   // Mounted before the :campaignId route so "standalone" is never parsed as a
   // campaign id (docs/SYNC.md "Standalone characters").

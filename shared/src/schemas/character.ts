@@ -24,3 +24,32 @@ export const CharacterSchema = z.object({
   notes: z.string().max(5000).default("")
 });
 export type Character = z.infer<typeof CharacterSchema>;
+
+/**
+ * Request body for POST /api/characters/:characterId/migrate (ADR 0002). Moves a
+ * character from its current bucket into a destination bucket, carrying full
+ * progress. `migrationId` is a client-generated idempotency key so a retried
+ * request is a no-op. `destinationCampaignId` is null to detach to the owner's
+ * standalone space, or a campaign id the owner already holds a seat in.
+ */
+export const CharacterMigrateRequestSchema = z
+  .object({
+    migrationId: UuidSchema,
+    destinationCampaignId: UuidSchema.nullable()
+  })
+  .strict();
+export type CharacterMigrateRequest = z.infer<typeof CharacterMigrateRequestSchema>;
+
+/**
+ * Response body for a migrate. `newId` is the character's fresh id in the
+ * destination bucket; `sourceId` is the retired id. `sourceScope`/`destScope`
+ * are the client storage keys (a campaign id, or the literal "standalone"), so
+ * the client re-points local IndexedDB without recomputing them.
+ */
+export const CharacterMigrateResponseSchema = z.object({
+  newId: UuidSchema,
+  sourceId: UuidSchema,
+  sourceScope: z.string(),
+  destScope: z.string()
+});
+export type CharacterMigrateResponse = z.infer<typeof CharacterMigrateResponseSchema>;

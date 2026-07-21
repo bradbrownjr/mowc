@@ -4,6 +4,26 @@ All notable changes to MOWC are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow the
 `0.PHASE.BUILD` scheme described in ROADMAP.md.
 
+## [Unreleased]
+
+### Added
+- Character migration (Phase 14, 0.14.4). A character can now move between
+  tables: use "Move character" on its sheet to send it to another campaign
+  you have joined, or detach it to your standalone space. It carries its full
+  progress (ratings, moves, improvements, gear, harm, luck, experience,
+  notes). The move happens in one server step, so the character is never lost
+  or duplicated: it disappears from the old campaign's roster and appears in
+  the new one. A retried move is safe (idempotent) and never creates a second
+  copy. Migration is a deliberate online action; you are asked to sync any
+  unsaved changes on that character first.
+
+### Fixed
+- Sticky tombstones (Phase 14, 0.14.4). A deleted character or world entity
+  can no longer be silently brought back by a stale edit from another device
+  that had not yet seen the deletion. Once something is deleted, a later
+  non-delete edit for it is acknowledged and dropped rather than resurrecting
+  the row.
+
 ## [0.11.2] - 2026-07-17
 
 ### Changed
