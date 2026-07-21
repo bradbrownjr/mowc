@@ -4,6 +4,19 @@ All notable changes to MOWC are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow the
 `0.PHASE.BUILD` scheme described in ROADMAP.md.
 
+## [Unreleased]
+
+### Added
+- Keeper-approved pack transfer, server side (Phase 15, 0.15.2). Groundwork
+  for a nicer version of moving a character into a campaign that doesn't yet
+  have the character's playbook pack. Instead of moving now and leaving a
+  sparse sheet, the move can be held as a request that carries a copy of the
+  pack, waiting for the destination Keeper to approve (which attaches the pack
+  and completes the move in one step) or deny it. This release is the API and
+  data model only; the Keeper approval dialog (0.15.3) and the hunter's
+  deny-fallback prompt (0.15.4) come next, so there is no new on-screen
+  behavior yet. The existing "Move character" flow is unchanged.
+
 ## [0.14.0] - 2026-07-21
 
 ### Added

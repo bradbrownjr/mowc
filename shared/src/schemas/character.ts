@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { DefIdSchema, RatingsSchema, UserIdSchema, UuidSchema } from "./common.js";
-import { GearDefSchema } from "./contentPack.js";
+import { ContentPackSchema, GearDefSchema } from "./contentPack.js";
 
 export const CharacterSchema = z.object({
   id: UuidSchema,
@@ -53,3 +53,63 @@ export const CharacterMigrateResponseSchema = z.object({
   destScope: z.string()
 });
 export type CharacterMigrateResponse = z.infer<typeof CharacterMigrateResponseSchema>;
+
+/**
+ * Keeper-approved pack transfer on migration (docs/adr/0003-pack-transfer-approval.md).
+ * When a migration's destination campaign lacks the character's playbook pack,
+ * the move is HELD as a pending request that carries a copy of the source pack,
+ * until the destination Keeper approves (attach the pack, complete the move) or
+ * denies it. These schemas are the shared request/response shapes; the request
+ * table itself is deliberately NOT a SyncEntityType (it is inert offline and
+ * read/written only through plain online REST, matching ADR 0002's own migrate).
+ */
+export const MigrationRequestStatusSchema = z.enum(["pending", "approved", "denied", "expired"]);
+export type MigrationRequestStatus = z.infer<typeof MigrationRequestStatusSchema>;
+
+/**
+ * Request body for POST /api/characters/:characterId/migrate-requests. `pack` is
+ * the full copied ContentPack the hunter already has read access to; the server
+ * independently re-checks it actually defines the character's playbook before
+ * accepting it. `destinationCampaignId` is never null (a standalone destination
+ * never needs approval). `migrationId` is reused, unchanged, as the migrations
+ * table's own PRIMARY KEY once the request is approved.
+ */
+export const MigrationRequestCreateSchema = z
+  .object({
+    migrationId: UuidSchema,
+    destinationCampaignId: UuidSchema,
+    pack: ContentPackSchema.strict()
+  })
+  .strict();
+export type MigrationRequestCreate = z.infer<typeof MigrationRequestCreateSchema>;
+
+/**
+ * A pending (or terminal) migration request as seen by the character's owner
+ * (the hunter poll at GET .../migrate-requests/latest, and the create/cancel
+ * responses). `packName` is derived from the carried pack so a status banner can
+ * name it without a separate content-pack read.
+ */
+export const MigrationRequestSchema = z.object({
+  migrationId: UuidSchema,
+  sourceId: UuidSchema,
+  destinationCampaignId: UuidSchema,
+  status: MigrationRequestStatusSchema,
+  packId: UuidSchema,
+  packName: z.string(),
+  requestedBy: UserIdSchema,
+  createdAt: z.string(),
+  decidedAt: z.string().nullable()
+});
+export type MigrationRequest = z.infer<typeof MigrationRequestSchema>;
+
+/**
+ * The Keeper's enriched view (GET /api/campaigns/:campaignId/migrate-requests):
+ * the base request plus the display data the approval dialog needs, resolved
+ * server-side so the client never has to separately look up the character or the
+ * requesting user.
+ */
+export const MigrationRequestSummarySchema = MigrationRequestSchema.extend({
+  characterName: z.string(),
+  requestedByDisplayName: z.string()
+});
+export type MigrationRequestSummary = z.infer<typeof MigrationRequestSummarySchema>;
