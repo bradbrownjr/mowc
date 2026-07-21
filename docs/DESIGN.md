@@ -159,24 +159,26 @@ exists to fix).
 ### App shell
 
 - Top bar (all tiers): brand link left. On tablet/desktop the
-  folder-tab nav (File tabs motif) sits beside it: My campaigns, My
-  characters, Content packs. Right side is a compact account menu: a
-  button showing the display name (ellipsis past 12rem) that opens a
-  small panel with a Theme group (Midnight Unit / Field Notes / Follow
-  system, landed 0.11.7) above Log out. The bar is one line, always;
-  nothing in it may wrap.
+  folder-tab nav (File tabs motif) sits beside it: Characters,
+  Campaigns, Content packs (order and the dropped "My" prefix landed
+  0.14.1; the home dashboard below now owns the "yours" framing, so the
+  tabs read as plain section names). Right side is a compact account
+  menu: a button showing the display name (ellipsis past 12rem) that
+  opens a small panel with a Theme group (Midnight Unit / Field Notes /
+  Follow system, landed 0.11.7) above Log out. The bar is one line,
+  always; nothing in it may wrap.
 - Mobile bottom tab bar: fixed to the viewport bottom, replaces the
   folder tabs on mobile (the top bar keeps only brand + account).
   Each destination is an icon plus a Courier label at `--text-xs`; the
   tap target is the full bar height (`--bottombar-h`). Active tab: 2px
   accent top rule and accent-colored label. Destinations outside a
-  campaign: Home, Campaigns, Characters, Packs, Account (five; the
-  cross-campaign My Characters roster earns its own tab, added 0.13.2).
-  Inside a campaign: Overview, Sheet (hunter) or Mysteries (Keeper),
-  World, Campaigns (back out) (four; Account is dropped there since the
-  top bar's account button stays reachable). The page container reserves
-  bottom padding equal to `--bottombar-h` plus the safe-area inset so
-  content never hides behind the bar.
+  campaign: Home, Characters, Campaigns, Packs, Account (five; order
+  matches the top bar's Characters-before-Campaigns-before-Packs
+  sequence, 0.14.1). Inside a campaign: Overview, Sheet (hunter) or
+  Mysteries (Keeper), World, Campaigns (back out) (four; Account is
+  dropped there since the top bar's account button stays reachable).
+  The page container reserves bottom padding equal to `--bottombar-h`
+  plus the safe-area inset so content never hides behind the bar.
 - Campaign context rail (tablet/desktop, routes under
   `/campaigns/[id]`): left column, `--rail-w` wide, sticky below the
   top bar. Rows: Overview, Characters, Mysteries (Keeper), Reference
@@ -210,6 +212,15 @@ exists to fix).
   right; collapses to list, then detail navigation on mobile.
 - Wide content (countdown tables, session log) scrolls inside its own
   `overflow-x: auto` container; the page never scrolls horizontally.
+- Signed-in home (`/`, 0.14.1): three stacked sections inside the
+  default `.page` container, each a list with the Empty states pattern
+  for a zero-rows case: Characters (every character the user owns,
+  flat, each row tagged with its campaign or "Standalone", a "View
+  all" link to the full `/characters` roster), Campaigns I'm Running
+  (campaigns where the user is Keeper), Campaigns I'm In (campaigns
+  where the user holds a hunter seat). The signed-out landing (two
+  role-path cards) is unchanged; only the signed-in branch became a
+  dashboard instead of a two-link CTA row.
 
 ## Guidance copy ("field notes")
 

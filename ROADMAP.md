@@ -561,7 +561,7 @@ projection/membership model that violates the single-bucket invariant)
 and fully-shared single-row (one table's harm/XP would leak to another,
 wrong for MotW per-table play-state).
 
-- [ ] Home dashboard + nav (Tranche A) - 0.14.1 [Sonnet]. Signed-in
+- [x] Home dashboard + nav (Tranche A) - 0.14.1 [Sonnet]. Signed-in
       landing page with three sections: My Characters, Campaigns I'm In
       (seated as hunter), Campaigns I'm Running (Keeper). Reorder nav so
       Characters comes first, then Campaigns, then Content/Packs (top-bar
