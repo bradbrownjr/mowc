@@ -14,7 +14,9 @@ import {
   nameStepReason,
   playbookStepReason,
   ratingsStepReason,
+  resolveScopePlaybooks,
   selectPlaybook,
+  type CampaignOption,
   type WizardState
 } from "./character-builder.js";
 
@@ -198,5 +200,64 @@ describe("buildCharacterPayload", () => {
 
     expect(payload?.name).toBe("Trimmed");
     expect(payload?.moves).toEqual(["move-1", "move-2"]);
+  });
+
+  it("assembles a standalone (campaignId null) payload the same way", () => {
+    const payload = buildCharacterPayload({ id: "id-1", campaignId: null, ownerUserId: "user-1", state: completeState() });
+
+    expect(payload?.campaignId).toBeNull();
+  });
+});
+
+describe("resolveScopePlaybooks", () => {
+  const standalonePlaybooks: PlaybookDef[] = [PLAYBOOK];
+  const campaignPlaybook: PlaybookDef = { ...PLAYBOOK, id: "playbook-campaign" };
+  const campaignOptions: CampaignOption[] = [
+    { id: "camp-1", name: "Campaign One", playbooks: [campaignPlaybook] },
+    { id: "camp-2", name: "Campaign Two", playbooks: [] }
+  ];
+
+  it("always returns the base playbooks when locked, regardless of selectedCampaignId", () => {
+    expect(
+      resolveScopePlaybooks({
+        isLocked: true,
+        selectedCampaignId: "camp-1",
+        playbooks: standalonePlaybooks,
+        campaignOptions
+      })
+    ).toBe(standalonePlaybooks);
+  });
+
+  it("returns the base playbooks when unlocked and Standalone (null) is selected", () => {
+    expect(
+      resolveScopePlaybooks({
+        isLocked: false,
+        selectedCampaignId: null,
+        playbooks: standalonePlaybooks,
+        campaignOptions
+      })
+    ).toBe(standalonePlaybooks);
+  });
+
+  it("returns the matching campaign option's playbooks when unlocked and a campaign is selected", () => {
+    expect(
+      resolveScopePlaybooks({
+        isLocked: false,
+        selectedCampaignId: "camp-1",
+        playbooks: standalonePlaybooks,
+        campaignOptions
+      })
+    ).toEqual([campaignPlaybook]);
+  });
+
+  it("returns an empty array when unlocked and the selected campaign id has no matching option", () => {
+    expect(
+      resolveScopePlaybooks({
+        isLocked: false,
+        selectedCampaignId: "camp-missing",
+        playbooks: standalonePlaybooks,
+        campaignOptions
+      })
+    ).toEqual([]);
   });
 });

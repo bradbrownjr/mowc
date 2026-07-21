@@ -32,32 +32,71 @@
     nameStepReason,
     playbookStepReason,
     ratingsStepReason,
+    resolveScopePlaybooks,
     selectPlaybook,
+    type CampaignOption,
     type WizardState
   } from "$lib/character-builder.js";
 
   interface Props {
-    /** null for a standalone (campaign-less) character. */
-    campaignId: string | null;
+    /**
+     * Pass a fixed campaign id to lock the wizard's scope to that campaign
+     * (no campaign-picker step); the campaign route
+     * (`campaigns/[id]/characters/new`) does this. Omit entirely to show a
+     * campaign-picker step offering Standalone plus every campaign in
+     * `campaignOptions` (the standalone `characters/new` route, 0.14.2).
+     */
+    lockedCampaignId?: string;
+    /**
+     * Seated campaigns the picker can switch scope to, each with its own
+     * attached-pack playbooks preloaded by the route. Ignored when
+     * `lockedCampaignId` is set.
+     */
+    campaignOptions?: CampaignOption[];
     ownerUserId: string;
+    /**
+     * Playbooks for the active scope: the locked campaign's attached packs
+     * when `lockedCampaignId` is set, or the Standalone scope's own/shared
+     * packs otherwise (used while the picker's "Standalone" option is
+     * selected).
+     */
     playbooks: PlaybookDef[];
     /** Called after the character is written locally, in addition to the
      * built-in "Character created" confirmation this component renders. */
     onCreated?: (character: Character) => void;
   }
 
-  let { campaignId, ownerUserId, playbooks, onCreated }: Props = $props();
+  let { lockedCampaignId, campaignOptions = [], ownerUserId, playbooks, onCreated }: Props = $props();
 
-  const STEP_LABELS = ["Playbook", "Ratings", "Looks", "Moves", "Gear", "Name", "Review"];
+  /** True for the campaign route, which locks scope and skips the picker step. */
+  const isLocked = $derived(lockedCampaignId !== undefined);
+
+  /** The character's scope: a real campaign id, or null for Standalone. Set
+   * once from the initial prop value (a fresh component instance per route
+   * visit); subsequent changes come only from the user via selectCampaign. */
+  let selectedCampaignId = $state<string | null>(lockedCampaignId === undefined ? null : lockedCampaignId);
+
+  const BASE_STEP_LABELS = ["Playbook", "Ratings", "Looks", "Moves", "Gear", "Name", "Review"];
+  const stepLabels = $derived(isLocked ? BASE_STEP_LABELS : ["Campaign", ...BASE_STEP_LABELS]);
+
+  /** Playbooks for the currently selected scope (0.14.2). */
+  const activePlaybooks = $derived(
+    resolveScopePlaybooks({ isLocked, selectedCampaignId, playbooks, campaignOptions })
+  );
 
   let wizard = $state<WizardState>(emptyWizardState());
   let currentStep = $state(0);
+
+  /** Index into the wizard's own (campaign-agnostic) steps: equal to
+   * `currentStep` when locked, or one behind it when the leading Campaign
+   * step is present. */
+  const effectiveStep = $derived(isLocked ? currentStep : currentStep - 1);
 
   let submitting = $state(false);
   let submitError = $state<string | null>(null);
   let created = $state<Character | null>(null);
 
-  const stepComplete = $derived([
+  const baseStepComplete = $derived([
     isPlaybookStepComplete(wizard),
     isRatingsStepComplete(wizard),
     isLooksStepComplete(wizard),
@@ -66,8 +105,9 @@
     isNameStepComplete(wizard),
     true
   ]);
+  const stepComplete = $derived(isLocked ? baseStepComplete : [true, ...baseStepComplete]);
 
-  const stepReasons = $derived([
+  const baseStepReasons = $derived([
     playbookStepReason(wizard),
     ratingsStepReason(wizard),
     looksStepReason(wizard),
@@ -76,10 +116,11 @@
     nameStepReason(wizard),
     null
   ]);
+  const stepReasons = $derived(isLocked ? baseStepReasons : [null, ...baseStepReasons]);
 
   function next(): void {
     if (!stepComplete[currentStep]) return;
-    currentStep = Math.min(currentStep + 1, STEP_LABELS.length - 1);
+    currentStep = Math.min(currentStep + 1, stepLabels.length - 1);
   }
 
   function back(): void {
@@ -88,6 +129,15 @@
 
   function onSelectPlaybook(playbook: PlaybookDef): void {
     wizard = selectPlaybook(wizard, playbook);
+  }
+
+  /** Switching scope changes which playbooks are available, so the rest of
+   * the wizard (playbook onward) resets, same as picking a different
+   * playbook resets ratings/looks/moves/gear. */
+  function selectCampaign(id: string | null): void {
+    if (selectedCampaignId === id) return;
+    selectedCampaignId = id;
+    wizard = emptyWizardState();
   }
 
   function toggleMove(id: string): void {
@@ -116,14 +166,14 @@
 
   /** Where "View character sheet" points once created, campaign or standalone. */
   function sheetHref(characterId: string): ResolvedPathname {
-    return campaignId
-      ? resolve("/campaigns/[id]/characters/[characterId]", { id: campaignId, characterId })
+    return selectedCampaignId
+      ? resolve("/campaigns/[id]/characters/[characterId]", { id: selectedCampaignId, characterId })
       : resolve("/characters/[characterId]", { characterId });
   }
 
   async function onSubmit(): Promise<void> {
     const id = generateUuid();
-    const payload = buildCharacterPayload({ id, campaignId, ownerUserId, state: wizard });
+    const payload = buildCharacterPayload({ id, campaignId: selectedCampaignId, ownerUserId, state: wizard });
     if (!payload) {
       submitError = "Something is missing; go back and complete every step.";
       return;
@@ -137,7 +187,7 @@
     submitting = true;
     submitError = null;
     try {
-      await writeEntity("character", campaignId ?? "standalone", id, result.data);
+      await writeEntity("character", selectedCampaignId ?? "standalone", id, result.data);
       created = result.data;
       onCreated?.(result.data);
     } finally {
@@ -149,18 +199,44 @@
 {#if created}
   <h1 class="title">Character created</h1>
   <p class="meta">{created.name} joins the case.</p>
-  <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- sheetHref() always returns a resolve()d path, dispatched by campaignId -->
+  <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- sheetHref() always returns a resolve()d path, dispatched by selectedCampaignId -->
   <a class="submit-button" href={sheetHref(created.id)}>View character sheet</a>
 {:else}
   <h1 class="title">New character</h1>
-  <StepIndicator steps={STEP_LABELS} current={currentStep} />
+  <StepIndicator steps={stepLabels} current={currentStep} />
 
-  {#if currentStep === 0}
+  {#if !isLocked && currentStep === 0}
+    <section class="panel">
+      <h2 class="section-title">Campaign</h2>
+      <FieldNote>Choose which campaign this hunter belongs to, or keep them Standalone with no campaign at all. This also decides which content packs' playbooks are available next.</FieldNote>
+      <div class="option-list stacked">
+        <button
+          type="button"
+          class="option-card"
+          class:selected={selectedCampaignId === null}
+          onclick={() => selectCampaign(null)}
+        >
+          <span class="option-title">Standalone</span>
+          <span class="option-detail">No campaign; just this character.</span>
+        </button>
+        {#each campaignOptions as campaign (campaign.id)}
+          <button
+            type="button"
+            class="option-card"
+            class:selected={selectedCampaignId === campaign.id}
+            onclick={() => selectCampaign(campaign.id)}
+          >
+            <span class="option-title">{campaign.name}</span>
+          </button>
+        {/each}
+      </div>
+    </section>
+  {:else if effectiveStep === 0}
     <section class="panel">
       <h2 class="section-title">Playbook</h2>
       <FieldNote>Your playbook (a character template) sets your hunter's role in the story, along with their starting moves and gear. Choose the one that fits how you want to play.</FieldNote>
       <div class="option-list stacked">
-        {#each playbooks as playbook (playbook.id)}
+        {#each activePlaybooks as playbook (playbook.id)}
           <button
             type="button"
             class="option-card"
@@ -173,7 +249,7 @@
         {/each}
       </div>
     </section>
-  {:else if currentStep === 1 && wizard.playbook}
+  {:else if effectiveStep === 1 && wizard.playbook}
     <section class="panel">
       <h2 class="section-title">Ratings line</h2>
       <FieldNote>Ratings are the numbers you add when you roll dice for a move. A higher rating means better odds at that kind of action.</FieldNote>
@@ -192,7 +268,7 @@
         {/each}
       </div>
     </section>
-  {:else if currentStep === 2 && wizard.playbook}
+  {:else if effectiveStep === 2 && wizard.playbook}
     <section class="panel">
       <h2 class="section-title">Look</h2>
       <FieldNote>A quick sketch of how your hunter looks and carries themselves. This is flavor, not rules; pick an option or write your own.</FieldNote>
@@ -220,7 +296,7 @@
         </div>
       {/each}
     </section>
-  {:else if currentStep === 3 && wizard.playbook}
+  {:else if effectiveStep === 3 && wizard.playbook}
     <section class="panel">
       <h2 class="section-title">Moves</h2>
       <FieldNote>Moves (actions your character can roll dice for) are how you interact with the story mechanically. Pick the ones that fit how you want to play.</FieldNote>
@@ -239,7 +315,7 @@
         {/each}
       </div>
     </section>
-  {:else if currentStep === 4 && wizard.playbook}
+  {:else if effectiveStep === 4 && wizard.playbook}
     <section class="panel">
       <h2 class="section-title">Gear</h2>
       <FieldNote>Gear is equipment your hunter starts with. Some playbooks offer a choice between a few options; others hand you a fixed loadout.</FieldNote>
@@ -261,7 +337,7 @@
         </div>
       {/each}
     </section>
-  {:else if currentStep === 5}
+  {:else if effectiveStep === 5}
     <section class="panel">
       <h2 class="section-title">Name</h2>
       <FieldNote>What your hunter goes by. You can still edit ratings, moves, and notes later from the character sheet, but the playbook is set for good once you create this character.</FieldNote>
@@ -270,12 +346,19 @@
         <input type="text" bind:value={wizard.name} required />
       </label>
     </section>
-  {:else if currentStep === 6 && wizard.playbook && wizard.ratings}
+  {:else if effectiveStep === 6 && wizard.playbook && wizard.ratings}
     <section class="panel">
       <h2 class="section-title">Review</h2>
       <FieldNote>Check everything below, then create your hunter.</FieldNote>
       <div class="preview-card">
         <p class="preview-name">{wizard.name || "Unnamed hunter"}</p>
+        {#if !isLocked}
+          <p class="meta">
+            {selectedCampaignId
+              ? (campaignOptions.find((c) => c.id === selectedCampaignId)?.name ?? "Campaign")
+              : "Standalone"}
+          </p>
+        {/if}
         <p class="meta">{wizard.playbook.name}</p>
         {#if wizard.lookChoices.some((choice) => choice.trim())}
           <p class="preview-look">{wizard.lookChoices.filter((choice) => choice.trim()).join(", ")}</p>
@@ -323,7 +406,7 @@
 
   <div class="nav-row">
     <button type="button" class="submit-button" onclick={back} disabled={currentStep === 0}>Back</button>
-    {#if currentStep < STEP_LABELS.length - 1}
+    {#if currentStep < stepLabels.length - 1}
       <button type="button" class="submit-button" onclick={next} disabled={!stepComplete[currentStep]}>Next</button>
     {/if}
   </div>

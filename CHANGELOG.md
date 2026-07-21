@@ -21,6 +21,12 @@ All notable changes to MOWC are documented here. Format follows
   the campaigns you're running as Keeper, and the campaigns you've joined
   as a player, each showing a helpful empty state when there's nothing
   there yet.
+- Campaign picker at character creation (Phase 14, 0.14.2). Creating a
+  character now lets you choose which campaign it belongs to, or keep it
+  Standalone, from a picker step in the builder. Starting the wizard from a
+  campaign still locks it to that campaign; starting it from Characters
+  defaults to Standalone but offers every campaign you're seated in.
+  Whichever scope you pick decides which content packs' playbooks are offered.
 
 ### Changed
 - Top-bar and bottom-bar navigation order is now Characters, then

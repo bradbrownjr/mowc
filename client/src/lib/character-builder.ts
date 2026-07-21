@@ -29,6 +29,36 @@ export function flattenPlaybooks(packs: ContentPack[]): PlaybookDef[] {
 }
 
 /**
+ * A seated campaign the standalone builder's campaign-picker step can
+ * switch scope to (0.14.2), with its own attached-pack playbooks preloaded
+ * by the route so switching scope mid-wizard needs no extra round trip.
+ */
+export interface CampaignOption {
+  id: string;
+  name: string;
+  playbooks: PlaybookDef[];
+}
+
+/**
+ * Resolves which playbooks are active for the wizard's current scope.
+ * Locked (the campaign route, no picker): always the base `playbooks` prop,
+ * the locked campaign's attached-pack playbooks. Unlocked (the standalone
+ * route's picker): `selectedCampaignId === null` means "Standalone" is
+ * picked, so the base `playbooks` (that route's own+shared packs) apply;
+ * otherwise the matching `CampaignOption`'s playbooks apply.
+ */
+export function resolveScopePlaybooks(params: {
+  isLocked: boolean;
+  selectedCampaignId: string | null;
+  playbooks: PlaybookDef[];
+  campaignOptions: CampaignOption[];
+}): PlaybookDef[] {
+  const { isLocked, selectedCampaignId, playbooks, campaignOptions } = params;
+  if (isLocked || selectedCampaignId === null) return playbooks;
+  return campaignOptions.find((option) => option.id === selectedCampaignId)?.playbooks ?? [];
+}
+
+/**
  * Applies a playbook selection. Picking a different playbook than the one
  * already selected invalidates every downstream choice (ratings, looks,
  * moves, gear were all specific to the old playbook); re-picking the same

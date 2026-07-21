@@ -49,7 +49,7 @@
     <p class="meta">Ask your {GLOSS.keeper} to attach a content pack with playbooks.</p>
   {:else}
     <CharacterBuilder
-      campaignId={data.id}
+      lockedCampaignId={data.id}
       ownerUserId={sessionState.user?.id ?? ""}
       playbooks={availablePlaybooks}
     />
