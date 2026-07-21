@@ -86,6 +86,17 @@ The app must still be safe if exposed directly.
   their own, and the route forces the stored `campaignId` to `null` so an op
   cannot escape into a campaign it does not belong to. Only `character` is
   accepted there; Keeper-owned world entities remain campaign-only.
+- **Character migration** (`POST /api/characters/:characterId/migrate`,
+  ADR 0002) moves a character between buckets. Two authz checks, both
+  required: the caller must be the character's **owner**
+  (`ownerUserId === req.user.id`; a Keeper may not migrate a hunter's
+  character), and for a campaign destination the owner must already hold
+  a seat there (`authz.canReadCampaign`, so a guessed campaign id is
+  rejected). Standalone destinations need no seat (the owner's own
+  space). `ownerUserId` is preserved on the moved row; the operation
+  never reassigns ownership. It tombstones the source and creates a
+  fresh destination id in one transaction, so no id ever lives in two
+  buckets (the single-bucket sync invariant is untouched).
 
 ## 4. Rate limiting & resource exhaustion
 
@@ -93,7 +104,9 @@ The app must still be safe if exposed directly.
 - Strict buckets: login and register 10/min per IP, invite redemption
   10/min, content-pack upload 10/hour per user, sync push 60/min per
   user with max 500 ops per batch, admin PDF conversion 10/hour per user
-  (single-flight: one conversion at a time per server process, else 429).
+  (single-flight: one conversion at a time per server process, else 429),
+  character migration 30/hour per user (ADR 0002; each call writes two
+  rows across two buckets, so it gets its own strict bucket).
 - Admin PDF conversion (`POST /api/admin/conversions`, ADR 0001): raw
   `application/pdf` body capped at 25 MB (413 over-limit), magic-byte
   checked (`%PDF-`, else 400), piped to a sandboxed `pdftotext`/`pdfinfo`
@@ -255,3 +268,4 @@ credential or authz bugs get a release regardless of the roadmap phase.
 | 7 | Sync visibility filter tests, op batch caps, idempotency table pruning |
 | 9 | Conversion endpoint caps per docs/adr/0001 (with 0.9.6) |
 | 10 | Full review vs this doc; npm audit hard-fail on high/critical |
+| 14 | Character migration endpoint per docs/adr/0002: owner-only + destination-seat authz, 30/hour rate bucket, single-transaction move (with 0.14.4) |

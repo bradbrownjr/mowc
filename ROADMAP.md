@@ -536,3 +536,148 @@ before any UI work:
       seated campaigns on visit. Add the tab to the top-bar folder tabs
       and the global bottom bar (currently 4 global tabs; update
       DESIGN.md's layout section in the same commit) - 0.13.2 [Sonnet]
+
+## Phase 14: Home Dashboard & Character Migration
+
+Version 0.14. User request (2026-07-21): a proper signed-in home
+dashboard, cleaner nav, a campaign picker at character creation, and the
+ability to move a character between campaigns.
+
+Two tranches. Tranche A (0.14.1-0.14.2) is client-only UI/UX with no
+schema or sync change. Tranche B (0.14.3-0.14.4) adds character
+migration and needs the design ADR first.
+
+**Migration design decision (user, 2026-07-21):** do NOT link one
+character to multiple campaigns. Keep a character in exactly ONE campaign
+(or standalone) at a time, and let the player MIGRATE it from one campaign
+to the next, carrying full progress forward (ratings, moves, improvements,
+gear, harm, luck, experience, notes). This preserves the one-bucket-per-id
+sync invariant (`server/src/entities/router.ts:184`, "an id may only live
+in one bucket; never cross the boundary") instead of fighting it.
+"Attach an existing character to a campaign later" and "detach back to
+standalone" are the same operation with different source/destination
+buckets. Rejected alternatives: multi-campaign linking (would need a
+projection/membership model that violates the single-bucket invariant)
+and fully-shared single-row (one table's harm/XP would leak to another,
+wrong for MotW per-table play-state).
+
+- [ ] Home dashboard + nav (Tranche A) - 0.14.1 [Sonnet]. Signed-in
+      landing page with three sections: My Characters, Campaigns I'm In
+      (seated as hunter), Campaigns I'm Running (Keeper). Reorder nav so
+      Characters comes first, then Campaigns, then Content/Packs (top-bar
+      folder tabs AND both bottom-bars). Drop the word "My" from tab
+      names ("My characters" -> "Characters"). Client-only, no schema or
+      sync change.
+- [ ] Campaign picker at character creation - 0.14.2 [Sonnet]. Add a
+      campaign selector to the shared `CharacterBuilder.svelte` (list the
+      user's seated campaigns plus a "Standalone" option) that routes the
+      create write to the chosen scope. The builder already accepts
+      `campaignId: string | null`; this surfaces the choice in the UI so
+      the standalone and campaign `new` routes can converge. Client-only.
+- [x] Character migration design ADR - 0.14.3 [Opus]. Write
+      `docs/adr/0002-character-migration.md` and update `docs/SYNC.md`,
+      `docs/DATA-MODEL.md`, `docs/SECURITY.md`. Contract for a
+      server-side migrate operation that tombstones the source row and
+      creates a fresh row in the destination bucket in ONE transaction
+      (no relaxing of the single-bucket invariant, no two-scope client
+      dance). Covers: endpoint shape, source-tombstone semantics (the old
+      row must disappear from the source Keeper's roster mirror), authz
+      (owner-only; the owner must hold a seat in the destination campaign;
+      standalone<->campaign both directions), id handling (fresh id in the
+      destination), and which progress fields carry. Design only, no code.
+- [ ] Implement character migration - 0.14.4 [Opus]. Build the migrate
+      endpoint + repo transaction and the client "Move to campaign" /
+      "Detach to standalone" UI on the character sheet and roster, per the
+      0.14.3 ADR. Regression tests: progress carries, source tombstones in
+      both buckets' pulls, non-seated destination is rejected, idempotent
+      replay. Depends on 0.14.3.
+
+### Dispatch prompts (0.14 work orders)
+
+Persisted so they survive a context clear. Each is a standalone,
+stateless subagent brief. 0.14.1, 0.14.2, and 0.14.3 can run in parallel
+now; 0.14.4 waits on 0.14.3.
+
+**WO1 (0.14.1, Sonnet) — Home dashboard + nav reorder + drop "My":**
+> Read AGENTS.md top to bottom and docs/DESIGN.md before touching UI.
+> This is client-only; no schema, sync, or server change. Three things:
+> (1) Build a signed-in home dashboard at `client/src/routes/+page.svelte`
+> with three sections: "My Characters" (reuse `groupOwnCharacters` from
+> `client/src/lib/my-characters.ts`), "Campaigns I'm In" (campaigns where
+> the user is a seated hunter, not the Keeper), and "Campaigns I'm
+> Running" (campaigns where `campaign.keeperUserId === sessionState.user.id`).
+> Source campaigns from the same `listCampaigns()` the `/campaigns` route
+> uses and split by the existing Keeper/hunter derivation. Keep the
+> signed-out two-role-path landing exactly as-is; only the signed-in
+> branch changes. Use `EmptyState` for any empty section per DESIGN.md.
+> (2) Reorder navigation so the order is Characters, then Campaigns, then
+> Packs/Content, in the top-bar folder tabs and BOTH bottom-bars (global
+> and in-campaign) in `client/src/routes/+layout.svelte`. (3) Drop the
+> word "My" from tab labels ("My characters" -> "Characters") in the nav
+> and the `/characters` page heading. Update DESIGN.md's layout/app-shell
+> section in the same commit. Then run the strict workflow: `npm run
+> build && npm test && npm run check`, add/adjust tests as needed, commit,
+> push, watch CI. Update the AGENTS.md Feature Registry rows for the app
+> shell and My Characters roster to match, and flip the 0.14.1 ROADMAP
+> checkbox in the same commit.
+
+**WO2 (0.14.2, Sonnet) — Campaign picker at character creation:**
+> Read AGENTS.md top to bottom and the Feature Registry rows for the
+> character builder before starting. Client-only. Goal: when creating a
+> character, let the user choose which campaign to attach it to, with a
+> "Standalone" option. The shared `client/src/lib/CharacterBuilder.svelte`
+> already takes `campaignId: string | null` and writes via
+> `writeEntity("character", campaignId ?? "standalone", ...)`. Add a
+> campaign selector (the user's seated campaigns from `listCampaigns()`
+> plus a "Standalone" option) as a step or field in the builder so the
+> chosen scope drives the write. Reconcile the two entry routes
+> (`characters/new` standalone and `campaigns/[id]/characters/new`): the
+> campaign route should pre-select and lock its own campaign; the
+> standalone route should default to "Standalone" but allow picking a
+> seated campaign. Packs must follow the chosen scope (a campaign's
+> attached packs when a campaign is picked, `listPacks()` for standalone).
+> Add/adjust unit tests for `buildCharacterPayload` and any new selector
+> helper. Run `npm run build && npm test && npm run check`, commit, push,
+> watch CI, update the relevant Feature Registry rows, and flip the
+> 0.14.2 ROADMAP checkbox in the same commit.
+
+**WO3 (0.14.3, Opus) — Character migration design ADR:**
+> Read AGENTS.md top to bottom, then docs/SYNC.md, docs/DATA-MODEL.md,
+> docs/SECURITY.md, and `server/src/entities/router.ts` (especially the
+> `SyncScope` interface, `applyPushOps`, and the single-bucket check at
+> the "an id may only live in one bucket" comment). Design ONLY, no
+> implementation. Write `docs/adr/000X-character-migration.md` (next ADR
+> number) specifying a server-side character-migration operation with
+> these constraints, per the user's 2026-07-21 decision: a character lives
+> in exactly one bucket at a time (a campaign, or the owner's standalone
+> space); migration MOVES it to another bucket carrying full progress
+> (ratings, moves, improvements, gear, harm, luck, experience, notes,
+> extrasState). Do NOT relax the single-bucket invariant. Specify: the
+> endpoint shape and where it mounts; that it tombstones the source row
+> and creates a fresh row (new id) in the destination bucket in ONE
+> transaction, so the source Keeper's pull sees the tombstone and the
+> destination sees the new row; authz (owner-only; owner must hold a seat
+> in the destination campaign; standalone<->campaign both directions
+> allowed); how the client discovers the new id and re-points local
+> IndexedDB; and idempotency. Update docs/SYNC.md and docs/DATA-MODEL.md
+> with the migration flow and docs/SECURITY.md with the new endpoint's
+> gate. Note any open risks for the implementer. This task tag is [Opus];
+> if you are a smaller model, stop and say so. Flip the 0.14.3 ROADMAP
+> checkbox when the ADR is accepted and docs updated.
+
+**WO4 (0.14.4, Opus) — Implement character migration:** depends on WO3.
+> Read AGENTS.md, the accepted 0.14.3 ADR, and docs/SYNC.md. Implement
+> the migrate endpoint + repo transaction and the client UI per the ADR.
+> Server: the transactional tombstone-source + create-in-destination
+> operation, owner-and-seat authz, validation at the boundary with zod.
+> Client: a "Move to campaign" / "Detach to standalone" control on the
+> character sheet and/or the roster, re-pointing local IndexedDB to the
+> new id/scope after a successful migrate. Regression tests (extend
+> `server/src/entities/multidevice.test.ts` patterns or a new test):
+> progress fields carry intact, the source row tombstones in the source
+> bucket's pull, a destination the owner is not seated in is rejected,
+> and replay is idempotent. Run `npm run build && npm test && npm run
+> check`, add e2e coverage if a flow is touched, commit, push, watch CI,
+> update the Feature Registry and docs, and flip the 0.14.4 ROADMAP
+> checkbox in the same commit. This task tag is [Opus]; if you are a
+> smaller model, stop and say so.
