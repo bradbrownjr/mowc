@@ -574,8 +574,8 @@ wrong for MotW per-table play-state).
       create write to the chosen scope. The builder already accepts
       `campaignId: string | null`; this surfaces the choice in the UI so
       the standalone and campaign `new` routes can converge. Client-only.
-- [ ] Character migration design ADR - 0.14.3 [Opus]. Write
-      `docs/adr/000X-character-migration.md` and update `docs/SYNC.md`,
+- [x] Character migration design ADR - 0.14.3 [Opus]. Write
+      `docs/adr/0002-character-migration.md` and update `docs/SYNC.md`,
       `docs/DATA-MODEL.md`, `docs/SECURITY.md`. Contract for a
       server-side migrate operation that tombstones the source row and
       creates a fresh row in the destination bucket in ONE transaction

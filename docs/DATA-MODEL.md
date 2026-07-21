@@ -120,6 +120,11 @@ Character { id, campaignId, ownerUserId, playbookId, name, look,
             -- owner-bucketed scope rather than a campaign (docs/SYNC.md
             -- "Standalone characters"). Only Character may be standalone; the
             -- Keeper-owned entities below are always campaign-scoped.
+            -- A character MOVES between buckets via migration (it never
+            -- lives in two): the source id tombstones and a fresh id is
+            -- created in the destination bucket, in one transaction,
+            -- carrying every field but id and campaignId (docs/SYNC.md
+            -- "Character migration", docs/adr/0002-character-migration.md).
 Mystery   { id, campaignId, title, concept, hook, status,
             countdown: { steps: [{label, text, done}] },
             locationIds[], monsterIds[], minionIds[], bystanderIds[],
@@ -161,5 +166,23 @@ entities(
 
 Non-synced tables are conventional: `users`, `sessions`, `campaigns`,
 `seats`, `invites`, `content_packs`, `schema_migrations`.
+
+Character migration (docs/adr/0002-character-migration.md) adds one small
+idempotency table, keyed by a client-generated migration id so a replayed
+move is a no-op that returns the same destination id:
+
+```
+migrations(
+  migration_id TEXT PRIMARY KEY,   -- client idempotency key
+  source_id TEXT NOT NULL,         -- retired id, tombstoned in source bucket
+  new_id TEXT NOT NULL,            -- fresh id created in destination bucket
+  source_bucket TEXT NOT NULL,     -- entities.campaign_id of the source
+  dest_bucket TEXT NOT NULL,       -- entities.campaign_id of the destination
+  requested_by TEXT NOT NULL,      -- owner user id
+  created_at TEXT NOT NULL
+)
+-- Never pruned (one row per lifetime move; a late retry must still
+-- short-circuit). Unlike applied_ops, which is pruned after 30 days.
+```
 
 Never add a synced entity as its own table; extend the envelope.

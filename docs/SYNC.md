@@ -100,6 +100,48 @@ owner-bucketed scope:
   key stay consistent. Everything else (oplog, debounce, backoff, tombstones) is
   identical to a campaign.
 
+## Character migration (moving a character between buckets)
+
+A character lives in exactly one bucket at a time (a campaign, or the
+owner's standalone space). To carry a character's full progress from one
+table to the next, it is **migrated**: moved between buckets, never
+linked into two. This preserves the single-bucket invariant
+(`server/src/entities/router.ts`, "an id may only live in one bucket")
+rather than relaxing it. The full contract is
+`docs/adr/0002-character-migration.md`; the sync-relevant flow:
+
+- Migration is NOT an oplog op (an op targets one bucket; this spans
+  two). It is a dedicated online request, `POST
+  /api/characters/:characterId/migrate` with `{migrationId,
+  destinationCampaignId}` (`destinationCampaignId: null` = standalone),
+  returning `{newId, sourceId, sourceScope, destScope}`.
+- The server does the move in **one transaction**: it tombstones the
+  source row (`deleted = 1`, next source-bucket `seq`) and inserts a
+  **fresh id** in the destination bucket (next destination-bucket `seq`,
+  `campaignId` forced to the destination) carrying every character field
+  verbatim (`ratings`, `moves`, `improvements`, `gear`, `harm`,
+  `unstable`, `luckSpent`, `experience`, `notes`, `extrasState`, `look`,
+  `name`, `playbookId`, `ownerUserId`). So the source Keeper's next pull
+  sees the tombstone (the character drops off their roster) and the
+  destination's next pull sees the new row.
+- **A fresh id** is what keeps the invariant literally true: `sourceId`
+  stays a tombstone in the source bucket forever; `newId` only ever
+  lives in the destination. Reusing the id would put one id in two
+  buckets.
+- **Idempotency** is by the client-generated `migrationId`, recorded in
+  a small never-pruned `migrations` table. A replay returns the stored
+  `newId` and touches nothing (a fresh id per call would otherwise
+  duplicate the destination on retry).
+- **Client re-pointing:** before migrating, the client flushes the
+  source scope's oplog (a migrate is refused while that scope has
+  pending ops, so the server snapshots the current character). On
+  success it deletes the local `entities` row and purges any `oplog`
+  entries for `sourceId` under `sourceScope`, then `pull`s both
+  `sourceScope` (the tombstone) and `destScope` (the `newId` row), and
+  navigates the sheet to `newId`. Purging stale source-id ops is
+  required: a non-delete op pushed after the tombstone would merge onto
+  it and resurrect the source row.
+
 ## When sync runs
 
 - On app start / campaign open (pull, then push if oplog non-empty)
