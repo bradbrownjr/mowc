@@ -689,3 +689,60 @@ now; 0.14.4 waits on 0.14.3.
 > update the Feature Registry and docs, and flip the 0.14.4 ROADMAP
 > checkbox in the same commit. This task tag is [Opus]; if you are a
 > smaller model, stop and say so.
+
+## Phase 15: Keeper-Approved Pack Transfer on Migration
+
+Version 0.15. Follow-on to Phase 14. When a character migrates into a
+campaign whose Keeper does not have the content pack the character's
+playbook needs, the move becomes a Keeper-approved request that can carry
+the pack in. Builds on 0.14.5's `packsContainPlaybook` detection and the
+hunter-facing warning already shipped.
+
+**Design decisions (user, 2026-07-21):**
+- **Move timing: HOLD the move until the Keeper decides** (a pending
+  request), NOT the immediate-move-plus-async-approval alternative. The
+  character does not arrive in the destination until the Keeper approves.
+- **Carry the pack in:** the migration request carries a copy of the
+  source pack into the destination as a pending attachment for the Keeper
+  to approve (the hunter has read access to the source pack via
+  campaign-membership scoping, so the payload is available to send).
+- **Keeper UX:** on accessing their campaign, the Keeper sees a dialog
+  explaining a character wants to move in and brings pack X, with
+  **Approve** (attach the pack, complete the move) / **Deny**.
+- **Deny fallback:** on deny, the *hunter* is notified and offered "move
+  without the pack" with a plain explanation of what they lose (a sparse
+  sheet: playbook layout, moves, gear labels), or cancel.
+
+**Constraints to honor:**
+- The single-bucket sync invariant (ADR 0002, `router.ts` "an id may only
+  live in one bucket") stays unchanged; a held move simply has not
+  created the destination row yet.
+- Pack-attach authz: a Keeper can only attach packs they own or
+  admin-shared (`createPackReadableCheck`); the carried pack must be
+  created/owned appropriately on approval (decide in the ADR).
+- This is the first cross-user async approval workflow in the app: it
+  needs a pending-request store and a notification path back to the
+  hunter on approve/deny.
+
+**Open sub-decisions for the ADR:**
+- Where pending-request state lives (new table vs an existing surface),
+  and its sync/authz model.
+- Pack-copy ownership/visibility on approval (copy owned by the dest
+  Keeper vs preserve provenance) and dedup if the Keeper already has it.
+- How the hunter learns of approve/deny (poll on next campaign/roster
+  visit vs a real notifications surface).
+- Idempotency and expiry of a pending request; behavior if the character
+  is edited or deleted while a request is pending.
+
+- [ ] Pack-transfer approval design ADR - 0.15.1 [Fable]. Extend/supersede
+      ADR 0002 for the missing-pack case: the pending-migration-request
+      model, carry-pack semantics, Keeper approve/deny, hunter
+      deny-fallback, pack ownership on approval, the notification path,
+      and idempotency/expiry. Design only, no code. Resolve the open
+      sub-decisions above.
+- [ ] Server: pending migration requests + carry-pack + approve/deny -
+      0.15.2 [Opus]. Depends on 0.15.1.
+- [ ] Keeper approval dialog on campaign access - 0.15.3 [Sonnet].
+      Depends on 0.15.2.
+- [ ] Hunter deny-fallback: move without pack, with a clear loss
+      explanation - 0.15.4 [Sonnet]. Depends on 0.15.2.
