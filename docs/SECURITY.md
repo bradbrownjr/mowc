@@ -97,6 +97,22 @@ The app must still be safe if exposed directly.
   never reassigns ownership. It tombstones the source and creates a
   fresh destination id in one transaction, so no id ever lives in two
   buckets (the single-bucket sync invariant is untouched).
+- **Keeper-approved pack transfer on migration** (`POST
+  /api/characters/:characterId/migrate-requests` and its
+  `/cancel`/`latest` sub-routes, plus `GET/POST
+  /api/campaigns/:campaignId/migrate-requests[/:migrationId/approve|deny]`,
+  docs/adr/0003-pack-transfer-approval.md) fires when a migration's
+  destination lacks the character's playbook pack: the move is held as a
+  pending request rather than completed immediately. Creating and
+  cancelling a request use the exact same owner-only + destination-seat
+  authz as the direct migrate endpoint above. Approving or denying is
+  Keeper-of-the-destination-campaign-only (`requireKeeper`); the
+  character's own owner has no standing there, matching the Keeper's
+  existing unilateral authority over their own campaign (e.g. revoking a
+  seat). The pack this flow attaches on approval is always freshly
+  created-or-deduped **owned by the approving Keeper** (never the
+  original uploader), so it passes the ordinary pack-attach check
+  (`createPackReadableCheck`) above with no special-casing.
 
 ## 4. Rate limiting & resource exhaustion
 
@@ -106,7 +122,11 @@ The app must still be safe if exposed directly.
   user with max 500 ops per batch, admin PDF conversion 10/hour per user
   (single-flight: one conversion at a time per server process, else 429),
   character migration 30/hour per user (ADR 0002; each call writes two
-  rows across two buckets, so it gets its own strict bucket).
+  rows across two buckets, so it gets its own strict bucket), migration
+  pack-transfer request creation 10/hour per user (ADR 0003, matching the
+  content-pack-upload bucket's weight since the body carries a full pack
+  payload), migration pack-transfer cancel/approve/deny 30/hour per user
+  each (ADR 0003, matching the migration bucket).
 - Admin PDF conversion (`POST /api/admin/conversions`, ADR 0001): raw
   `application/pdf` body capped at 25 MB (413 over-limit), magic-byte
   checked (`%PDF-`, else 400), piped to a sandboxed `pdftotext`/`pdfinfo`
@@ -269,3 +289,4 @@ credential or authz bugs get a release regardless of the roadmap phase.
 | 9 | Conversion endpoint caps per docs/adr/0001 (with 0.9.6) |
 | 10 | Full review vs this doc; npm audit hard-fail on high/critical |
 | 14 | Character migration endpoint per docs/adr/0002: owner-only + destination-seat authz, 30/hour rate bucket, single-transaction move (with 0.14.4) |
+| 15 | Pack-transfer approval per docs/adr/0003: create/cancel use ADR 0002's owner+seat authz, approve/deny are Keeper-of-destination-only, approved pack copies are always owned by the approving Keeper (never the original uploader), 10/hour create + 30/hour decide rate buckets, single-transaction approve (pack create-or-dedupe + attach + migrate) (with 0.15.2) |

@@ -142,6 +142,48 @@ rather than relaxing it. The full contract is
   required: a non-delete op pushed after the tombstone would merge onto
   it and resurrect the source row.
 
+## Migration requiring Keeper-approved pack transfer
+
+When a migration's destination campaign does not have the content pack
+the character's playbook needs, the move is **held** rather than
+completed immediately: `docs/adr/0003-pack-transfer-approval.md`. This is
+not a variant of the sync push/pull core above; it is a separate,
+non-synced surface that sits entirely *before* a migration is performed:
+
+- The client checks `packsContainPlaybook` (0.14.5) against the chosen
+  destination. If the destination already has the pack (or is
+  standalone), nothing changes: the ordinary `/migrate` flow above runs.
+  If not, the client calls `POST /api/characters/:characterId/migrate-requests`
+  instead — a **pending request**, carrying a copy of the source pack —
+  and the character stays exactly where it is, fully playable, in its
+  current bucket. No `entities` row is touched, no oplog op is queued.
+- A migration request is deliberately **not** a `SyncEntityType`. It
+  cannot be usefully acted on offline by either party (a hunter offline
+  has no Keeper to approve it; a Keeper offline cannot see it), so it
+  carries none of the offline-first machinery above: no oplog, no
+  tombstones, no per-device merge. It lives in its own table,
+  `migration_requests` (docs/DATA-MODEL.md), read and written only
+  through plain online REST calls, the same online-only carve-out
+  AGENTS.md rule 2 already grants Keeper-only admin screens (and the one
+  ADR 0002's own migrate endpoint already uses).
+- The destination Keeper sees pending requests for their campaign via
+  `GET /api/campaigns/:campaignId/migrate-requests` and decides Approve
+  (`POST .../approve`) or Deny (`POST .../deny`). Approval runs, in one
+  transaction, the same tombstone-source/create-destination move the
+  ordinary `/migrate` endpoint performs (reusing the request's
+  `migrationId` as the `migrations` table's idempotency key), plus
+  creating-or-deduping the carried pack and attaching it to the
+  destination campaign first. Denial only flips the request's status;
+  the character is never touched.
+- The hunter learns the outcome by **polling on next visit**, not a push
+  notification: the character's own sheet and the `/characters` roster
+  each call `GET .../migrate-requests/latest` on load (the same
+  offline-tolerant "can't check right now, don't block" pattern the
+  0.14.5 pack-warning check already uses) and show a status banner.
+  Approved requests link straight to the new `newId`/`destScope` the
+  approve response returns; denied requests offer the existing 0.14.5
+  sparse-sheet direct migrate as an explicit fallback, or cancel.
+
 ## When sync runs
 
 - On app start / campaign open (pull, then push if oplog non-empty)
