@@ -4,7 +4,7 @@ All notable changes to MOWC are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow the
 `0.PHASE.BUILD` scheme described in ROADMAP.md.
 
-## [Unreleased]
+## [0.14.0] - 2026-07-21
 
 ### Added
 - Character migration (Phase 14, 0.14.4). A character can now move between
