@@ -742,7 +742,7 @@ hunter-facing warning already shipped.
       sub-decisions above.
 - [x] Server: pending migration requests + carry-pack + approve/deny -
       0.15.2 [Opus]. Depends on 0.15.1.
-- [ ] Keeper approval dialog on campaign access - 0.15.3 [Sonnet].
+- [x] Keeper approval dialog on campaign access - 0.15.3 [Sonnet].
       Depends on 0.15.2.
 - [ ] Hunter deny-fallback: move without pack, with a clear loss
       explanation - 0.15.4 [Sonnet]. Depends on 0.15.2.

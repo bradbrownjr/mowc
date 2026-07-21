@@ -9,6 +9,7 @@
   import { pull } from "$lib/sync.js";
   import EmptyState from "$lib/EmptyState.svelte";
   import FieldNote from "$lib/FieldNote.svelte";
+  import MigrationRequestsPanel from "$lib/MigrationRequestsPanel.svelte";
   import { GLOSS } from "$lib/glossary.js";
   import type { PageProps } from "./$types.js";
 
@@ -142,6 +143,8 @@
     </FieldNote>
 
     {#if isKeeper}
+      <MigrationRequestsPanel campaignId={data.id} onApproved={() => void loadCharacters()} />
+
       {#if !checklistDone}
         <section class="panel checklist">
           <h2 class="section-title">Get set up</h2>

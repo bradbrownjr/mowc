@@ -16,6 +16,15 @@ All notable changes to MOWC are documented here. Format follows
   data model only; the Keeper approval dialog (0.15.3) and the hunter's
   deny-fallback prompt (0.15.4) come next, so there is no new on-screen
   behavior yet. The existing "Move character" flow is unchanged.
+- Keeper approval dialog for pack-transfer migration (Phase 15, 0.15.3). When
+  you visit a campaign you Keep, you now see any pending requests from
+  hunters trying to move a character in whose playbook needs a content pack
+  your campaign doesn't have yet. Each request names the character, who
+  plays them, and the pack they'd bring; Approve attaches the pack and
+  completes the move in one step, Deny leaves the character exactly where it
+  was. Several pending requests at once are listed independently. This is
+  the Keeper-facing half of the flow; a hunter-facing prompt for what to do
+  when a request is denied comes next (0.15.4).
 
 ## [0.14.0] - 2026-07-21
 

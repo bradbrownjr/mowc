@@ -221,6 +221,15 @@ exists to fix).
   where the user holds a hunter seat). The signed-out landing (two
   role-path cards) is unchanged; only the signed-in branch became a
   dashboard instead of a two-link CTA row.
+- Keeper approval for pack-transfer migration (campaign Overview, Keeper
+  only, 0.15.3): no new modal/dialog pattern. A `--accent`-bordered panel,
+  same shape as the existing checklist/Mysteries/Party panels on that
+  screen, lists every pending request as its own card (one per hunter's
+  move, so several pending at once each get an independent decision) with
+  original-wording copy ("X wants to move into this campaign, bringing the
+  content pack Y") and Approve/Deny buttons styled like the accent/danger
+  button pairs already used elsewhere (`.move-button`, `RevealToggle`).
+  Renders nothing when there are no pending requests.
 
 ## Guidance copy ("field notes")
 
