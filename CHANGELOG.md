@@ -25,6 +25,18 @@ All notable changes to MOWC are documented here. Format follows
   was. Several pending requests at once are listed independently. This is
   the Keeper-facing half of the flow; a hunter-facing prompt for what to do
   when a request is denied comes next (0.15.4).
+- Hunter side of Keeper-approved pack transfer (Phase 15, 0.15.4). Moving a
+  character now checks whether the destination campaign already has your
+  playbook's content pack. If it doesn't, "Move character" becomes "Send
+  move request": the character stays right where it is, and the destination
+  Keeper sees your request the next time they visit their campaign. Your
+  sheet shows the request's status: pending (with a "Cancel request"
+  option), approved (you're taken straight to the character's new home), or
+  declined (with a plain explanation and a "Move without the pack" choice,
+  which completes the move but leaves the sheet sparse until a pack
+  defining that playbook is attached there). A standalone destination is
+  unchanged: it can never need approval, so it still warns and lets the
+  move through immediately.
 
 ## [0.14.0] - 2026-07-21
 

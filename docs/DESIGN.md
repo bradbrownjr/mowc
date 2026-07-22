@@ -230,6 +230,18 @@ exists to fix).
   content pack Y") and Approve/Deny buttons styled like the accent/danger
   button pairs already used elsewhere (`.move-button`, `RevealToggle`).
   Renders nothing when there are no pending requests.
+- Migration-request status banner (character sheet, owner only, 0.15.4): a
+  hunter's own read of the same pack-transfer flow, rendered above "Move
+  character" whenever they have a request against this character. Same
+  bordered-panel shape again, no new motif; the border color signals the
+  state (default `--border` while pending, `--ok` once approved, `--danger`
+  once declined), matching how a Stamp's tone signals a state elsewhere. One
+  panel at a time: pending offers "Cancel request"; approved shows a brief
+  "taking you to its new home" message while it auto-replays the move and
+  navigates there; declined explains the loss in plain language and offers
+  "Move without the pack" (the pre-0.15 direct move, now an explicit choice)
+  alongside a local-only "Cancel" that dismisses the banner without a
+  server call, since the request is already terminal.
 
 ## Guidance copy ("field notes")
 
@@ -347,3 +359,4 @@ never heard the word Keeper.
 | ConversionNote | `client/src/lib/pack-editor/ConversionNote.svelte` | Renders one `conversionNotes` string (`<fieldPath>: <message>`, optionally a blank line then a verbatim source excerpt; grammar is `formatConversionNote` in `shared/src/schemas/conversion.ts`) as the "Conversion flags" motif callout. Props: `note: string`. First user: the admin PDF-conversion review screen (`packs/convert`); also threaded optionally into `PlaybookEditor`/`MovesEditor` via a `notes` prop that defaults to none, so the plain `packs/new` flow is unaffected. |
 | SyncStatus | `client/src/lib/SyncStatus.svelte` | The "Sync status" motif: the top-bar online/offline indicator + pending-changes count + "Sync now" button, and the dismissible conflict-toast stack. Reads the `syncStatus` runes store (`client/src/lib/sync-status.svelte.ts`); "Sync now" calls `syncNow()` (flushes every scope with queued ops through the existing `push` path, no new API); each toast's dismiss calls `dismissConflict(opId)`. Rendered once in the root layout inside the `.shell-right` cluster next to the account menu, only when signed in. Landed 0.7.4 (folded in with the 0.7.2 conflict-toast work; they share the store). |
 | EmptyState | `client/src/lib/EmptyState.svelte` | The "Empty states" pattern: a dashed-border panel with what-it-is copy, why/when-to-create copy (or, via the `children` snippet, who fills it in when the viewer cannot create the entity themselves), and at most one CTA. Props: `what: string`, `why: string`, `ctaLabel?: string`, `ctaHref?: string`, optional `children` snippet overriding the why copy. Landed with 0.11.3; first users are the campaign hub's Characters/World/Mysteries list routes and the role-aware Overview. |
+| MigrationStatusBanner | `client/src/lib/MigrationStatusBanner.svelte` | The "Migration-request status banner" pattern (Screen patterns section, 0.15.4): a hunter's read of their own pending/approved/declined pack-transfer migration request, rendered on the character sheet above `MigrateCharacter`. Props: `characterId: string`, `request: MigrationRequest \| null` (controlled by the route, which polls `GET .../migrate-requests/latest` on load and also seeds it from `MigrateCharacter`'s `onRequestCreated`), `onRequestChange: (request: MigrationRequest \| null) => void`. Renders nothing when `request` is null or has no active status. Landed with 0.15.4 alongside the "Move character" panel's initiation fork (`client/src/lib/MigrateCharacter.svelte`, `requiresPackApproval`/`destinationPackNotice` in `client/src/lib/migration-requests.ts`). |

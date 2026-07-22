@@ -9,11 +9,13 @@
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
   import { liveQuery } from "dexie";
-  import type { Campaign, ContentPack } from "@mowc/shared";
+  import type { Campaign, ContentPack, MigrationRequest } from "@mowc/shared";
   import { listCampaigns } from "$lib/api/campaigns.js";
   import { migrateCharacter } from "$lib/api/characters.js";
+  import { createMigrationRequest } from "$lib/api/migrationRequests.js";
   import { getPack, listPacks, type PackDetail } from "$lib/api/contentPacks.js";
-  import { packsContainPlaybook } from "$lib/character-sheet.js";
+  import { findPackForPlaybook, packsContainPlaybook } from "$lib/character-sheet.js";
+  import { destinationPackNotice, requiresPackApproval } from "$lib/migration-requests.js";
   import { db } from "$lib/db.js";
   import { applyMigration, pendingCountForScope, push } from "$lib/sync.js";
   import { generateUuid } from "$lib/uuid.js";
@@ -24,9 +26,12 @@
     sourceScope: string;
     /** The character's playbook id, used to warn when a destination lacks its pack. */
     playbookId: string;
+    /** Called once a destination lacking the pack turns the move into a held,
+     * Keeper-approved request instead of an immediate move (ADR 0003). */
+    onRequestCreated?: (request: MigrationRequest) => void;
   }
 
-  let { characterId, sourceScope, playbookId }: Props = $props();
+  let { characterId, sourceScope, playbookId, onRequestCreated }: Props = $props();
 
   // "standalone" sentinel for the detach option; a campaign id otherwise.
   const STANDALONE = "standalone";
@@ -38,9 +43,13 @@
   let syncing = $state(false);
   let error = $state<string | null>(null);
   // Set when the chosen destination has no attached pack defining this
-  // character's playbook: the move is still allowed (packs can be attached
-  // afterward), but the player is warned the sheet may render sparse.
+  // character's playbook. For a standalone destination the move is still
+  // allowed (packs can be attached afterward) and this is only a warning; for
+  // a campaign destination it means the move will become a held,
+  // Keeper-approved pack-transfer request instead (ADR 0003 Decision 1), and
+  // `destinationNeedsApproval` is also set so the button label/behavior fork.
   let packWarning = $state<string | null>(null);
+  let destinationNeedsApproval = $state(false);
 
   // Destinations: every campaign the owner is seated in except the current one,
   // plus "Standalone" unless the character is already standalone.
@@ -79,10 +88,12 @@
     return () => subscription.unsubscribe();
   });
 
-  // Loads the content packs that would resolve this character at the chosen
-  // destination: a campaign's attached packs, or the owner's own + shared
-  // packs for a standalone detach (mirrors how each sheet route sources packs).
-  async function loadDestinationPacks(dest: string): Promise<ContentPack[]> {
+  // Loads the content packs that would resolve this character at a given
+  // scope: a campaign's attached packs, or the owner's own + shared packs for
+  // the standalone scope (mirrors how each sheet route sources packs). Used
+  // both for the chosen destination (the pack-presence check below) and, when
+  // a request is needed, for the source scope (to find the pack to carry).
+  async function loadPacksForScope(dest: string): Promise<ContentPack[]> {
     if (dest === STANDALONE) {
       const summaries = await listPacks();
       const details = await Promise.all(summaries.map((summary) => getPack(summary.id).catch(() => null)));
@@ -97,30 +108,33 @@
   }
 
   // When a destination is chosen, check (lazily, only for that destination)
-  // whether it can resolve the character's playbook, and warn if not. This is
-  // advisory only and never disables the Move button (ADR 0002 open risk 3).
+  // whether it can resolve the character's playbook. A standalone destination
+  // missing it is advisory-only, same as before (ADR 0002 open risk 3, never
+  // blocks). A campaign destination missing it means the move will become a
+  // held request instead (ADR 0003 Decision 1); this drives the button
+  // label/behavior fork below, re-verified at click time as the durable guard.
   $effect(() => {
     const dest = selected;
     const pb = playbookId;
     packWarning = null;
+    destinationNeedsApproval = false;
     if (!dest) {
       return;
     }
     let cancelled = false;
     void (async () => {
       try {
-        const packs = await loadDestinationPacks(dest);
+        const packs = await loadPacksForScope(dest);
         if (cancelled || packsContainPlaybook(packs, pb)) {
           return;
         }
-        packWarning =
-          dest === STANDALONE
-            ? "Your standalone space doesn't have the content pack this character's playbook comes from, so parts of the sheet may look sparse until you add it."
-            : "This campaign doesn't have the content pack this character's playbook comes from. You can still move it, but parts of the sheet stay sparse until its Keeper attaches that pack.";
+        destinationNeedsApproval = requiresPackApproval(dest === STANDALONE ? null : dest, packs, pb);
+        packWarning = destinationPackNotice(dest === STANDALONE);
       } catch {
         // Can't check right now (e.g. offline): don't warn and don't block.
         if (!cancelled) {
           packWarning = null;
+          destinationNeedsApproval = false;
         }
       }
     })();
@@ -156,6 +170,30 @@
         return;
       }
       const destinationCampaignId = selected === STANDALONE ? null : selected;
+
+      if (destinationCampaignId) {
+        // Durable guard, re-checked at click time (the displayed notice above
+        // is best-effort and can be stale if the destination was just changed):
+        // does this campaign actually lack the pack right now?
+        const destPacks = await loadPacksForScope(selected);
+        if (requiresPackApproval(destinationCampaignId, destPacks, playbookId)) {
+          const sourcePacks = await loadPacksForScope(sourceScope);
+          const sourcePack = findPackForPlaybook(sourcePacks, playbookId);
+          if (!sourcePack) {
+            error = "Could not find the content pack your playbook comes from, so a move request can't be sent right now.";
+            return;
+          }
+          const request = await createMigrationRequest(characterId, {
+            migrationId: generateUuid(),
+            destinationCampaignId,
+            pack: sourcePack
+          });
+          onRequestCreated?.(request);
+          selected = "";
+          return;
+        }
+      }
+
       const res = await migrateCharacter(characterId, {
         migrationId: generateUuid(),
         destinationCampaignId
@@ -210,7 +248,11 @@
     {/if}
 
     <button type="button" class="move-button" onclick={move} disabled={busy || !selected || pending > 0}>
-      {busy ? "Moving..." : "Move character"}
+      {#if destinationNeedsApproval}
+        {busy ? "Sending request..." : "Send move request"}
+      {:else}
+        {busy ? "Moving..." : "Move character"}
+      {/if}
     </button>
   {/if}
 

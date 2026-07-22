@@ -20,6 +20,16 @@ export interface ResolvedPlaybook {
 }
 
 /**
+ * The ContentPack (if any) among the supplied packs that defines a given
+ * playbook id. Used by the migrate control both to check pack presence
+ * (`packsContainPlaybook`) and, when a Keeper-approved pack-transfer request
+ * is needed (ADR 0003), to find the actual pack payload to carry along.
+ */
+export function findPackForPlaybook(packs: ContentPack[], playbookId: string): ContentPack | null {
+  return packs.find((pack) => pack.playbooks.some((playbook) => playbook.id === playbookId)) ?? null;
+}
+
+/**
  * Whether a given playbook id is defined by any of the supplied packs. Used
  * by the migrate control to warn (never block) when a destination campaign or
  * the owner's standalone space lacks the pack a character's playbook comes
@@ -27,7 +37,7 @@ export interface ResolvedPlaybook {
  * (ADR 0002 open risk 3).
  */
 export function packsContainPlaybook(packs: ContentPack[], playbookId: string): boolean {
-  return packs.some((pack) => pack.playbooks.some((playbook) => playbook.id === playbookId));
+  return findPackForPlaybook(packs, playbookId) !== null;
 }
 
 /**
