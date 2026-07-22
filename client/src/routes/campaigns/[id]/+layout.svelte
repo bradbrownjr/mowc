@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
+  import { browser } from "$app/environment";
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
   import { LayoutList, ClipboardList, Users, Globe, BookOpen, BookMarked, Settings } from "@lucide/svelte";
@@ -9,6 +10,7 @@
   import { campaignNav, setCampaignNav, clearCampaignNav } from "$lib/campaign-nav.svelte";
   import { db } from "$lib/db.js";
   import { pull } from "$lib/sync.js";
+  import { connectCampaignEvents } from "$lib/live.js";
   import type { Character } from "@mowc/shared";
   import type { LayoutProps } from "./$types.js";
 
@@ -64,6 +66,22 @@
         // Offline or unauthorized: keep the optimistic default (Overview
         // and a way back to the campaign list stay available).
       });
+  });
+
+  // Live table play (ROADMAP 0.6.1): keep an SSE stream open for the active
+  // campaign and pull on every wake, so another player's roll/reveal/edit shows
+  // up without a manual refresh. Keyed on data.id so switching campaigns tears
+  // the old stream down and opens the new one; the effect's own cleanup closes
+  // it on navigate-away/destroy. Guarded on browser + a ready session (the
+  // stream needs the session cookie, and EventSource cannot run during SSR).
+  $effect(() => {
+    if (!browser) return;
+    if (sessionState.status !== "ready" || !sessionState.user) return;
+    const id = data.id;
+    const close = connectCampaignEvents(id, () => {
+      void pull(id).catch(() => {});
+    });
+    return () => close();
   });
 
   onDestroy(() => {

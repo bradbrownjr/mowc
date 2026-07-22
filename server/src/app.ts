@@ -17,6 +17,8 @@ import { createAuthz } from "./authz/index.js";
 import { createInvitesRepo } from "./invites/repo.js";
 import { createCampaignInvitesRouter, createInviteRedeemRouter } from "./invites/router.js";
 import { createEntitiesRepo } from "./entities/repo.js";
+import { createCampaignEventBus } from "./entities/events.js";
+import { createCampaignEventsRouter } from "./entities/sseRouter.js";
 import {
   createCharacterMigrationRouter,
   createStandaloneSyncRouter,
@@ -76,6 +78,10 @@ export function createApp(version: string, db: Database.Database, adminEmail?: s
   const entitiesRepo = createEntitiesRepo(db);
   const migrationRequestsRepo = createMigrationRequestsRepo(db, entitiesRepo, adminEmail);
   const authz = createAuthz(campaignsRepo);
+  // Live-play event bus (ROADMAP 0.6.1): a committed push or migration publishes
+  // its bucket's new seq here; open SSE connections for that campaign wake and
+  // pull. One instance per app so tests stay isolated.
+  const eventBus = createCampaignEventBus();
 
   app.use("/api/auth", createAuthRouter(authRepo, adminEmail));
   app.use("/api/content-packs", requireAuth, createContentPacksRouter(db, campaignsRepo, adminEmail));
@@ -99,6 +105,15 @@ export function createApp(version: string, db: Database.Database, adminEmail?: s
     requireAuth,
     createCampaignInvitesRouter(invitesRepo, authz)
   );
+  // Live table play (ROADMAP 0.6.1): a per-campaign SSE stream. Its own nested
+  // base (like invites) so it is never parsed as the campaigns router's "/:id".
+  // Auth via the session cookie only (docs/SECURITY.md section 2); a non-member
+  // is refused before any stream opens.
+  app.use(
+    "/api/campaigns/:campaignId/events",
+    requireAuth,
+    createCampaignEventsRouter(entitiesRepo, authz, eventBus)
+  );
   // Keeper-facing pack-transfer approval (ADR 0003): list/approve/deny pending
   // migration requests targeting this campaign. Mounted at its own nested base
   // (like invites) so it is never parsed as the campaigns router's "/:id".
@@ -112,7 +127,7 @@ export function createApp(version: string, db: Database.Database, adminEmail?: s
   // Character migration between buckets (ADR 0002): a dedicated, owner-only,
   // transactional move, NOT a sync/oplog op (it spans two buckets). Mounted
   // under /api/characters, clearly separate from the per-bucket sync core.
-  app.use("/api/characters", requireAuth, createCharacterMigrationRouter(entitiesRepo, authz));
+  app.use("/api/characters", requireAuth, createCharacterMigrationRouter(entitiesRepo, authz, eventBus));
   // Owner-facing pack-transfer approval (ADR 0003): create/poll/cancel a held
   // migration request. Distinct paths from /migrate above, so both routers at
   // /api/characters fall through cleanly.
@@ -125,7 +140,7 @@ export function createApp(version: string, db: Database.Database, adminEmail?: s
   // Mounted before the :campaignId route so "standalone" is never parsed as a
   // campaign id (docs/SYNC.md "Standalone characters").
   app.use("/api/sync/standalone", requireAuth, createStandaloneSyncRouter(entitiesRepo));
-  app.use("/api/sync/:campaignId", requireAuth, createSyncRouter(entitiesRepo, authz));
+  app.use("/api/sync/:campaignId", requireAuth, createSyncRouter(entitiesRepo, authz, eventBus));
 
   if (existsSync(CLIENT_DIR)) {
     app.use(express.static(CLIENT_DIR));

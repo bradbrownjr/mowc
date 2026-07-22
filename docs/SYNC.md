@@ -184,10 +184,50 @@ non-synced surface that sits entirely *before* a migration is performed:
   approve response returns; denied requests offer the existing 0.14.5
   sparse-sheet direct migrate as an explicit fallback, or cancel.
 
+## Live updates (Server-Sent Events)
+
+Polling and the `online`-event flush make the client *eventually* consistent;
+the SSE stream makes it *promptly* consistent while a campaign is open
+(ROADMAP 0.6.1, docs/ARCHITECTURE.md "SSE, not WebSockets"). It is a strict
+enhancement layered on top of push/pull, never a replacement: if the stream is
+unavailable or drops, play continues on the mechanisms above, only less live.
+
+- **Endpoint:** `GET /api/campaigns/:campaignId/events`, `text/event-stream`,
+  behind `requireAuth` and authorized with `authz.canReadCampaign` (a
+  non-seated user gets 403). Auth is the session cookie only, never a
+  query-string token (docs/SECURITY.md section 2).
+- **The event is a wake, not a payload.** The server emits a single `sync`
+  event carrying only the campaign's current committed `seq`; it never carries
+  entity data. On each event the client runs its ordinary authz-filtered
+  `pull(campaignId)`, so the live path inherits pull's visibility filtering for
+  free and **cannot** deliver an unrevealed entity to a hunter (invariant 4
+  holds for liveness exactly as it does for pull). This is why SSE is a
+  change-notification signal rather than a per-connection payload filter.
+- **Broadcast trigger.** A committed push (`applyPushOps`, the one place both
+  the campaign and standalone push routes share) publishes the bucket's new
+  `seq` to an in-process bus after a real commit (never on an idempotent
+  replay). A character migration publishes both the source and destination
+  bucket seqs, so a moved character disappears from one campaign's roster and
+  appears in another's live. Open SSE connections for that campaign fan the
+  wake out to their clients.
+- **Connect and reconnect.** On every (re)connect the server sends an initial
+  `sync` event, so a client that missed events while disconnected pulls to
+  catch up. `EventSource` reconnects natively; each event's `id:` is the seq
+  it reports, resent as `Last-Event-ID` on reconnect. A 30-second heartbeat
+  comment (`: ping`) keeps proxies from dropping an idle connection;
+  connections are capped at 5 per user and reaped on disconnect
+  (docs/SECURITY.md section 4).
+- **Wiring.** Server: `createCampaignEventBus` (`server/src/entities/events.ts`)
+  and `createCampaignEventsRouter` (`server/src/entities/sseRouter.ts`). Client:
+  `connectCampaignEvents` (`client/src/lib/live.ts`), opened once per active
+  campaign by `campaigns/[id]/+layout.svelte` and torn down on campaign change.
+
 ## When sync runs
 
 - On app start / campaign open (pull, then push if oplog non-empty)
-- On `online` event and on SSE reconnect
+- On `online` event and on SSE reconnect (the initial `sync` event above)
+- On every SSE `sync` event while a campaign is open (another device's push or
+  a migration)
 - After every local write, debounced 2s, if online
 - Manual "sync now" button (Phase 7.4)
 - Backoff on failure: 1s, 2s, 4s ... capped at 60s

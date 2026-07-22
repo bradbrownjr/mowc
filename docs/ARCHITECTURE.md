@@ -27,7 +27,7 @@
 │  Node 20 container (port 7120) │
 │  Express 5                     │
 │  ├─ /api/* zod-validated REST  │
-│  ├─ /campaigns/:id/events SSE  │  live table updates
+│  ├─ /api/campaigns/:id/events  │  live table updates (SSE wake -> pull)
 │  ├─ /sync/* sync protocol      │
 │  ├─ static client files        │
 │  └─ better-sqlite3             │  $MOWC_DATA_DIR/mowc.db on a volume

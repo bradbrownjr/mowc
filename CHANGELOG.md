@@ -4,6 +4,21 @@ All notable changes to MOWC are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow the
 `0.PHASE.BUILD` scheme described in ROADMAP.md.
 
+## [Unreleased]
+
+### Added
+- Live table play (Phase 6, 0.6.1). Open a campaign on two devices and you
+  now see each other's changes appear on their own, without a manual refresh
+  or waiting for the next background sync: a hunter's Harm tick, a dice roll's
+  Experience bump, and a Keeper revealing a monster, minion, or location all
+  show up live for everyone at the table. It works over a lightweight one-way
+  server-to-client stream (Server-Sent Events); the stream only nudges each
+  device to fetch what it is allowed to see, so a Keeper's hidden monster stays
+  hidden until they reveal it. It is a pure enhancement: if your connection
+  drops or your browser does not support it, play still works exactly as
+  before, just less instantly, and it reconnects on its own when the network
+  comes back.
+
 ## [0.15.0] - 2026-07-22
 
 ### Added

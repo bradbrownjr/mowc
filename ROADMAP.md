@@ -243,7 +243,7 @@ Version 0.5 — mystery/monster/world builders. Roll20 comparison notes in
 
 Version 0.6
 
-- [ ] SSE stream per campaign (`GET /campaigns/:id/events`, tangible
+- [x] SSE stream per campaign (`GET /campaigns/:id/events`, tangible
       pattern): character changes, rolls, Keeper reveals push live to
       connected clients - 0.6.1 [Opus]
 - [ ] Session mode: Keeper runs a mystery; countdown advance, harm dealt,
