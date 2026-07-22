@@ -4,6 +4,34 @@ All notable changes to MOWC are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow the
 `0.PHASE.BUILD` scheme described in ROADMAP.md.
 
+## [Unreleased]
+
+### Added
+- Live table play (Phase 6, 0.6.1). Open a campaign on two devices and you
+  now see each other's changes appear on their own, without a manual refresh
+  or waiting for the next background sync: a hunter's Harm tick, a dice roll's
+  Experience bump, and a Keeper revealing a monster, minion, or location all
+  show up live for everyone at the table. It works over a lightweight one-way
+  server-to-client stream (Server-Sent Events); the stream only nudges each
+  device to fetch what it is allowed to see, so a Keeper's hidden monster stays
+  hidden until they reveal it. It is a pure enhancement: if your connection
+  drops or your browser does not support it, play still works exactly as
+  before, just less instantly, and it reconnects on its own when the network
+  comes back.
+
+### Fixed
+- End-to-end test reliability (no user-facing change). The `migrationRequest`
+  e2e spec raced the creation of a move request: it queried the request before
+  the "Send move request" click had finished creating it, so it intermittently
+  read null. It now waits for the pending-move banner (proof the request
+  exists) before continuing. Separately, the full suite drives the app from a
+  single IP as many users in quick succession and was tripping the production
+  rate limits (repeated 429s cascading into timeouts); the e2e server now runs
+  with `MOWC_DISABLE_RATE_LIMITS=1`, an escape hatch that raises every limiter's
+  ceiling and is set only by the test harness (production leaves it unset, so
+  the documented limits are unchanged). These two issues had left CI's e2e job
+  red on `main` since 0.15.4.
+
 ## [0.15.0] - 2026-07-22
 
 ### Added

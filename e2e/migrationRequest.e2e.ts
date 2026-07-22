@@ -56,6 +56,12 @@ async function createPendingRequestViaUi(page: Page, characterName: string): Pro
   await expect(sendButton).toBeEnabled({ timeout: 15_000 });
   await sendButton.click();
 
+  // Wait for the pending-move banner before returning. It only renders once
+  // createMigrationRequest's POST has resolved, so this is the signal that the
+  // request actually exists server-side. Without it, callers that immediately
+  // query .../migrate-requests/latest race the in-flight creation and get null.
+  await expect(page.getByRole("heading", { name: "Move pending" })).toBeVisible();
+
   return { page, campaignA, campaignB, characterId, name: characterName };
 }
 

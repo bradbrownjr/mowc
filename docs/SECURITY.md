@@ -80,6 +80,12 @@ The app must still be safe if exposed directly.
 - The **sync pull** path applies the same visibility filter as REST reads
   (SYNC.md invariant 4), and the **sync push** path applies the same
   edit rules per op. Sync is not a side door.
+- The **SSE live stream** (`GET /api/campaigns/:campaignId/events`, 0.6.1) is
+  a change-notification wake, not a read path: an event carries only the
+  campaign's committed `seq`, never entity data, and the client reacts by
+  running the ordinary authz-filtered pull. It therefore cannot leak an
+  unrevealed entity to a hunter, and it is authorized (`canReadCampaign`, 403
+  for a non-member) so a guessed campaign id cannot open a stream.
 - **Standalone characters** (`Character.campaignId === null`) sync through
   `/api/sync/standalone`, bucketed by the owner's user id with owner-only
   authorization: a user reads and edits only rows whose `ownerUserId` is
@@ -137,6 +143,12 @@ The app must still be safe if exposed directly.
   server-side).
 - SSE: max 5 concurrent streams per user; heartbeat every 30 s; dead
   connections reaped.
+- Test escape hatch: `MOWC_DISABLE_RATE_LIMITS=1` raises every bucket's
+  ceiling to effectively unlimited. It exists solely for the e2e suite,
+  which drives the whole app from one IP as many users in quick succession
+  (playwright.config.ts sets it); every limiter reads it per call
+  (`ceiling()` in `server/src/auth/rateLimit.ts`). It MUST stay unset in
+  production (see the deploy checklist below).
 - Log every 429 and failed login with IP (structured log line) so
   fail2ban can consume it; ship an optional fail2ban filter/jail in
   `deploy/fail2ban/` like ECTLogger does.
@@ -267,7 +279,8 @@ Packs are the only user-supplied file type. Treat them as hostile:
       when exposed directly)
 - [ ] Data volume mounted and verified (DB file appears under it)
 - [ ] Backups scheduled (volume snapshot or `.backup`)
-- [ ] Rate limiting left enabled (never disable in prod)
+- [ ] Rate limiting left enabled (`MOWC_DISABLE_RATE_LIMITS` unset; it is
+      an e2e-only escape hatch, never set in prod)
 - [ ] Optional: fail2ban jail installed from `deploy/fail2ban/`
 - [ ] Image updated regularly (`docker compose pull && up -d`)
 
@@ -284,7 +297,7 @@ credential or authz bugs get a release regardless of the roadmap phase.
 | 1 | Security headers module, body size limits, healthz on loopback |
 | 2 | Pack upload hardening (section 7), strict zod at every boundary |
 | 3 | Argon2id, hashed session tokens, CSRF origin check, rate-limit buckets, authz module + tests |
-| 6 | SSE auth via cookie, per-user stream caps |
+| 6 | SSE live stream `GET /api/campaigns/:campaignId/events` (0.6.1): behind `requireAuth`, authorized with `authz.canReadCampaign` (403 for a non-seated user), auth via session cookie only (no query-string token), max 5 concurrent streams per user + 30s heartbeat. Events carry only a `seq` wake (no entity data), so the client's own authz-filtered pull enforces visibility (invariant 4); the stream is not a read side-door. |
 | 7 | Sync visibility filter tests, op batch caps, idempotency table pruning |
 | 9 | Conversion endpoint caps per docs/adr/0001 (with 0.9.6) |
 | 10 | Full review vs this doc; npm audit hard-fail on high/critical |

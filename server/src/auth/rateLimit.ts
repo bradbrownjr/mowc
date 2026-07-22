@@ -7,9 +7,24 @@ function loggedHandler(req: Request, res: Response): void {
   res.status(429).json({ errors: [{ path: "", message: "too many requests" }] });
 }
 
+/**
+ * Test-harness escape hatch (docs/SECURITY.md section 4): when
+ * MOWC_DISABLE_RATE_LIMITS=1, every bucket's ceiling is raised to effectively
+ * unlimited. The e2e suite drives the whole app from a single IP (127.0.0.1) as
+ * many users in quick succession, which legitimately exceeds the production
+ * per-IP/per-user limits; without this the suite flakes on 429s unrelated to any
+ * product behavior. Set ONLY by playwright.config.ts. Read per call (not cached
+ * at module load) so it never leaks between the unit-test app instances that
+ * assert real limiting. MUST stay unset in production.
+ */
+function ceiling(limit: number): number {
+  return process.env["MOWC_DISABLE_RATE_LIMITS"] === "1" ? Number.MAX_SAFE_INTEGER : limit;
+}
+
 function limiter(options: Pick<Options, "windowMs" | "limit">): ReturnType<typeof rateLimit> {
   return rateLimit({
     ...options,
+    limit: ceiling(options.limit as number),
     standardHeaders: true,
     legacyHeaders: false,
     handler: loggedHandler
@@ -46,7 +61,7 @@ export function createInviteRateLimiter(): ReturnType<typeof rateLimit> {
 export function createSyncPushRateLimiter(): ReturnType<typeof rateLimit> {
   return rateLimit({
     windowMs: 60_000,
-    limit: 60,
+    limit: ceiling(60),
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: (req: Request) => req.user?.id ?? "anonymous",
@@ -63,7 +78,7 @@ export function createSyncPushRateLimiter(): ReturnType<typeof rateLimit> {
 export function createMigrationRateLimiter(): ReturnType<typeof rateLimit> {
   return rateLimit({
     windowMs: 60 * 60_000,
-    limit: 30,
+    limit: ceiling(30),
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: (req: Request) => req.user?.id ?? "anonymous",
@@ -81,7 +96,7 @@ export function createMigrationRateLimiter(): ReturnType<typeof rateLimit> {
 export function createMigrationRequestRateLimiter(): ReturnType<typeof rateLimit> {
   return rateLimit({
     windowMs: 60 * 60_000,
-    limit: 10,
+    limit: ceiling(10),
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: (req: Request) => req.user?.id ?? "anonymous",
@@ -99,7 +114,7 @@ export function createMigrationRequestRateLimiter(): ReturnType<typeof rateLimit
 export function createMigrationDecisionRateLimiter(): ReturnType<typeof rateLimit> {
   return rateLimit({
     windowMs: 60 * 60_000,
-    limit: 30,
+    limit: ceiling(30),
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: (req: Request) => req.user?.id ?? "anonymous",
@@ -116,7 +131,7 @@ export function createMigrationDecisionRateLimiter(): ReturnType<typeof rateLimi
 export function createConversionRateLimiter(): ReturnType<typeof rateLimit> {
   return rateLimit({
     windowMs: 60 * 60_000,
-    limit: 10,
+    limit: ceiling(10),
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: (req: Request) => req.user?.id ?? "anonymous",

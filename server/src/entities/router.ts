@@ -20,6 +20,7 @@ import { zodErrorResponse } from "../http/validation.js";
 import { hasDangerousKeys } from "../http/proto.js";
 import type { Authz, EntityAccessContext } from "../authz/index.js";
 import { createMigrationRateLimiter, createSyncPushRateLimiter } from "../auth/rateLimit.js";
+import type { CampaignEventBus } from "./events.js";
 import { mergePatch } from "./merge.js";
 import type { EntitiesRepo, EntityEnvelope } from "./repo.js";
 
@@ -151,13 +152,26 @@ function parsePushOps(req: Request, res: Response): SyncOp[] | undefined {
   return parsed.data.ops;
 }
 
+/**
+ * Applies a push batch and, if anything committed, fires `notify` once with the
+ * bucket's new max seq. `notify` is the single DRY point where a committed seq
+ * advance is broadcast to live SSE listeners (ROADMAP 0.6.1): both the campaign
+ * and standalone push routes route through this one function, so the "only fire
+ * when something was actually applied, and only once per batch" rule lives here
+ * and nowhere else.
+ */
 function applyPushOps(
   repo: EntitiesRepo,
   scope: SyncScope,
-  ops: SyncOp[]
+  ops: SyncOp[],
+  notify?: (seq: number) => void
 ): { applied: string[]; conflicts: SyncConflict[] } {
   const applied: string[] = [];
   const conflicts: SyncConflict[] = [];
+  // Tracks whether any op actually committed (advancing seq), as opposed to
+  // being an acknowledged idempotent replay: only a real commit should wake
+  // live listeners, so a replayed batch never fires a spurious notify.
+  let committed = false;
 
   // The client's oplog is a Dexie table keyed by opId (a random uuid), so
   // toArray() order is arbitrary, not chronological. Without this sort, a
@@ -235,12 +249,16 @@ function applyPushOps(
       deleted: op.deleted,
       opId: op.opId
     });
+    committed = true;
     applied.push(op.opId);
     if (conflict && current) {
       conflicts.push({ opId: op.opId, serverPayload: current.payload });
     }
   }
 
+  if (committed) {
+    notify?.(repo.maxSeq(scope.bucketId));
+  }
   return { applied, conflicts };
 }
 
@@ -251,7 +269,7 @@ function applyPushOps(
  * and filtered per row through the authz module: a hunter only ever sees or
  * edits characters they own (docs/SECURITY.md section 3, docs/SYNC.md).
  */
-export function createSyncRouter(repo: EntitiesRepo, authz: Authz): Router {
+export function createSyncRouter(repo: EntitiesRepo, authz: Authz, bus: CampaignEventBus): Router {
   const router = Router({ mergeParams: true });
 
   function scopeFor(req: Request, res: Response): SyncScope | undefined {
@@ -297,7 +315,9 @@ export function createSyncRouter(repo: EntitiesRepo, authz: Authz): Router {
     if (!ops) {
       return;
     }
-    const { applied, conflicts } = applyPushOps(repo, scope, ops);
+    const { applied, conflicts } = applyPushOps(repo, scope, ops, (seq) =>
+      bus.publish(scope.bucketId, seq)
+    );
     res.json({ applied, conflicts, newSeq: repo.maxSeq(scope.bucketId) });
   });
 
@@ -373,7 +393,11 @@ export function scopeForBucket(bucket: string, userId: string): string {
  * two buckets. Owner-only, plus a destination-seat check for a campaign
  * destination; idempotent by the client-generated migrationId.
  */
-export function createCharacterMigrationRouter(repo: EntitiesRepo, authz: Authz): Router {
+export function createCharacterMigrationRouter(
+  repo: EntitiesRepo,
+  authz: Authz,
+  bus: CampaignEventBus
+): Router {
   const router = Router();
 
   router.post("/:characterId/migrate", createMigrationRateLimiter(), (req, res) => {
@@ -459,6 +483,14 @@ export function createCharacterMigrationRouter(repo: EntitiesRepo, authz: Authz)
       requestedBy: userId,
       updatedAt: new Date().toISOString()
     });
+
+    // A migration tombstones the source row and creates a fresh destination row,
+    // both advancing their bucket's seq: wake live listeners in each affected
+    // campaign so a hunter's roster (source) and the destination party update
+    // live (ROADMAP 0.6.1). A standalone bucket has no events endpoint, so its
+    // publish is a harmless no-op.
+    bus.publish(record.sourceBucket, repo.maxSeq(record.sourceBucket));
+    bus.publish(record.destBucket, repo.maxSeq(record.destBucket));
 
     res.json({
       newId: record.newId,
