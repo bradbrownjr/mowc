@@ -690,7 +690,7 @@ now; 0.14.4 waits on 0.14.3.
 > checkbox in the same commit. This task tag is [Opus]; if you are a
 > smaller model, stop and say so.
 
-## Phase 15: Keeper-Approved Pack Transfer on Migration
+## Phase 15: Keeper-Approved Pack Transfer on Migration ✅
 
 Version 0.15. Follow-on to Phase 14. When a character migrates into a
 campaign whose Keeper does not have the content pack the character's
