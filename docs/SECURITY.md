@@ -143,6 +143,12 @@ The app must still be safe if exposed directly.
   server-side).
 - SSE: max 5 concurrent streams per user; heartbeat every 30 s; dead
   connections reaped.
+- Test escape hatch: `MOWC_DISABLE_RATE_LIMITS=1` raises every bucket's
+  ceiling to effectively unlimited. It exists solely for the e2e suite,
+  which drives the whole app from one IP as many users in quick succession
+  (playwright.config.ts sets it); every limiter reads it per call
+  (`ceiling()` in `server/src/auth/rateLimit.ts`). It MUST stay unset in
+  production (see the deploy checklist below).
 - Log every 429 and failed login with IP (structured log line) so
   fail2ban can consume it; ship an optional fail2ban filter/jail in
   `deploy/fail2ban/` like ECTLogger does.
@@ -273,7 +279,8 @@ Packs are the only user-supplied file type. Treat them as hostile:
       when exposed directly)
 - [ ] Data volume mounted and verified (DB file appears under it)
 - [ ] Backups scheduled (volume snapshot or `.backup`)
-- [ ] Rate limiting left enabled (never disable in prod)
+- [ ] Rate limiting left enabled (`MOWC_DISABLE_RATE_LIMITS` unset; it is
+      an e2e-only escape hatch, never set in prod)
 - [ ] Optional: fail2ban jail installed from `deploy/fail2ban/`
 - [ ] Image updated regularly (`docker compose pull && up -d`)
 

@@ -42,7 +42,12 @@ export default defineConfig({
     env: {
       MOWC_PORT: String(PORT),
       MOWC_DATA_DIR: dataDir,
-      MOWC_ADMIN_EMAIL: "e2e-admin@example.com"
+      MOWC_ADMIN_EMAIL: "e2e-admin@example.com",
+      // The whole suite drives the app from one IP as many users in quick
+      // succession, which legitimately exceeds the production per-IP/per-user
+      // rate limits (server/src/auth/rateLimit.ts). Disable them for the test
+      // server only; production leaves this unset.
+      MOWC_DISABLE_RATE_LIMITS: "1"
     }
   }
 });

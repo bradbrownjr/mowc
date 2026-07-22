@@ -19,6 +19,19 @@ All notable changes to MOWC are documented here. Format follows
   before, just less instantly, and it reconnects on its own when the network
   comes back.
 
+### Fixed
+- End-to-end test reliability (no user-facing change). The `migrationRequest`
+  e2e spec raced the creation of a move request: it queried the request before
+  the "Send move request" click had finished creating it, so it intermittently
+  read null. It now waits for the pending-move banner (proof the request
+  exists) before continuing. Separately, the full suite drives the app from a
+  single IP as many users in quick succession and was tripping the production
+  rate limits (repeated 429s cascading into timeouts); the e2e server now runs
+  with `MOWC_DISABLE_RATE_LIMITS=1`, an escape hatch that raises every limiter's
+  ceiling and is set only by the test harness (production leaves it unset, so
+  the documented limits are unchanged). These two issues had left CI's e2e job
+  red on `main` since 0.15.4.
+
 ## [0.15.0] - 2026-07-22
 
 ### Added
