@@ -744,5 +744,5 @@ hunter-facing warning already shipped.
       0.15.2 [Opus]. Depends on 0.15.1.
 - [x] Keeper approval dialog on campaign access - 0.15.3 [Sonnet].
       Depends on 0.15.2.
-- [ ] Hunter deny-fallback: move without pack, with a clear loss
+- [x] Hunter deny-fallback: move without pack, with a clear loss
       explanation - 0.15.4 [Sonnet]. Depends on 0.15.2.

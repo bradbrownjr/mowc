@@ -3,6 +3,7 @@ import type { Character, ContentPack, PlaybookDef } from "@mowc/shared";
 import {
   DEFAULT_HARM_TRACK,
   DEFAULT_LUCK_MAX,
+  findPackForPlaybook,
   packsContainPlaybook,
   resolveCharacterMoves,
   resolveCharacterPlaybook
@@ -168,6 +169,20 @@ describe("packsContainPlaybook", () => {
 
   it("is false when there are no packs at all", () => {
     expect(packsContainPlaybook([], "playbook-placeholder")).toBe(false);
+  });
+});
+
+describe("findPackForPlaybook", () => {
+  it("returns the pack defining the playbook id", () => {
+    expect(findPackForPlaybook([PACK], "playbook-placeholder")).toBe(PACK);
+  });
+
+  it("returns null when no supplied pack defines it", () => {
+    expect(findPackForPlaybook([PACK], "playbook-missing")).toBeNull();
+  });
+
+  it("returns null when there are no packs at all", () => {
+    expect(findPackForPlaybook([], "playbook-placeholder")).toBeNull();
   });
 });
 
