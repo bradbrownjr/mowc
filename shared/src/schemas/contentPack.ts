@@ -236,3 +236,10 @@ export const ContentPackSchema = z.object({
   customMoveGuidance: z.string().max(5000).optional()
 });
 export type ContentPack = z.infer<typeof ContentPackSchema>;
+
+// PATCH /api/content-packs/:id body: the only mutable field outside of
+// re-upload is the owner's "disabled" toggle (pack-list management).
+export const ContentPackDisabledUpdateSchema = z.object({
+  disabled: z.boolean()
+});
+export type ContentPackDisabledUpdate = z.infer<typeof ContentPackDisabledUpdateSchema>;

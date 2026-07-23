@@ -232,6 +232,16 @@ Packs are the only user-supplied file type. Treat them as hostile:
   designated admin account can create, edit, or delete a shared pack
   (enforced by ownership on write, same as any other pack); every other
   account's uploads default to private, unchanged from before.
+- `PATCH /api/content-packs/:id` (pack-list management) toggles only the
+  owner's `disabled` flag (`{ disabled: boolean }`, zod `.strict()` at the
+  boundary). It is owner-only, enforced by the same ownership predicate as
+  `DELETE /:id` (the `UPDATE ... WHERE id = ? AND owner_user_id = ?` matches
+  zero rows for a non-owner, returning 404, so a shared pack can only be
+  toggled by its actual uploader, never by every user who can read it).
+  `disabled` is purely a client-side selection-menu filter (campaign attach
+  list, standalone character builder); it never changes read authorization,
+  so `GET /` still returns disabled packs and a disabled pack a Keeper already
+  attached stays readable to that campaign's members.
 - The admin PDF-to-pack conversion endpoint (Phase 9, 0.9.6) is governed
   by docs/adr/0001-admin-pdf-to-pack-conversion.md: admin-only, stateless,
   25 MB raw-PDF body, sandboxed pdftotext subprocess with timeout/output/
