@@ -18,6 +18,15 @@ All notable changes to MOWC are documented here. Format follows
   drops or your browser does not support it, play still works exactly as
   before, just less instantly, and it reconnects on its own when the network
   comes back.
+- Content-pack list management. The Content packs screen now shows how many
+  packs you have at the bottom of the list, tags each pack with what it is
+  ("Playbook", "Keeper reference", or both, derived from what the pack
+  contains), and lets you select several of your own packs at once to delete
+  (with a confirmation listing exactly what will go) or to disable/enable in
+  bulk. Disabling a pack keeps it stored and visible here but hides it from the
+  menus that offer packs to attach to a campaign or build a character from, so
+  a large library stops cluttering those pickers without anything being lost;
+  re-enable it any time. You can only act on packs you uploaded.
 
 ### Fixed
 - End-to-end test reliability (no user-facing change). The `migrationRequest`

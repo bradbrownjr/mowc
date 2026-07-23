@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type Database from "better-sqlite3";
-import { ContentPackSchema, UuidSchema } from "@mowc/shared";
+import { ContentPackDisabledUpdateSchema, ContentPackSchema, UuidSchema } from "@mowc/shared";
 import { zodErrorResponse } from "../http/validation.js";
 import { hasDangerousKeys } from "../http/proto.js";
 import { isAdmin } from "../authz/admin.js";
@@ -31,28 +31,57 @@ interface ContentPackRow {
   version: string;
   payload: string;
   visibility: PackVisibility;
+  disabled: number;
   created_at: string;
   updated_at: string;
+}
+
+interface StoredPack {
+  playbooks: { moves: unknown[] }[];
+  basicMoves: unknown[];
+  monsterTypes: unknown[];
+  minionTypes: unknown[];
+  bystanderTypes: unknown[];
+  locationTypes: unknown[];
+  keeperAgenda?: unknown[];
+  keeperPrinciples?: unknown[];
+  alwaysSay?: unknown[];
+  keeperMoves?: unknown;
+  mysteryCreation?: unknown;
 }
 
 function toSummary(row: ContentPackRow) {
   // Counts drive the pack list's content summary (docs/DESIGN.md Motifs,
   // 0.11.7) instead of the previous Courier blurb wall; parsed from the
   // stored payload rather than a denormalized column, matching the
-  // read-mostly access pattern here.
-  const pack = JSON.parse(row.payload) as { playbooks: { moves: unknown[] }[]; basicMoves: unknown[] };
+  // read-mostly access pattern here. The additional type-count/keeper-
+  // reference fields (pack-list management) drive the client's derived
+  // "Playbook" / "Keeper reference" badges the same way.
+  const pack = JSON.parse(row.payload) as StoredPack;
   const playbookCount = pack.playbooks.length;
   const moveCount = pack.basicMoves.length + pack.playbooks.reduce((sum, p) => sum + p.moves.length, 0);
+  const hasKeeperReference =
+    (pack.keeperAgenda?.length ?? 0) > 0 ||
+    (pack.keeperPrinciples?.length ?? 0) > 0 ||
+    (pack.alwaysSay?.length ?? 0) > 0 ||
+    pack.keeperMoves !== undefined ||
+    pack.mysteryCreation !== undefined;
 
   return {
     id: row.id,
     ownerUserId: row.owner_user_id,
     visibility: row.visibility,
+    disabled: row.disabled === 1,
     name: row.name,
     author: row.author,
     version: row.version,
     playbookCount,
     moveCount,
+    monsterTypeCount: pack.monsterTypes.length,
+    minionTypeCount: pack.minionTypes.length,
+    bystanderTypeCount: pack.bystanderTypes.length,
+    locationTypeCount: pack.locationTypes.length,
+    hasKeeperReference,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
@@ -70,10 +99,14 @@ export function createContentPacksRouter(
       "VALUES (@id, @ownerUserId, @name, @author, @version, @payload, @visibility, @createdAt, @updatedAt)"
   );
   const findByIdAny = db.prepare("SELECT * FROM content_packs WHERE id = ?");
+  const findByIdOwner = db.prepare("SELECT * FROM content_packs WHERE id = ? AND owner_user_id = ?");
   const listVisible = db.prepare(
     "SELECT * FROM content_packs WHERE owner_user_id = ? OR visibility = 'shared' ORDER BY updated_at DESC"
   );
   const deleteById = db.prepare("DELETE FROM content_packs WHERE id = ? AND owner_user_id = ?");
+  const updateDisabled = db.prepare(
+    "UPDATE content_packs SET disabled = @disabled, updated_at = @updatedAt WHERE id = @id AND owner_user_id = @ownerUserId"
+  );
 
   router.post("/", (req, res) => {
     if (hasDangerousKeys(req.body)) {
@@ -116,18 +149,20 @@ export function createContentPacksRouter(
       updatedAt: now
     });
 
-    res.status(201).json({
-      id: pack.id,
-      ownerUserId,
-      visibility,
-      name: pack.name,
-      author: pack.author,
-      version: pack.version,
-      playbookCount: pack.playbooks.length,
-      moveCount: pack.basicMoves.length + pack.playbooks.reduce((sum, p) => sum + p.moves.length, 0),
-      createdAt: now,
-      updatedAt: now
-    });
+    res.status(201).json(
+      toSummary({
+        id: pack.id,
+        owner_user_id: ownerUserId,
+        name: pack.name,
+        author: pack.author,
+        version: pack.version,
+        payload: JSON.stringify(pack),
+        visibility,
+        disabled: 0,
+        created_at: now,
+        updated_at: now
+      })
+    );
   });
 
   router.get("/", (req, res) => {
@@ -164,6 +199,37 @@ export function createContentPacksRouter(
     }
 
     res.json({ ...toSummary(row), pack: JSON.parse(row.payload) });
+  });
+
+  router.patch("/:id", (req, res) => {
+    const idResult = UuidSchema.safeParse(req.params.id);
+    if (!idResult.success) {
+      res.status(400).json({ errors: [{ path: "id", message: "invalid pack id" }] });
+      return;
+    }
+
+    const result = ContentPackDisabledUpdateSchema.strict().safeParse(req.body);
+    if (!result.success) {
+      res.status(400).json(zodErrorResponse(result.error));
+      return;
+    }
+
+    // Owner-only, same guard as DELETE: a shared pack may still only be
+    // toggled by its actual uploader, not by every user who can read it.
+    const now = new Date().toISOString();
+    const { changes } = updateDisabled.run({
+      id: idResult.data,
+      ownerUserId: req.user!.id,
+      disabled: result.data.disabled ? 1 : 0,
+      updatedAt: now
+    });
+    if (changes === 0) {
+      res.status(404).json({ errors: [{ path: "id", message: "pack not found" }] });
+      return;
+    }
+
+    const row = findByIdOwner.get(idResult.data, req.user!.id) as ContentPackRow;
+    res.json(toSummary(row));
   });
 
   router.delete("/:id", (req, res) => {

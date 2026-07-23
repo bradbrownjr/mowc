@@ -25,7 +25,7 @@
    * switching scope mid-wizard needs no further round trip.
    */
   async function load(): Promise<void> {
-    const summaries = await listPacks().catch(() => []);
+    const summaries = (await listPacks().catch(() => [])).filter((s) => !s.disabled);
     const details = await Promise.all(summaries.map((s) => getPack(s.id).catch(() => null)));
     const loaded = details.filter((d): d is PackDetail => d !== null);
     availablePlaybooks = flattenPlaybooks(loaded.map((d) => d.pack));

@@ -242,6 +242,18 @@ exists to fix).
   "Move without the pack" (the pre-0.15 direct move, now an explicit choice)
   alongside a local-only "Cancel" that dismisses the banner without a
   server call, since the request is already terminal.
+- Content-pack list (`/packs`): each row carries derived type chips
+  (`packBadges`, rendered as Evidence tags) naming what the pack is,
+  "Playbook" and/or "Keeper reference", computed from the pack's own
+  content, never a stored type field. A disabled pack renders at reduced
+  opacity with a `--danger` "Disabled" Stamp and stays in the list. Owner
+  rows get a leading select checkbox; selecting one or more raises an
+  `--accent`-bordered bulk-action bar (same bordered-panel shape as the
+  other list screens, no new motif) offering Disable/Enable selected and a
+  Delete selected that expands in place into a named confirmation ("Delete
+  N packs? A, B, ...") before running, following the destructive-action
+  rule that bulk delete is always confirmed. A single count line ("N packs,
+  M disabled") closes the list.
 
 ## Guidance copy ("field notes")
 

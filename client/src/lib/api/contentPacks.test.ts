@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ContentPack } from "@mowc/shared";
-import { PackApiError, createPack, deletePack, getPack, listPacks } from "./contentPacks.js";
+import { PackApiError, createPack, deletePack, getPack, listPacks, setPackDisabled } from "./contentPacks.js";
 
 const PLACEHOLDER_PACK: ContentPack = {
   id: "550e8400-e29b-41d4-a716-446655440000",
@@ -93,5 +93,35 @@ describe("deletePack", () => {
     mockFetch({ ok: false, status: 404, jsonBody: { errors: [] } });
 
     await expect(deletePack("missing")).rejects.toThrow(PackApiError);
+  });
+});
+
+describe("setPackDisabled", () => {
+  it("PATCHes the disabled flag and returns the updated summary", async () => {
+    mockFetch({
+      jsonBody: {
+        id: PLACEHOLDER_PACK.id,
+        name: PLACEHOLDER_PACK.name,
+        author: PLACEHOLDER_PACK.author,
+        version: PLACEHOLDER_PACK.version,
+        disabled: true,
+        createdAt: "now",
+        updatedAt: "now"
+      }
+    });
+
+    const result = await setPackDisabled(PLACEHOLDER_PACK.id, true);
+
+    expect(result.disabled).toBe(true);
+    const [url, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`/api/content-packs/${PLACEHOLDER_PACK.id}`);
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(init.body as string)).toEqual({ disabled: true });
+  });
+
+  it("throws on a non-ok response", async () => {
+    mockFetch({ ok: false, status: 404, jsonBody: { errors: [] } });
+
+    await expect(setPackDisabled("missing", true)).rejects.toThrow(PackApiError);
   });
 });

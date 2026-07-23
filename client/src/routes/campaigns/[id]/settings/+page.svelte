@@ -129,8 +129,10 @@
         <p class="error">{packsError}</p>
       {/if}
       {#if packs.length > 0}
+        {@const attachedPackIds = campaign.packIds}
+        {@const visiblePacks = packs.filter((pack) => !pack.disabled || attachedPackIds.includes(pack.id))}
         <ul class="entity-list">
-          {#each packs as pack (pack.id)}
+          {#each visiblePacks as pack (pack.id)}
             {@const attached = campaign.packIds.includes(pack.id)}
             <li class="entity-row">
               <span class="entity-meta">{pack.name} - {pack.author}</span>

@@ -270,6 +270,73 @@ describe("GET /api/content-packs/:id", () => {
   });
 });
 
+describe("POST /api/content-packs disabled default", () => {
+  it("defaults disabled to false on create", async () => {
+    const app = createTestApp();
+    const agent = await authedAgent(app);
+    const pack = loadExamplePack();
+
+    const res = await agent.post("/api/content-packs").send(pack);
+
+    expect(res.body).toMatchObject({ disabled: false });
+  });
+});
+
+describe("PATCH /api/content-packs/:id", () => {
+  it("flips disabled and round-trips through GET when the owner toggles it", async () => {
+    const app = createTestApp();
+    const agent = await authedAgent(app);
+    const pack = loadExamplePack();
+    await agent.post("/api/content-packs").send(pack);
+
+    const patchRes = await agent.patch(`/api/content-packs/${pack.id}`).send({ disabled: true });
+    expect(patchRes.status).toBe(200);
+    expect(patchRes.body).toMatchObject({ id: pack.id, disabled: true });
+
+    const listRes = await agent.get("/api/content-packs");
+    expect(listRes.body).toEqual([expect.objectContaining({ id: pack.id, disabled: true })]);
+
+    const patchBackRes = await agent.patch(`/api/content-packs/${pack.id}`).send({ disabled: false });
+    expect(patchBackRes.body).toMatchObject({ id: pack.id, disabled: false });
+  });
+
+  it("rejects a non-owner's attempt to toggle a shared pack with 404", async () => {
+    const app = createTestApp("admin@example.com");
+    const admin = await registerAgent(app, "admin@example.com", "Admin");
+    const pack = loadExamplePack();
+    await admin.post("/api/content-packs").send(pack);
+
+    const other = await registerAgent(app, "other@example.com", "Other");
+    const res = await other.patch(`/api/content-packs/${pack.id}`).send({ disabled: true });
+
+    expect(res.status).toBe(404);
+    const getRes = await admin.get(`/api/content-packs/${pack.id}`);
+    expect(getRes.body.disabled).toBe(false);
+  });
+
+  it("returns 404 patching an unknown id", async () => {
+    const app = createTestApp();
+    const agent = await authedAgent(app);
+
+    const res = await agent
+      .patch("/api/content-packs/00000000-0000-0000-0000-000000000000")
+      .send({ disabled: true });
+
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 400 for a non-boolean disabled value", async () => {
+    const app = createTestApp();
+    const agent = await authedAgent(app);
+    const pack = loadExamplePack();
+    await agent.post("/api/content-packs").send(pack);
+
+    const res = await agent.patch(`/api/content-packs/${pack.id}`).send({ disabled: "yes" });
+
+    expect(res.status).toBe(400);
+  });
+});
+
 describe("DELETE /api/content-packs/:id", () => {
   it("deletes an existing pack", async () => {
     const app = createTestApp();

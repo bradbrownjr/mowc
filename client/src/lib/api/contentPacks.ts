@@ -4,11 +4,17 @@ export interface PackSummary {
   id: string;
   ownerUserId: string;
   visibility: "private" | "shared";
+  disabled: boolean;
   name: string;
   author: string;
   version: string;
   playbookCount: number;
   moveCount: number;
+  monsterTypeCount: number;
+  minionTypeCount: number;
+  bystanderTypeCount: number;
+  locationTypeCount: number;
+  hasKeeperReference: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -69,4 +75,14 @@ export async function createPack(pack: ContentPack): Promise<PackSummary> {
 export async function deletePack(id: string): Promise<void> {
   const res = await fetch(`/api/content-packs/${encodeURIComponent(id)}`, { method: "DELETE" });
   if (!res.ok) await throwApiError(res);
+}
+
+export async function setPackDisabled(id: string, disabled: boolean): Promise<PackSummary> {
+  const res = await fetch(`/api/content-packs/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ disabled })
+  });
+  if (!res.ok) await throwApiError(res);
+  return res.json() as Promise<PackSummary>;
 }
