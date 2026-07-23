@@ -4,7 +4,7 @@ All notable changes to MOWC are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow the
 `0.PHASE.BUILD` scheme described in ROADMAP.md.
 
-## [Unreleased]
+## [0.15.1] - 2026-07-23
 
 ### Added
 - Live table play (Phase 6, 0.6.1). Open a campaign on two devices and you
